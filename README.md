@@ -17,16 +17,13 @@ VS Code + Oh My Pi bridge for sending editor context to OMP with `Ctrl+Alt+K`.
 
 Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.
 
-With a selection, OMP receives:
+With a selection, OMP receives a file reference by default:
 
-````text
+```text
 In @src/example.ts#L7-L9
-
-```typescript
-const value = 1
-return value
 ```
-````
+
+Set `ompContext.contentMode` to `inline` if you also want the selected text pasted as a fenced code block.
 
 Without a selection, OMP receives only the current file and line reference:
 
@@ -64,6 +61,7 @@ See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge sec
 ## Settings
 
 - `ompContext.endpoint`: optional endpoint override. Empty uses `~/.omp/agent/editor-context-bridge.json`, then `http://127.0.0.1:47687`.
+- `ompContext.contentMode`: `reference` (default) sends only `@file#Lx-Ly`; `inline` includes selected text too.
 - `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
 
 ## Security model

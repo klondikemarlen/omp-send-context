@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { buildReference, formatContextPrompt, type EditorContext } from "./prompt"
+import { buildReference, formatContextPrompt, type ContentMode, type EditorContext } from "./prompt"
 
 type Delivery = "paste" | "send" | "nextTurn"
 
@@ -52,7 +52,7 @@ async function insertEditorContext() {
   }
 
   const editorContext = getEditorContext(activeEditor)
-  const prompt = formatContextPrompt(editorContext)
+  const prompt = formatContextPrompt(editorContext, getContentMode())
   const bridgeRequest = getBridgeRequest(activeEditor, editorContext, prompt)
   const bridgeState = await getBridgeState()
 
@@ -140,6 +140,18 @@ function getRelativePath(document: vscode.TextDocument) {
   }
 
   return document.uri.toString()
+}
+
+function getContentMode(): ContentMode {
+  const value = vscode.workspace
+    .getConfiguration("ompContext")
+    .get<string>("contentMode", "reference")
+
+  if (value === "inline") {
+    return value
+  }
+
+  return "reference"
 }
 
 function getDelivery(value: string): Delivery {

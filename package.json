@@ -2,7 +2,7 @@
   "name": "omp-vscode-context",
   "displayName": "OMP VS Code Context",
   "description": "Send the current VS Code file or selection to Oh My Pi with Ctrl+Alt+K.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "klondikemarlen",
   "type": "module",
   "license": "MIT",
@@ -73,6 +73,15 @@
           "type": "string",
           "default": "",
           "description": "Override the OMP context bridge endpoint. Empty means read ~/.omp/agent/editor-context-bridge.json, then fall back to http://127.0.0.1:47687."
+        },
+        "ompContext.contentMode": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "inline"
+          ],
+          "default": "reference",
+          "description": "What Ctrl+Alt+K inserts for a selection. Reference sends only @file#Lx-Ly so OMP can read the file; inline also includes the selected text."
         },
         "ompContext.delivery": {
           "type": "string",

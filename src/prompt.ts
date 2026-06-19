@@ -6,6 +6,8 @@ export interface EditorContext {
   readonly languageId: string
 }
 
+export type ContentMode = "reference" | "inline"
+
 const DEFAULT_CODE_FENCE = "```"
 
 export function buildReference(context: Pick<EditorContext, "relativePath" | "startLine" | "endLine">) {
@@ -16,10 +18,10 @@ export function buildReference(context: Pick<EditorContext, "relativePath" | "st
   return `@${context.relativePath}#${lineReference}`
 }
 
-export function formatContextPrompt(context: EditorContext) {
+export function formatContextPrompt(context: EditorContext, contentMode: ContentMode = "reference") {
   const reference = buildReference(context)
 
-  if (context.selectedText.length === 0) {
+  if (contentMode === "reference" || context.selectedText.length === 0) {
     return `In ${reference}`
   }
 

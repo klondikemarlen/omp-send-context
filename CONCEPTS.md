@@ -10,7 +10,7 @@
 - **Editor facts come from VS Code:** Current file, cursor, selection, selected text, and language id are captured by the VS Code extension only.
 - **Prompt mutation happens in OMP:** OMP owns the live prompt editor, so prompt insertion uses an OMP runtime extension.
 - **Local bridge, not public API:** The HTTP server binds to `127.0.0.1` and requires the token written by the running OMP extension.
-- **Reference plus text:** Send both `@file#Lx-Ly` and selected text. The reference lets OMP use its file tools; the text preserves the exact selected edit context.
+- **Reference first:** Default to `@file#Lx-Ly` references for saved workspace files. OMP can read the current file directly, and the prompt avoids duplicating large selections.
 
 ## Problem shape
 
@@ -32,7 +32,7 @@ sequenceDiagram
 
   VSCode->>Extension: Ctrl+Alt+K
   Extension->>Extension: Read active file, selection, language id
-  Extension->>Extension: Format @file#Lx-Ly plus selected text
+  Extension->>Extension: Format @file#Lx-Ly reference
   Extension->>Bridge: POST /context with bearer token
   Bridge->>OMP: pasteToEditor(prompt)
   OMP-->>VSCode: Context appears in prompt
@@ -45,7 +45,7 @@ The VS Code extension posts JSON to `/context`:
 ```json
 {
   "delivery": "paste",
-  "prompt": "In @src/example.ts#L7-L9\n\n```typescript\nconst value = 1\n```",
+  "prompt": "In @src/example.ts#L7-L9",
   "reference": "@src/example.ts#L7-L9",
   "relativePath": "src/example.ts",
   "workspaceFolder": "/workspace/project",
@@ -61,6 +61,13 @@ The VS Code extension posts JSON to `/context`:
 ```
 
 Only `prompt` is required by the current OMP bridge. The extra fields are intentionally included for future behavior: custom renderers, session metadata, or alternate delivery modes.
+
+## Content modes
+
+- `reference`: default. Sends only `In @file#Lx-Ly`. Best for saved workspace files because OMP can inspect the file and the prompt stays small.
+- `inline`: sends `In @file#Lx-Ly` plus a fenced copy of the selected text. Useful for unsaved buffers, generated output, or when the exact selected bytes matter more than file freshness.
+
+Avoid using inline mode as the default for large selections: OMP will ask whether to attach a wrapped block, save a local attachment file, or paste inline.
 
 ## Delivery modes
 
@@ -89,7 +96,7 @@ The VS Code setting `ompContext.endpoint` overrides discovery when needed.
 
 OpenCode documents `Ctrl+Alt+K` / `Cmd+Alt+K` as a file-reference insertion shortcut. Claude Code documents `Alt+K` / `Option+K` as **Insert @-Mention Reference** and also exposes selected text automatically.
 
-This extension chooses OpenCode's chord because the request named `Ctrl+Alt+K`, and it preserves Claude/OpenCode's safer behavior: insert context into the prompt, do not auto-submit by default.
+This extension chooses OpenCode's chord because the request named `Ctrl+Alt+K`, and it preserves Claude/OpenCode's safer behavior: insert a reference into the prompt, do not auto-submit by default.
 
 ## Limits
 
