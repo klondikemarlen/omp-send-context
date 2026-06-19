@@ -9,14 +9,16 @@ Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code edit
 With a selection, OMP receives a file reference by default:
 
 ```text
-In @src/example.ts#L7-L9
+In @src/example.ts#L7C17-L9C20 
 ```
 
-Without a selection, OMP receives the current file and cursor line:
+Without a selection, OMP receives the current file and cursor position:
 
 ```text
-In @src/example.ts#L7
+In @src/example.ts#L7C17 
 ```
+
+The inserted prompt ends with a trailing space so you can keep typing immediately after the reference.
 
 The default is reference-only because OMP can read saved workspace files directly. This avoids pasting large selections into the prompt and avoids OMP's large-paste attachment chooser. Set `ompContext.contentMode` to `inline` if you need the selected text copied into the prompt as a fenced code block.
 
@@ -95,7 +97,7 @@ To see the active endpoint and plugin version in a terminal, run:
 ## Settings
 
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
-- `ompContext.contentMode`: `reference` (default) sends only `@file#Lx-Ly`; `inline` includes selected text too.
+- `ompContext.contentMode`: `reference` (default) sends only `@file#LxCy-LxCy`; `inline` includes selected text too.
 - `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
 
 ## Publish

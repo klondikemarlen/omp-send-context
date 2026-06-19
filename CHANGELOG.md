@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- Include character positions in file references.
+- Add a trailing space after inserted references for continued typing.
+
 ## 0.1.3
 
 - Add OMP commands for routing VS Code context to a chosen terminal.

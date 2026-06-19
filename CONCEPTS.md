@@ -10,7 +10,7 @@
 - **Editor facts come from VS Code:** Current file, cursor, selection, selected text, and language id are captured by the VS Code extension only.
 - **Prompt mutation happens in OMP:** OMP owns the live prompt editor, so prompt insertion uses an OMP runtime extension.
 - **Local bridge, not public API:** The HTTP server binds to `127.0.0.1` and requires the token written by the running OMP extension.
-- **Reference first:** Default to `@file#Lx-Ly` references for saved workspace files. OMP can read the current file directly, and the prompt avoids duplicating large selections.
+- **Reference first:** Default to character-precise `@file#LxCy-LxCy` references for saved workspace files. OMP can read the current file directly, and the prompt avoids duplicating large selections.
 
 ## Problem shape
 
@@ -32,7 +32,7 @@ sequenceDiagram
 
   VSCode->>Extension: Ctrl+Alt+K
   Extension->>Extension: Read active file, selection, language id
-  Extension->>Extension: Format @file#Lx-Ly reference
+  Extension->>Extension: Format @file#LxCy-LxCy reference
   Extension->>Bridge: POST /context with bearer token
   Bridge->>OMP: pasteToEditor(prompt)
   OMP-->>VSCode: Context appears in prompt
@@ -45,8 +45,8 @@ The VS Code extension posts JSON to `/context`:
 ```json
 {
   "delivery": "paste",
-  "prompt": "In @src/example.ts#L7-L9",
-  "reference": "@src/example.ts#L7-L9",
+  "prompt": "In @src/example.ts#L7C17-L9C20 ",
+  "reference": "@src/example.ts#L7C17-L9C20",
   "relativePath": "src/example.ts",
   "workspaceFolder": "/workspace/project",
   "filePath": "/workspace/project/src/example.ts",
@@ -54,6 +54,8 @@ The VS Code extension posts JSON to `/context`:
   "selection": {
     "startLine": 7,
     "endLine": 9,
+    "startCharacter": 17,
+    "endCharacter": 20,
     "isEmpty": false
   },
   "selectedText": "const value = 1"
@@ -64,8 +66,8 @@ Only `prompt` is required by the current OMP bridge. The extra fields are intent
 
 ## Content modes
 
-- `reference`: default. Sends only `In @file#Lx-Ly`. Best for saved workspace files because OMP can inspect the file and the prompt stays small.
-- `inline`: sends `In @file#Lx-Ly` plus a fenced copy of the selected text. Useful for unsaved buffers, generated output, or when the exact selected bytes matter more than file freshness.
+- `reference`: default. Sends only `In @file#LxCy-LxCy `. Best for saved workspace files because OMP can inspect the file and the prompt stays small.
+- `inline`: sends `In @file#LxCy-LxCy ` plus a fenced copy of the selected text. Useful for unsaved buffers, generated output, or when the exact selected bytes matter more than file freshness.
 
 Avoid using inline mode as the default for large selections: OMP will ask whether to attach a wrapped block, save a local attachment file, or paste inline.
 

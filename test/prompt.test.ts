@@ -1,62 +1,72 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, formatContextPrompt } from "../src/prompt"
+import { buildReference, formatContextPrompt, type EditorContext } from "../src/prompt"
 
-test("buildReference formats single line references", () => {
-  const reference = buildReference({
+function editorContext(overrides: Partial<EditorContext>): EditorContext {
+  return {
     relativePath: "src/example.ts",
     startLine: 7,
-    endLine: 7,
-  })
+    endLine: 9,
+    startCharacter: 17,
+    endCharacter: 20,
+    selectedText: "const value = 1\nreturn value",
+    languageId: "typescript",
+    ...overrides,
+  }
+}
 
-  assert.equal(reference, "@src/example.ts#L7")
+test("buildReference formats character-precise references", () => {
+  const reference = buildReference(editorContext({}))
+
+  assert.equal(reference, "@src/example.ts#L7C17-L9C20")
+})
+
+test("buildReference collapses a single cursor position", () => {
+  const reference = buildReference(editorContext({
+    startLine: 7,
+    endLine: 7,
+    startCharacter: 17,
+    endCharacter: 17,
+  }))
+
+  assert.equal(reference, "@src/example.ts#L7C17")
 })
 
 test("formatContextPrompt defaults to a file reference for selected code", () => {
-  const prompt = formatContextPrompt({
-    relativePath: "src/example.ts",
-    startLine: 7,
-    endLine: 9,
-    selectedText: "const value = 1\nreturn value",
-    languageId: "typescript",
-  })
+  const prompt = formatContextPrompt(editorContext({}))
 
-  assert.equal(prompt, "In @src/example.ts#L7-L9")
+  assert.equal(prompt, "In @src/example.ts#L7C17-L9C20 ")
 })
 
 test("formatContextPrompt includes selected code in inline mode", () => {
-  const prompt = formatContextPrompt({
-    relativePath: "src/example.ts",
-    startLine: 7,
-    endLine: 9,
-    selectedText: "const value = 1\nreturn value",
-    languageId: "typescript",
-  }, "inline")
+  const prompt = formatContextPrompt(editorContext({}), "inline")
 
-  assert.equal(prompt, "In @src/example.ts#L7-L9\n\n```typescript\nconst value = 1\nreturn value\n```")
+  assert.equal(prompt, "In @src/example.ts#L7C17-L9C20 \n\n```typescript\nconst value = 1\nreturn value\n```")
 })
 
 test("formatContextPrompt lengthens fence when selection contains backticks", () => {
-  const prompt = formatContextPrompt({
+  const prompt = formatContextPrompt(editorContext({
     relativePath: "README.md",
     startLine: 1,
     endLine: 3,
+    startCharacter: 1,
+    endCharacter: 3,
     selectedText: "```ts\nconst value = 1\n```",
     languageId: "markdown",
-  }, "inline")
+  }), "inline")
 
-  assert.equal(prompt, "In @README.md#L1-L3\n\n````markdown\n```ts\nconst value = 1\n```\n````")
+  assert.equal(prompt, "In @README.md#L1C1-L3C3 \n\n````markdown\n```ts\nconst value = 1\n```\n````")
 })
 
-test("formatContextPrompt emits only a reference when there is no selection", () => {
-  const prompt = formatContextPrompt({
-    relativePath: "src/example.ts",
+test("formatContextPrompt emits a trailing space for cursor references", () => {
+  const prompt = formatContextPrompt(editorContext({
     startLine: 3,
     endLine: 3,
+    startCharacter: 8,
+    endCharacter: 8,
     selectedText: "",
-    languageId: "typescript",
-  })
+  }))
 
-  assert.equal(prompt, "In @src/example.ts#L3")
+  assert.equal(prompt, "In @src/example.ts#L3C8 ")
 })

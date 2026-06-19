@@ -24,6 +24,8 @@ interface BridgeRequest {
   readonly selection: {
     readonly startLine: number
     readonly endLine: number
+    readonly startCharacter: number
+    readonly endCharacter: number
     readonly isEmpty: boolean
   }
   readonly selectedText: string
@@ -80,6 +82,8 @@ function getEditorContext(activeEditor: vscode.TextEditor): EditorContext {
       relativePath,
       startLine: line,
       endLine: line,
+      startCharacter: selection.active.character + 1,
+      endCharacter: selection.active.character + 1,
       selectedText: "",
       languageId: document.languageId,
     }
@@ -87,14 +91,18 @@ function getEditorContext(activeEditor: vscode.TextEditor): EditorContext {
 
   const startLine = selection.start.line + 1
   let endLine = selection.end.line + 1
+  let endCharacter = selection.end.character
   if (selection.end.character === 0 && selection.end.line > selection.start.line) {
     endLine = selection.end.line
+    endCharacter = document.lineAt(endLine - 1).text.length
   }
 
   return {
     relativePath,
     startLine,
     endLine,
+    startCharacter: selection.start.character + 1,
+    endCharacter,
     selectedText: document.getText(selection),
     languageId: document.languageId,
   }
@@ -123,6 +131,8 @@ function getBridgeRequest(
     selection: {
       startLine: editorContext.startLine,
       endLine: editorContext.endLine,
+      startCharacter: editorContext.startCharacter,
+      endCharacter: editorContext.endCharacter,
       isEmpty: activeEditor.selection.isEmpty,
     },
     selectedText: editorContext.selectedText,
