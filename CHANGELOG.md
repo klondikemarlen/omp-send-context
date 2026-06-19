@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Improve Marketplace metadata and README install instructions.
+- Document Marketplace, publisher hub, and GitHub links.
+
 ## 0.1.1
 
 - Default selected code to file references instead of inline code blocks.

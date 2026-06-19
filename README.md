@@ -1,19 +1,8 @@
-# omp-vscode-context
+# Oh My Pi Context Bridge
 
-VS Code + Oh My Pi bridge for sending editor context to OMP with `Ctrl+Alt+K`.
+VS Code extension plus Oh My Pi extension for sending the active editor location to OMP with `Ctrl+Alt+K`.
 
-## Intent
-
-**WHY this exists:** OMP can inspect files once prompted, but VS Code owns the active editor, cursor, and selection. A local bridge is required to move that IDE context into the OMP prompt without copy/paste.
-
-**WHAT this produces:** A VS Code command/keybinding plus an OMP extension. The VS Code side captures the active file and selection. The OMP side receives it over loopback HTTP and inserts it into the live OMP prompt.
-
-**Decision Rules:**
-- **Use VS Code for editor state:** Selection and cursor state live in VS Code, so the keyboard shortcut is implemented as a VS Code extension.
-- **Use OMP for prompt delivery:** OMP prompt editing is owned by OMP, so the repo also ships an OMP extension that exposes a local bridge.
-- **Prefer paste over auto-send:** Default behavior inserts context into the prompt instead of submitting it, matching Claude Code/OpenCode reference insertion and keeping the user in control.
-
-## Behavior
+## What it does
 
 Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.
 
@@ -23,46 +12,103 @@ With a selection, OMP receives a file reference by default:
 In @src/example.ts#L7-L9
 ```
 
-Set `ompContext.contentMode` to `inline` if you also want the selected text pasted as a fenced code block.
-
-Without a selection, OMP receives only the current file and line reference:
+Without a selection, OMP receives the current file and cursor line:
 
 ```text
 In @src/example.ts#L7
 ```
 
+The default is reference-only because OMP can read saved workspace files directly. This avoids pasting large selections into the prompt and avoids OMP's large-paste attachment chooser. Set `ompContext.contentMode` to `inline` if you need the selected text copied into the prompt as a fenced code block.
+
 If the OMP bridge is not reachable, the VS Code extension copies the same context block to the clipboard.
 
-## Install locally
+## Install
 
-Install the OMP extension from a cloned checkout:
+You need both pieces:
+
+1. The VS Code extension captures editor state.
+2. The OMP extension receives the context and inserts it into the OMP prompt.
+
+### VS Code Marketplace
+
+Install from Marketplace:
 
 ```bash
-git clone https://github.com/klondikemarlen/omp-vscode-context.git
-cd omp-vscode-context
-omp install "$PWD"
+code --install-extension klondikemarlen.omp-vscode-context
+```
+
+Or use VS Code's Extensions view and search for **Oh My Pi Context Bridge**.
+
+Links:
+
+- Marketplace: https://marketplace.visualstudio.com/items?itemName=klondikemarlen.omp-vscode-context
+- Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen/extensions/omp-vscode-context/hub?_a=acqu
+- GitHub: https://github.com/klondikemarlen/omp-vscode-context
+
+### OMP plugin
+
+Install the companion OMP extension from GitHub:
+
+```bash
+omp install github:klondikemarlen/omp-vscode-context
 ```
 
 Restart OMP or run `/reload-plugins`.
 
-Install the VS Code extension for development:
+### Local development install
 
 ```bash
+git clone https://github.com/klondikemarlen/omp-vscode-context.git
+cd omp-vscode-context
 npm install
+npm run package:vsix
+omp install "$PWD"
+```
+
+Then install the generated `.vsix` in VS Code, or run **Developer: Install Extension from Location...** against this folder.
+
+## Settings
+
+- `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
+- `ompContext.contentMode`: `reference` (default) sends only `@file#Lx-Ly`; `inline` includes selected text too.
+- `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
+
+## Publish
+
+Marketplace publishing uses `@vscode/vsce`.
+
+Before publishing:
+
+```bash
+npm test
 npm run package:vsix
 ```
 
-Then run **Developer: Install Extension from Location...** against this folder, or install the generated `.vsix`.
+Publish a new version:
+
+```bash
+npm version patch --no-git-tag-version
+npm run publish:marketplace
+```
+
+`npm run publish:marketplace` runs `vsce publish`, which runs `npm run vscode:prepublish` first. The prepublish step type-checks and bundles `dist/extension.cjs`.
+
+Authentication:
+
+```bash
+npx vsce login klondikemarlen
+```
+
+Use a Visual Studio Marketplace/Azure DevOps PAT with **Marketplace → Manage** scope. The publisher id is `klondikemarlen`; do not use an email address.
+
+After publishing, verify both directions:
+
+- GitHub README links to the Marketplace listing and publisher hub.
+- Marketplace listing links back to this GitHub repository through `repository` and `homepage` metadata.
 
 ## Concepts
 
 See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge security model, delivery modes, and known limits.
-
-## Settings
-
-- `ompContext.endpoint`: optional endpoint override. Empty uses `~/.omp/agent/editor-context-bridge.json`, then `http://127.0.0.1:47687`.
-- `ompContext.contentMode`: `reference` (default) sends only `@file#Lx-Ly`; `inline` includes selected text too.
-- `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
 
 ## Security model
 

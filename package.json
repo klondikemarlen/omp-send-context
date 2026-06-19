@@ -1,8 +1,8 @@
 {
   "name": "omp-vscode-context",
-  "displayName": "OMP VS Code Context",
-  "description": "Send the current VS Code file or selection to Oh My Pi with Ctrl+Alt+K.",
-  "version": "0.1.1",
+  "displayName": "Oh My Pi Context Bridge",
+  "description": "Send VS Code file and selection references to Oh My Pi with Ctrl+Alt+K.",
+  "version": "0.1.2",
   "publisher": "klondikemarlen",
   "type": "module",
   "license": "MIT",
@@ -21,7 +21,11 @@
     "vscode",
     "context",
     "selection",
-    "ai"
+    "ai",
+    "agent",
+    "coding-agent",
+    "claude",
+    "opencode"
   ],
   "engines": {
     "vscode": "^1.94.0"
@@ -30,6 +34,7 @@
     "workspace"
   ],
   "categories": [
+    "Machine Learning",
     "Other"
   ],
   "activationEvents": [
