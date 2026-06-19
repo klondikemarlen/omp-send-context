@@ -18,12 +18,16 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     const moduleUrl = pathToFileURL(path.resolve("omp/index.js"))
     const extensionModule = await import(`${moduleUrl.href}?bridge-test=${Date.now()}`)
     const handlers = new Map()
+    const commands = new Map()
     const pastedPrompts = []
 
     const pi = {
       setLabel() {},
       on(eventName, handler) {
         handlers.set(eventName, handler)
+      },
+      registerCommand(commandName, command) {
+        commands.set(commandName, command)
       },
       async sendUserMessage() {},
     }
@@ -43,6 +47,10 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
 
     const stateFile = path.join(homeDirectory, ".omp", "agent", "editor-context-bridge.json")
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    assert.equal(state.version, "0.1.3")
+    assert.equal(typeof state.instanceId, "string")
+    assert.equal(commands.has("vscode-context-here"), true)
+    assert.equal(commands.has("vscode-context-status"), true)
     const response = await fetch(`${state.endpoint}/context`, {
       method: "POST",
       headers: {

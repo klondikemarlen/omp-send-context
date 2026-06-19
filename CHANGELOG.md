@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Add OMP commands for routing VS Code context to a chosen terminal.
+- Document GitHub plugin updates through Bun's plugin lockfile.
+- Include the plugin version in the OMP bridge state and status command.
+
 ## 0.1.2
 
 - Improve Marketplace metadata and README install instructions.

@@ -1,31 +1,56 @@
 import { randomBytes } from "node:crypto"
 import { createServer } from "node:http"
-import { mkdir, rm, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 
 const DEFAULT_PORT = Number.parseInt(process.env.OMP_CONTEXT_BRIDGE_PORT ?? "47687", 10)
 const HOST = "127.0.0.1"
 const MAX_PORT_ATTEMPTS = 20
 const MAX_BODY_BYTES = 2 * 1024 * 1024
 const STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
+const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
 
 let activeContext
+let instanceId
+let packageVersion
 let server
+let serverPort
 let token
 let serverEndpoint
 
 export default function ompVscodeContextExtension(pi) {
   pi.setLabel("VS Code Context Bridge")
 
+  pi.registerCommand("vscode-context-here", {
+    description: "Route VS Code Ctrl+Alt+K context to this OMP terminal",
+    handler: async (_args, ctx) => {
+      activeContext = ctx
+      await ensureServer(pi, ctx)
+      await claimActiveBridge(ctx)
+      ctx.ui.notify(`VS Code context will target this terminal via ${serverEndpoint}.`, "info")
+    },
+  })
+
+  pi.registerCommand("vscode-context-status", {
+    description: "Show VS Code context bridge endpoint and version",
+    handler: async (_args, ctx) => {
+      await ensureServer(pi, ctx)
+      ctx.ui.notify(`VS Code Context Bridge ${packageVersion} is listening on ${serverEndpoint}.`, "info")
+    },
+  })
+
   pi.on("session_start", async (_event, ctx) => {
     activeContext = ctx
     await ensureServer(pi, ctx)
+    await claimActiveBridge(ctx)
   })
 
   pi.on("session_switch", async (_event, ctx) => {
     activeContext = ctx
     await ensureServer(pi, ctx)
+    await claimActiveBridge(ctx)
   })
 
   pi.on("session_shutdown", async () => {
@@ -39,6 +64,9 @@ async function ensureServer(pi, ctx) {
     return
   }
 
+  instanceId = randomBytes(16).toString("hex")
+  await ensurePackageVersion()
+
   token = randomBytes(32).toString("hex")
 
   for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
@@ -50,9 +78,10 @@ async function ensureServer(pi, ctx) {
     try {
       await listen(candidateServer, port)
       server = candidateServer
+      serverPort = port
       serverEndpoint = `http://${HOST}:${port}`
-      await writeStateFile(port)
-      ctx.ui.notify(`VS Code context bridge listening on ${serverEndpoint}.`, "info")
+      await writeStateFile()
+      ctx.ui.notify(`VS Code Context Bridge ${packageVersion} listening on ${serverEndpoint}.`, "info")
       return
     } catch (error) {
       candidateServer.close()
@@ -196,12 +225,23 @@ async function deliverContext(pi, body) {
   await pi.sendUserMessage(body.prompt, { deliverAs: "nextTurn" })
 }
 
-async function writeStateFile(port) {
+async function claimActiveBridge(ctx) {
+  if (serverEndpoint === undefined || serverPort === undefined) {
+    return
+  }
+
+  await writeStateFile()
+  ctx.ui.notify?.(`VS Code Ctrl+Alt+K now targets this OMP terminal (${serverEndpoint}).`, "info")
+}
+
+async function writeStateFile() {
   const state = {
-    endpoint: `http://${HOST}:${port}`,
-    port,
+    endpoint: serverEndpoint,
+    port: serverPort,
     token,
     pid: process.pid,
+    instanceId,
+    version: packageVersion,
     updatedAt: new Date().toISOString(),
   }
 
@@ -213,19 +253,46 @@ async function writeStateFile(port) {
   })
 }
 
+async function ensurePackageVersion() {
+  if (packageVersion !== undefined) {
+    return
+  }
+
+  const packageContent = await readFile(PACKAGE_FILE, "utf8")
+  const packageJson = JSON.parse(packageContent)
+  packageVersion = typeof packageJson.version === "string" ? packageJson.version : "unknown"
+}
+
 async function closeServer() {
   if (server === undefined) {
     return
   }
 
   const closingServer = server
+  const closingInstanceId = instanceId
   server = undefined
   serverEndpoint = undefined
+  serverPort = undefined
+  instanceId = undefined
   token = undefined
 
   await new Promise((resolve) => {
     closingServer.close(() => resolve())
   })
+
+  await removeStateFile(closingInstanceId)
+}
+
+async function removeStateFile(closingInstanceId) {
+  try {
+    const stateContent = await readFile(STATE_FILE, "utf8")
+    const state = JSON.parse(stateContent)
+    if (state.instanceId !== closingInstanceId) {
+      return
+    }
+  } catch {
+    return
+  }
 
   await rm(STATE_FILE, {
     force: true,

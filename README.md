@@ -55,6 +55,15 @@ omp install github:klondikemarlen/omp-vscode-context
 
 Restart OMP or run `/reload-plugins`.
 
+Update an already-installed GitHub plugin:
+
+```bash
+cd ~/.omp/plugins
+bun update omp-vscode-context
+```
+
+Then restart OMP or run `/reload-plugins`. `omp install github:klondikemarlen/omp-vscode-context` records the plugin dependency, but the installed commit is pinned in Bun's lockfile. Use `bun update` when you want the newest GitHub version.
+
 ### Local development install
 
 ```bash
@@ -66,6 +75,22 @@ omp install "$PWD"
 ```
 
 Then install the generated `.vsix` in VS Code, or run **Developer: Install Extension from Location...** against this folder.
+
+## Multiple OMP terminals
+
+Each OMP terminal runs its own local bridge. The VS Code extension reads `~/.omp/agent/editor-context-bridge.json` and sends `Ctrl+Alt+K` context to the bridge recorded there.
+
+The active target is updated when an OMP session starts or switches. To explicitly route VS Code context to the terminal you are looking at, run:
+
+```text
+/vscode-context-here
+```
+
+To see the active endpoint and plugin version in a terminal, run:
+
+```text
+/vscode-context-status
+```
 
 ## Settings
 
