@@ -60,17 +60,13 @@ omp plugin install github:klondikemarlen/omp-vscode-context
 Update an already-installed GitHub plugin:
 
 ```bash
-omp plugin install github:klondikemarlen/omp-vscode-context
-```
-
-Restart OMP or run `/reload-plugins` after install/update.
-
-If OMP ever reports an old version after re-running install, refresh the underlying Bun dependency directly:
-
-```bash
 cd ~/.omp/plugins
 bun update omp-vscode-context
 ```
+
+Then restart OMP or run `/reload-plugins`.
+
+Why this command: OMP records GitHub plugins in `~/.omp/plugins/package.json`, but the exact installed commit is pinned by `~/.omp/plugins/bun.lock`. `omp plugin install github:klondikemarlen/omp-vscode-context` is the normal first install command; `bun update omp-vscode-context` is the reliable update command for moving that pinned GitHub dependency to the latest commit.
 
 This plugin is installed from the GitHub repo because it ships an OMP runtime extension, while the VS Code half is installed from Marketplace.
 

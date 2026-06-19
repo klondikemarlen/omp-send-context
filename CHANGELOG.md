@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Correct OMP GitHub plugin update instructions to use `bun update`.
+
 ## 0.1.5
 
 - Clarify normal OMP plugin install and update commands.
