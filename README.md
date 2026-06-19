@@ -52,31 +52,41 @@ Links:
 Install the companion OMP extension from GitHub:
 
 ```bash
-omp install github:klondikemarlen/omp-vscode-context
+omp plugin install github:klondikemarlen/omp-vscode-context
 ```
 
-Restart OMP or run `/reload-plugins`.
+`omp install github:klondikemarlen/omp-vscode-context` also works; `omp plugin install` is clearer because this is an OMP plugin, not the VS Code extension.
 
 Update an already-installed GitHub plugin:
+
+```bash
+omp plugin install github:klondikemarlen/omp-vscode-context
+```
+
+Restart OMP or run `/reload-plugins` after install/update.
+
+If OMP ever reports an old version after re-running install, refresh the underlying Bun dependency directly:
 
 ```bash
 cd ~/.omp/plugins
 bun update omp-vscode-context
 ```
 
-Then restart OMP or run `/reload-plugins`. `omp install github:klondikemarlen/omp-vscode-context` records the plugin dependency, but the installed commit is pinned in Bun's lockfile. Use `bun update` when you want the newest GitHub version.
+This plugin is installed from the GitHub repo because it ships an OMP runtime extension, while the VS Code half is installed from Marketplace.
 
 ### Local development install
+
+For normal use, install from GitHub as shown above. For development on a local checkout, link the local package so OMP loads your working tree instead of a pinned GitHub commit:
 
 ```bash
 git clone https://github.com/klondikemarlen/omp-vscode-context.git
 cd omp-vscode-context
 npm install
 npm run package:vsix
-omp install "$PWD"
+omp plugin link "$PWD"
 ```
 
-Then install the generated `.vsix` in VS Code, or run **Developer: Install Extension from Location...** against this folder.
+Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in VS Code. Local edits to `omp/index.js` take effect after `/reload-plugins`; VS Code extension edits still require rebuilding/reinstalling the `.vsix`.
 
 ## Multiple OMP terminals
 

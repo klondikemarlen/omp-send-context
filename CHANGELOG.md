@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Clarify normal OMP plugin install and update commands.
+- Document local development linking with `omp plugin link`.
+
 ## 0.1.4
 
 - Include character positions in file references.
