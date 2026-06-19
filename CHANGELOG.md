@@ -1,0 +1,7 @@
+# Changelog
+
+## 0.1.0
+
+- Publish the initial VS Code command for sending active editor context to OMP.
+- Include the companion OMP loopback bridge extension for prompt insertion.
+- Document the bridge concepts, data contract, security model, and delivery modes.

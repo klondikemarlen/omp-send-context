@@ -38,10 +38,12 @@ If the OMP bridge is not reachable, the VS Code extension copies the same contex
 
 ## Install locally
 
-Install the OMP extension:
+Install the OMP extension from a cloned checkout:
 
 ```bash
-omp install ~/code/klondikemarlen/omp-vscode-context
+git clone https://github.com/klondikemarlen/omp-vscode-context.git
+cd omp-vscode-context
+omp install "$PWD"
 ```
 
 Restart OMP or run `/reload-plugins`.
@@ -49,12 +51,11 @@ Restart OMP or run `/reload-plugins`.
 Install the VS Code extension for development:
 
 ```bash
-cd ~/code/klondikemarlen/omp-vscode-context
 npm install
-npm run package
+npm run package:vsix
 ```
 
-Then open the folder in VS Code and run **Developer: Install Extension from Location...** against this folder, or package it with `vsce` if you want a `.vsix`.
+Then run **Developer: Install Extension from Location...** against this folder, or install the generated `.vsix`.
 
 ## Concepts
 

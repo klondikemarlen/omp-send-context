@@ -10,16 +10,25 @@
     "type": "git",
     "url": "git+https://github.com/klondikemarlen/omp-vscode-context.git"
   },
+  "homepage": "https://github.com/klondikemarlen/omp-vscode-context#readme",
+  "bugs": {
+    "url": "https://github.com/klondikemarlen/omp-vscode-context/issues"
+  },
+  "qna": false,
   "keywords": [
     "omp",
     "oh-my-pi",
     "vscode",
     "context",
-    "selection"
+    "selection",
+    "ai"
   ],
   "engines": {
     "vscode": "^1.94.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
   "categories": [
     "Other"
   ],
@@ -32,6 +41,7 @@
     "omp",
     "README.md",
     "CONCEPTS.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "omp": {
@@ -78,14 +88,18 @@
     }
   },
   "scripts": {
+    "vscode:prepublish": "npm run package",
     "check-types": "tsc --noEmit",
     "compile": "npm run check-types && node esbuild.js",
     "package": "npm run check-types && node esbuild.js --production",
+    "package:vsix": "vsce package",
+    "publish:marketplace": "vsce publish",
     "test": "npm run check-types && node --import tsx --test test/*.test.ts test/*.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
     "@types/vscode": "^1.94.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.25.3",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
