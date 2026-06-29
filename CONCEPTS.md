@@ -45,29 +45,16 @@ The VS Code extension posts JSON to `/context`:
 ```json
 {
   "delivery": "paste",
-  "prompt": "In @src/example.ts#L7C17-L9C20 ",
-  "reference": "@src/example.ts#L7C17-L9C20",
-  "relativePath": "src/example.ts",
-  "workspaceFolder": "/workspace/project",
-  "filePath": "/workspace/project/src/example.ts",
-  "languageId": "typescript",
-  "selection": {
-    "startLine": 7,
-    "endLine": 9,
-    "startCharacter": 17,
-    "endCharacter": 20,
-    "isEmpty": false
-  },
-  "selectedText": "const value = 1"
+  "prompt": "@src/example.ts#L7C17-L9C20 "
 }
 ```
 
-Only `prompt` is required by the current OMP bridge. The extra fields are intentionally included for future behavior: custom renderers, session metadata, or alternate delivery modes.
+Only `delivery` and `prompt` are sent. VS Code owns editor inspection; OMP only needs text plus delivery mode.
 
 ## Content modes
 
-- `reference`: default. Sends only `In @file#LxCy-LxCy `. Best for saved workspace files because OMP can inspect the file and the prompt stays small.
-- `inline`: sends `In @file#LxCy-LxCy ` plus a fenced copy of the selected text. Useful for unsaved buffers, generated output, or when the exact selected bytes matter more than file freshness.
+- `reference`: default. Sends only `@file#LxCy-LxCy `. Best for saved workspace files because OMP can inspect the file and the prompt stays small.
+- `inline`: sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text. Useful for unsaved buffers, generated output, or when the exact selected bytes matter more than file freshness.
 
 Avoid using inline mode as the default for large selections: OMP will ask whether to attach a wrapped block, save a local attachment file, or paste inline.
 

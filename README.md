@@ -9,13 +9,13 @@ Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code edit
 With a selection, OMP receives a file reference by default:
 
 ```text
-In @src/example.ts#L7C17-L9C20 
+@src/example.ts#L7C17-L9C20 
 ```
 
 Without a selection, OMP receives the current file and cursor position:
 
 ```text
-In @src/example.ts#L7C17 
+@src/example.ts#L7C17 
 ```
 
 The inserted prompt ends with a trailing space so you can keep typing immediately after the reference.

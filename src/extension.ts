@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { buildReference, formatContextPrompt, type ContentMode, type EditorContext } from "./prompt"
+import { formatContextPrompt, type ContentMode, type EditorContext } from "./prompt"
 
 type Delivery = "paste" | "send" | "nextTurn"
 
@@ -16,19 +16,6 @@ interface BridgeState {
 interface BridgeRequest {
   readonly delivery: Delivery
   readonly prompt: string
-  readonly reference: string
-  readonly relativePath: string
-  readonly workspaceFolder?: string
-  readonly filePath: string
-  readonly languageId: string
-  readonly selection: {
-    readonly startLine: number
-    readonly endLine: number
-    readonly startCharacter: number
-    readonly endCharacter: number
-    readonly isEmpty: boolean
-  }
-  readonly selectedText: string
 }
 
 const DEFAULT_ENDPOINT = "http://127.0.0.1:47687"
@@ -55,7 +42,7 @@ async function insertEditorContext() {
 
   const editorContext = getEditorContext(activeEditor)
   const prompt = formatContextPrompt(editorContext, getContentMode())
-  const bridgeRequest = getBridgeRequest(activeEditor, editorContext, prompt)
+  const bridgeRequest = getBridgeRequest(prompt)
   const bridgeState = await getBridgeState()
 
   try {
@@ -107,34 +94,14 @@ function getEditorContext(activeEditor: vscode.TextEditor): EditorContext {
   }
 }
 
-function getBridgeRequest(
-  activeEditor: vscode.TextEditor,
-  editorContext: EditorContext,
-  prompt: string,
-): BridgeRequest {
-  const document = activeEditor.document
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
+function getBridgeRequest(prompt: string): BridgeRequest {
   const configuredDelivery = vscode.workspace
     .getConfiguration("ompContext")
     .get<string>("delivery", "paste")
-  const delivery = getDelivery(configuredDelivery)
 
   return {
-    delivery,
+    delivery: getDelivery(configuredDelivery),
     prompt,
-    reference: buildReference(editorContext),
-    relativePath: editorContext.relativePath,
-    workspaceFolder: workspaceFolder?.uri.fsPath,
-    filePath: document.uri.fsPath,
-    languageId: document.languageId,
-    selection: {
-      startLine: editorContext.startLine,
-      endLine: editorContext.endLine,
-      startCharacter: editorContext.startCharacter,
-      endCharacter: editorContext.endCharacter,
-      isEmpty: activeEditor.selection.isEmpty,
-    },
-    selectedText: editorContext.selectedText,
   }
 }
 
