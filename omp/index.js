@@ -251,7 +251,7 @@ async function refreshPromptEditor(ui, beforePasteText, prompt) {
     return
   }
 
-  const editorText = await ui.getEditorText()
+  const editorText = await readEditorTextAfterPaste(ui, beforePasteText)
   if (typeof editorText !== "string") {
     return
   }
@@ -264,6 +264,19 @@ async function refreshPromptEditor(ui, beforePasteText, prompt) {
   // OMP can accept a paste without repainting until the next keystroke.
   await ui.setEditorText(beforePasteText)
   await ui.setEditorText(refreshedText)
+}
+
+async function readEditorTextAfterPaste(ui, beforePasteText) {
+  let editorText = await ui.getEditorText()
+  for (let attempt = 0; attempt < 3 && editorText === beforePasteText; attempt += 1) {
+    await nextTick()
+    editorText = await ui.getEditorText()
+  }
+  return editorText
+}
+
+function nextTick() {
+  return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 async function claimActiveBridge({ force = false } = {}) {

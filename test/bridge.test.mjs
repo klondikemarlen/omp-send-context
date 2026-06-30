@@ -64,6 +64,10 @@ async function postContext(state, body) {
   })
 }
 
+function nextTick() {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 test("OMP bridge accepts authorized context and pastes into editor", async () => {
   await withBridge(BASE_PORT, async ({ commands, handlers, stateFile }) => {
     const pastedPrompts = []
@@ -134,8 +138,55 @@ test("OMP bridge refreshes prompt text after paste when editor APIs are availabl
   })
 })
 
-test("OMP bridge appends pasted prompt when immediate readback is stale", async () => {
+test("OMP bridge waits for delayed end-append before forcing repaint", async () => {
   await withBridge(BASE_PORT + 2, async ({ handlers, stateFile }) => {
+    const prompt = "@src/example.ts#L5C6 "
+    const beforeText = `${"draft ".repeat(500)}tail`
+    let editorText = beforeText
+    let renderedText = beforeText
+    let pasteSettled = false
+
+    await handlers.get("session_start")({}, {
+      hasUI: true,
+      ui: {
+        notify() {},
+        async getEditorText() {
+          return editorText
+        },
+        async setEditorText(value) {
+          editorText = value
+          if (pasteSettled) {
+            renderedText = value
+          }
+        },
+        pasteToEditor(value) {
+          void nextTick()
+            .then(nextTick)
+            .then(() => {
+              editorText = `${beforeText}${value}`
+              pasteSettled = true
+            })
+        },
+      },
+    })
+
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    const response = await postContext(state, {
+      delivery: "paste",
+      prompt,
+    })
+    await nextTick()
+    await nextTick()
+    await nextTick()
+
+    assert.equal(response.status, 200)
+    assert.equal(editorText, `${beforeText}${prompt}`)
+    assert.equal(renderedText, `${beforeText}${prompt}`)
+  })
+})
+
+test("OMP bridge appends pasted prompt when immediate readback is stale", async () => {
+  await withBridge(BASE_PORT + 3, async ({ handlers, stateFile }) => {
     let editorText = "draft "
 
     await handlers.get("session_start")({}, {
@@ -164,7 +215,7 @@ test("OMP bridge appends pasted prompt when immediate readback is stale", async 
 })
 
 test("OMP bridge still appends when stale readback already contains prompt", async () => {
-  await withBridge(BASE_PORT + 3, async ({ handlers, stateFile }) => {
+  await withBridge(BASE_PORT + 4, async ({ handlers, stateFile }) => {
     const prompt = "@src/example.ts#L4C5 "
     let editorText = `draft ${prompt}`
 
@@ -194,8 +245,8 @@ test("OMP bridge still appends when stale readback already contains prompt", asy
 })
 
 test("OMP bridge session_start does not steal an existing live bridge", async () => {
-  await withBridge(BASE_PORT + 4, async ({ handlers, stateFile }) => {
-    const ownerPort = BASE_PORT + 4
+  await withBridge(BASE_PORT + 5, async ({ handlers, stateFile }) => {
+    const ownerPort = BASE_PORT + 6
     const ownerServer = createServer((_request, response) => {
       response.writeHead(200, {
         "Content-Type": "application/json",
