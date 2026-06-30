@@ -87,16 +87,16 @@ Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in 
 
 Each OMP terminal runs its own local bridge. The VS Code extension reads `~/.omp/agent/editor-context-bridge.json` and sends `Ctrl+Alt+K` context to the bridge recorded there.
 
-The active target is updated when an OMP session starts or switches. To explicitly route VS Code context to the terminal you are looking at, run:
+Session start keeps an existing live bridge; session switch claims the current terminal. To explicitly route VS Code context to the terminal you are looking at, run:
 
 ```text
-/vscode-context-here
+/ide
 ```
 
 To see the active endpoint and plugin version in a terminal, run:
 
 ```text
-/vscode-context-status
+/ide-status
 ```
 
 ## Settings
@@ -119,7 +119,7 @@ npm run package:vsix
 Publish a new version:
 
 ```bash
-npm version patch --no-git-tag-version
+npm version minor --no-git-tag-version
 npm run publish:marketplace
 ```
 

@@ -85,9 +85,7 @@ The VS Code setting `ompContext.endpoint` overrides discovery when needed.
 
 ## Multiple terminals
 
-Multiple OMP terminals can run the plugin at the same time. Each terminal listens on a different loopback port. The active terminal is whichever bridge last wrote `editor-context-bridge.json`.
-
-Session start and session switch claim the active bridge automatically. Use `/vscode-context-here` to explicitly route VS Code context to the current OMP terminal. Use `/vscode-context-status` to show the endpoint and installed plugin version.
+Multiple OMP terminals can run the plugin at the same time. Each terminal listens on a different loopback port. `session_start` keeps an existing live bridge, while `session_switch` and `/ide` explicitly route VS Code context to the current OMP terminal. Use `/ide-status` to show the endpoint and installed plugin version.
 
 ## Shortcut semantics
 
@@ -100,4 +98,4 @@ This extension chooses OpenCode's chord because the request named `Ctrl+Alt+K`, 
 - This is not full automatic IDE context awareness. It sends context when the shortcut is pressed.
 - Diagnostics, open tabs, terminal output, and live LSP state are not sent.
 - The VS Code command requires editor focus because VS Code keybindings with `editorTextFocus` should not steal `Ctrl+Alt+K` from OMP or terminals.
-- Multiple running OMP sessions share one active state file. Use `/vscode-context-here` when you need to target a specific terminal explicitly.
+- Multiple running OMP sessions share one active state file. Use `/ide` when you need to target a specific terminal explicitly.

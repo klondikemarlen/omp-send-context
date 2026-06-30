@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- Rename OMP routing commands to `/ide` and `/ide-status`.
+- Preserve the active live bridge when multiple OMP terminals are open.
+- Force prompt repaint after VS Code context paste so inserted text is visible immediately.
+
 ## 1.0.1
 
 - Refresh OMP prompt rendering after VS Code context paste.

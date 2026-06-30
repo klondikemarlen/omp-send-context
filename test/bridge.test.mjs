@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
+import { createServer } from "node:http"
 import { pathToFileURL } from "node:url"
 
 const BASE_PORT = 48731
@@ -81,8 +82,8 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     assert.equal(state.version, packageJson.version)
     assert.equal(typeof state.instanceId, "string")
-    assert.equal(commands.has("vscode-context-here"), true)
-    assert.equal(commands.has("vscode-context-status"), true)
+    assert.equal(commands.has("ide"), true)
+    assert.equal(commands.has("ide-status"), true)
 
     const response = await postContext(state, {
       delivery: "paste",
@@ -111,8 +112,10 @@ test("OMP bridge refreshes prompt text after paste when editor APIs are availabl
           return editorText
         },
         async setEditorText(value) {
-          renderedText = value
-          editorText = value
+          if (value !== editorText) {
+            renderedText = value
+            editorText = value
+          }
         },
         async pasteToEditor(value) {
           editorText = `draft ${value}middle`
@@ -187,5 +190,41 @@ test("OMP bridge still appends when stale readback already contains prompt", asy
 
     assert.equal(response.status, 200)
     assert.equal(editorText, `draft ${prompt}${prompt}`)
+  })
+})
+
+test("OMP bridge session_start does not steal an existing live bridge", async () => {
+  await withBridge(BASE_PORT + 4, async ({ handlers, stateFile }) => {
+    const ownerPort = BASE_PORT + 4
+    const ownerServer = createServer((_request, response) => {
+      response.writeHead(200, {
+        "Content-Type": "application/json",
+      })
+      response.end(JSON.stringify({ ok: true, instanceId: "owner-instance" }))
+    })
+    await new Promise((resolve) => ownerServer.listen(ownerPort, "127.0.0.1", resolve))
+
+    try {
+      await fs.mkdir(path.dirname(stateFile), {
+        recursive: true,
+      })
+      await fs.writeFile(stateFile, JSON.stringify({
+        endpoint: `http://127.0.0.1:${ownerPort}`,
+        token: "owner-token",
+        instanceId: "owner-instance",
+      }))
+
+      await handlers.get("session_start")({}, {
+        hasUI: true,
+        ui: {
+          notify() {},
+        },
+      })
+
+      const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal(state.instanceId, "owner-instance")
+    } finally {
+      await new Promise((resolve) => ownerServer.close(resolve))
+    }
   })
 })

@@ -9,6 +9,7 @@ const DEFAULT_PORT = Number.parseInt(process.env.OMP_CONTEXT_BRIDGE_PORT ?? "476
 const HOST = "127.0.0.1"
 const MAX_PORT_ATTEMPTS = 20
 const MAX_BODY_BYTES = 2 * 1024 * 1024
+const HEALTH_TIMEOUT_MILLISECONDS = 500
 const STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
 const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
 
@@ -23,17 +24,18 @@ let serverEndpoint
 export default function ompVscodeContextExtension(pi) {
   pi.setLabel("VS Code Context Bridge")
 
-  pi.registerCommand("vscode-context-here", {
-    description: "Route VS Code Ctrl+Alt+K context to this OMP terminal",
+  pi.registerCommand("ide", {
+    description: "Route VS Code editor context to this OMP terminal",
     handler: async (_args, ctx) => {
       activeContext = ctx
       await ensureServer(pi, ctx)
-      await claimActiveBridge(ctx)
-      ctx.ui.notify(`VS Code context will target this terminal via ${serverEndpoint}.`, "info")
+      if (await claimActiveBridge({ force: true })) {
+        ctx.ui.notify(`VS Code context will target this terminal via ${serverEndpoint}.`, "info")
+      }
     },
   })
 
-  pi.registerCommand("vscode-context-status", {
+  pi.registerCommand("ide-status", {
     description: "Show VS Code context bridge endpoint and version",
     handler: async (_args, ctx) => {
       await ensureServer(pi, ctx)
@@ -44,13 +46,13 @@ export default function ompVscodeContextExtension(pi) {
   pi.on("session_start", async (_event, ctx) => {
     activeContext = ctx
     await ensureServer(pi, ctx)
-    await claimActiveBridge(ctx)
+    await claimActiveBridge()
   })
 
   pi.on("session_switch", async (_event, ctx) => {
     activeContext = ctx
     await ensureServer(pi, ctx)
-    await claimActiveBridge(ctx)
+    await claimActiveBridge({ force: true })
   })
 
   pi.on("session_shutdown", async () => {
@@ -80,7 +82,6 @@ async function ensureServer(pi, ctx) {
       server = candidateServer
       serverPort = port
       serverEndpoint = `http://${HOST}:${port}`
-      await writeStateFile()
       return
     } catch (error) {
       candidateServer.close()
@@ -107,6 +108,7 @@ async function handleRequest(pi, request, response) {
   if (request.method === "GET" && request.url === "/health") {
     sendJson(response, 200, {
       ok: true,
+      instanceId,
       endpoint: serverEndpoint,
     })
     return
@@ -232,32 +234,91 @@ async function pasteToPromptEditor(prompt) {
 
   if (typeof ui?.pasteToEditor === "function") {
     await ui.pasteToEditor(prompt)
-
-    if (canSetEditorText) {
-      const editorText = await ui.getEditorText()
-      if (typeof editorText === "string") {
-        const refreshedText = editorText === beforePasteText ? `${editorText}${prompt}` : editorText
-        await ui.setEditorText(refreshedText)
-      }
-    }
-
+    await refreshPromptEditor(ui, beforePasteText, prompt)
     return true
   }
 
-  if (canSetEditorText) {
-    await ui.setEditorText(`${typeof beforePasteText === "string" ? beforePasteText : ""}${prompt}`)
-    return true
+  if (!canSetEditorText) {
+    return false
   }
 
-  return false
+  await ui.setEditorText(`${typeof beforePasteText === "string" ? beforePasteText : ""}${prompt}`)
+  return true
 }
 
-async function claimActiveBridge(ctx) {
-  if (serverEndpoint === undefined || serverPort === undefined) {
+async function refreshPromptEditor(ui, beforePasteText, prompt) {
+  if (typeof beforePasteText !== "string") {
     return
   }
 
+  const editorText = await ui.getEditorText()
+  if (typeof editorText !== "string") {
+    return
+  }
+
+  const refreshedText = editorText === beforePasteText ? `${editorText}${prompt}` : editorText
+  if (refreshedText === beforePasteText) {
+    return
+  }
+
+  // OMP can accept a paste without repainting until the next keystroke.
+  await ui.setEditorText(beforePasteText)
+  await ui.setEditorText(refreshedText)
+}
+
+async function claimActiveBridge({ force = false } = {}) {
+  if (serverEndpoint === undefined || serverPort === undefined) {
+    return false
+  }
+
+  if (!force && await hasLiveBridgeOwner()) {
+    return false
+  }
+
   await writeStateFile()
+  return true
+}
+
+async function hasLiveBridgeOwner() {
+  const state = await readStateFile()
+  if (state?.instanceId === undefined || state.instanceId === instanceId) {
+    return false
+  }
+
+  return isHealthyEndpoint(state.endpoint, state.instanceId)
+}
+
+async function readStateFile() {
+  try {
+    const state = JSON.parse(await readFile(STATE_FILE, "utf8"))
+    if (typeof state.endpoint === "string") {
+      return state
+    }
+  } catch {
+  }
+
+  return undefined
+}
+
+async function isHealthyEndpoint(endpoint, expectedInstanceId) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MILLISECONDS)
+
+  try {
+    const response = await fetch(`${endpoint}/health`, {
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      return false
+    }
+
+    const body = await response.json()
+    return body?.instanceId === expectedInstanceId
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function writeStateFile() {
