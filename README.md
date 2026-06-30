@@ -44,7 +44,7 @@ Or use VS Code's Extensions view and search for **Oh My Pi Context Bridge**. Mar
 Links:
 
 - Marketplace: https://marketplace.visualstudio.com/items?itemName=klondikemarlen.omp-vscode-context
-- Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen/extensions/omp-vscode-context/hub?_a=acqu
+- Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen
 - GitHub: https://github.com/klondikemarlen/omp-vscode-context
 
 ### OMP plugin
