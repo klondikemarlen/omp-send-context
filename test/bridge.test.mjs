@@ -180,6 +180,99 @@ test("OMP bridge refreshes prompt text after paste when editor APIs are availabl
   })
 })
 
+test("OMP bridge yields between reset and restore repaint writes", async () => {
+  await withBridge(BASE_PORT + 21, async ({ handlers, stateFile }) => {
+    const prompt = "@src/example.ts#L6C7 "
+    const beforeText = `${"draft ".repeat(500)}tail`
+    const afterText = `${beforeText}${prompt}`
+    let editorText = beforeText
+    let renderedText = beforeText
+    let resetSettled = false
+
+    await handlers.get("session_start")({}, {
+      hasUI: true,
+      ui: {
+        notify() {},
+        async getEditorText() {
+          return editorText
+        },
+        async setEditorText(value) {
+          editorText = value
+          if (value === beforeText) {
+            resetSettled = false
+            void nextTick().then(() => {
+              resetSettled = true
+            })
+            return
+          }
+          if (resetSettled) {
+            renderedText = value
+          }
+        },
+        async pasteToEditor(value) {
+          editorText = `${beforeText}${value}`
+        },
+      },
+    })
+
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    const response = await postContext(state, {
+      delivery: "paste",
+      prompt,
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(editorText, afterText)
+    assert.equal(renderedText, afterText)
+  })
+})
+
+test("OMP bridge keeps repeated end pastes visible without rebuilding editor text", async () => {
+  await withBridge(BASE_PORT + 22, async ({ handlers, stateFile }) => {
+    const firstPrompt = "@src/first.ts#L1C1 "
+    const secondPrompt = "@src/second.ts#L2C2 "
+    let editorText = `${"draft ".repeat(100)}tail`
+    let renderedText = editorText
+    let cursor = editorText.length
+
+    await handlers.get("session_start")({}, {
+      hasUI: true,
+      ui: {
+        notify() {},
+        async getEditorText() {
+          return editorText
+        },
+        async setEditorText(value) {
+          editorText = value
+          cursor = 0
+        },
+        async setStatus() {
+          renderedText = editorText
+        },
+        async pasteToEditor(value) {
+          editorText = `${editorText.slice(0, cursor)}${value}${editorText.slice(cursor)}`
+          cursor += value.length
+        },
+      },
+    })
+
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    const firstResponse = await postContext(state, {
+      delivery: "paste",
+      prompt: firstPrompt,
+    })
+    const secondResponse = await postContext(state, {
+      delivery: "paste",
+      prompt: secondPrompt,
+    })
+
+    assert.equal(firstResponse.status, 200)
+    assert.equal(secondResponse.status, 200)
+    assert.equal(editorText.endsWith(`${firstPrompt}${secondPrompt}`), true)
+    assert.equal(renderedText, editorText)
+  })
+})
+
 test("OMP bridge waits for delayed end-append before forcing repaint", async () => {
   await withBridge(BASE_PORT + 2, async ({ handlers, stateFile }) => {
     const prompt = "@src/example.ts#L5C6 "

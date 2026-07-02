@@ -11,6 +11,7 @@ const MAX_PORT_ATTEMPTS = 20
 const MAX_BODY_BYTES = 2 * 1024 * 1024
 const HEALTH_TIMEOUT_MILLISECONDS = 500
 const PASTE_READBACK_TIMEOUT_MILLISECONDS = 100
+const STATUS_KEY = "omp-vscode-context"
 const STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
 const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
 
@@ -249,6 +250,7 @@ async function pasteToPromptEditor(prompt) {
 
 async function refreshPromptEditor(ui, beforePasteText, prompt) {
   if (typeof beforePasteText !== "string") {
+    await requestPromptEditorRender(ui)
     return
   }
 
@@ -262,9 +264,15 @@ async function refreshPromptEditor(ui, beforePasteText, prompt) {
     return
   }
 
-  // OMP can accept a paste without repainting until the next keystroke.
+  if (editorText !== beforePasteText && await requestPromptEditorRender(ui)) {
+    return
+  }
+
+  // Fallback for UI modes without a render-only status hook.
   await ui.setEditorText(beforePasteText)
+  await nextTick()
   await ui.setEditorText(refreshedText)
+  await requestPromptEditorRender(ui)
 }
 
 async function readEditorTextAfterPaste(ui, beforePasteText) {
@@ -275,6 +283,15 @@ async function readEditorTextAfterPaste(ui, beforePasteText) {
     editorText = await ui.getEditorText()
   }
   return editorText
+}
+
+async function requestPromptEditorRender(ui) {
+  if (typeof ui?.setStatus !== "function") {
+    return false
+  }
+
+  await ui.setStatus(STATUS_KEY, undefined)
+  return true
 }
 
 function nextTick() {
