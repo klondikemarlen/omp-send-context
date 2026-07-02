@@ -133,6 +133,8 @@ npx vsce login klondikemarlen
 
 Use a Visual Studio Marketplace/Azure DevOps PAT with **Marketplace → Manage** scope. The publisher id is `klondikemarlen`; do not use an email address.
 
+If this machine is already logged in with `vsce`, no `VSCE_PAT` environment variable is needed; `npm run publish:marketplace` uses the stored credentials. Set `VSCE_PAT` only for CI/non-interactive publishing or a machine without `vsce login` state.
+
 After publishing, verify both directions:
 
 - GitHub README links to the Marketplace listing and publisher hub.
