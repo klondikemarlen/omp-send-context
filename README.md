@@ -67,6 +67,8 @@ Then restart OMP or run `/reload-plugins`.
 
 OMP now refreshes GitHub plugin lockfile pins when you re-run `omp plugin install`; the old manual `cd ~/.omp/plugins && bun update omp-vscode-context` workaround is no longer needed.
 
+If pasted context appears only after typing on older OMP builds, update this plugin and reload OMP; `omp-vscode-context@1.2.2` includes a repaint workaround until upstream OMP [can1357/oh-my-pi#4342](https://github.com/can1357/oh-my-pi/pull/4342) ships.
+
 This plugin is installed from the GitHub repo because it ships an OMP runtime extension, while the VS Code half is installed from Marketplace.
 
 ### Local development install

@@ -64,6 +64,17 @@ Avoid using inline mode as the default for large selections: OMP will ask whethe
 - `send`: submit the context as a user message immediately.
 - `nextTurn`: queue the context for the next OMP turn.
 
+## Prompt repaint compatibility
+
+Older OMP builds can apply `pasteToEditor(prompt)` to the prompt state without repainting the terminal frame until the next keypress. The bridge therefore treats prompt paste as a two-step operation:
+
+1. Call OMP's `pasteToEditor(prompt)` so the normal editor paste path owns cursor/text mutation.
+2. Read back editor text for up to a short bounded deadline; once the paste is visible in editor state, request a render without rewriting text when possible.
+
+The preferred repaint nudge is `setStatus("omp-vscode-context", undefined)`: OMP clears that hook status and requests a UI render, without moving cursor/selection or rebuilding prompt text. Only when that render-only hook is unavailable does the bridge fall back to `setEditorText(before)` followed by `setEditorText(after)`, because `setEditorText` rewrites editor state and can disturb cursor/scroll behavior.
+
+Upstream OMP PR [can1357/oh-my-pi#4342](https://github.com/can1357/oh-my-pi/pull/4342) targets the root cause by calling `requestRender()` after extension `pasteToEditor` / `setEditorText` mutations. Keep this repo-side workaround until the minimum supported OMP version includes that behavior.
+
 ## State file
 
 On session start, the OMP extension writes:
