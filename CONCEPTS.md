@@ -44,12 +44,11 @@ The VS Code extension posts JSON to `/context`:
 
 ```json
 {
-  "delivery": "paste",
   "prompt": "@src/example.ts#L7C17-L9C20 "
 }
 ```
 
-Only `delivery` and `prompt` are sent. VS Code owns editor inspection; OMP only needs text plus delivery mode.
+Only `prompt` is sent. VS Code owns editor inspection; OMP only needs the text to paste.
 
 ## Content modes
 
@@ -58,11 +57,6 @@ Only `delivery` and `prompt` are sent. VS Code owns editor inspection; OMP only 
 
 Avoid using inline mode as the default for large selections unless you want selected text copied into the prompt instead of only referenced.
 
-## Delivery modes
-
-- `paste`: insert into the live OMP prompt editor. Default. User still decides what to ask.
-- `send`: submit the context as a user message immediately.
-- `nextTurn`: queue the context for the next OMP turn.
 
 ## Prompt repaint compatibility
 

@@ -149,7 +149,7 @@ async function handleRequest(pi, request, response) {
   }
 
   try {
-    await deliverContext(pi, body)
+    await deliverContext(body)
     sendJson(response, 200, {
       ok: true,
     })
@@ -206,22 +206,12 @@ function isContextRequest(value) {
   return typeof value.prompt === "string" && value.prompt.length > 0
 }
 
-async function deliverContext(pi, body) {
-  if (body.delivery === "send") {
-    await pi.sendUserMessage(body.prompt, { deliverAs: "steer" })
-    return
-  }
-
-  if (body.delivery === "nextTurn") {
-    await pi.sendUserMessage(body.prompt, { deliverAs: "nextTurn" })
-    return
-  }
-
+async function deliverContext(body) {
   if (await pasteToPromptEditor(body.prompt)) {
     return
   }
 
-  await pi.sendUserMessage(body.prompt, { deliverAs: "nextTurn" })
+  throw new Error("No active OMP prompt editor available")
 }
 
 async function pasteToPromptEditor(prompt) {
