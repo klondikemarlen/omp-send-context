@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.1
 
 - Remove the `selection` content mode to keep context formatting settings focused on reference and inline modes.
 - Document the post-publish Marketplace polling and reinstall verification step.
