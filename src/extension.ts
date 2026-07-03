@@ -123,7 +123,7 @@ function getContentMode(): ContentMode {
     .getConfiguration("ompContext")
     .get<string>("contentMode", "reference")
 
-  if (value === "inline") {
+  if (value === "inline" || value === "selection") {
     return value
   }
 
