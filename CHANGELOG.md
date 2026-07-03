@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- Remove the redundant `ompContext.delivery` setting and hidden non-paste bridge delivery paths.
+
 ## 1.3.1
 
 - Remove the `selection` content mode to keep context formatting settings focused on reference and inline modes.
