@@ -20,7 +20,7 @@ Without a selection, OMP receives the current file and cursor position:
 
 The inserted prompt ends with a trailing space so you can keep typing immediately after the reference.
 
-The default is reference-only because OMP can read saved workspace files directly. This avoids pasting large selections into the prompt and avoids OMP's large-paste attachment chooser. Set `ompContext.contentMode` to `inline` if you need the selected text copied into the prompt as a fenced code block.
+The default is reference-only because OMP can read saved workspace files directly. This avoids pasting large selections into the prompt and avoids OMP's large-paste attachment chooser. Set `ompContext.contentMode` to `inline` to include the selected text as a fenced code block after the reference, or `selection` to send only the selected text as a fenced code block.
 
 If the OMP bridge is not reachable, the VS Code extension copies the same context block to the clipboard.
 
@@ -104,8 +104,19 @@ To see the active endpoint and plugin version in a terminal, run:
 ## Settings
 
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
-- `ompContext.contentMode`: `reference` (default) sends only `@file#LxCy-LxCy`; `inline` includes selected text too.
+- `ompContext.contentMode`: `reference` (default) sends only `@file#LxCy-LxCy`; `inline` includes the reference plus selected text as a fenced code block; `selection` sends only selected text as a fenced code block.
 - `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
+
+
+## Feature workflow
+
+For user-facing feature work:
+
+1. Create a GitHub issue with the user story and acceptance criteria.
+2. Create a branch named for the issue.
+3. Open a pull request linked to the issue.
+4. Review the diff and run the smallest tests that cover the change.
+5. Merge only after the PR is reviewed and checks pass.
 
 ## Publish
 
