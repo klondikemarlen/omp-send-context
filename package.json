@@ -87,16 +87,6 @@
           ],
           "default": "reference",
           "description": "What Ctrl+Alt+K inserts for a selection. Reference sends only @file#Lx-Ly so OMP can read the file; inline includes the reference plus selected text as a fenced code block."
-        },
-        "ompContext.delivery": {
-          "type": "string",
-          "enum": [
-            "paste",
-            "send",
-            "nextTurn"
-          ],
-          "default": "paste",
-          "description": "How OMP should receive editor context: paste into the prompt editor, send immediately, or queue for the next turn."
         }
       }
     }

@@ -6,17 +6,12 @@ import * as vscode from "vscode"
 
 import { formatContextPrompt, type ContentMode, type EditorContext } from "./prompt"
 
-type Delivery = "paste" | "send" | "nextTurn"
 
 interface BridgeState {
   readonly endpoint: string
   readonly token?: string
 }
 
-interface BridgeRequest {
-  readonly delivery: Delivery
-  readonly prompt: string
-}
 
 const DEFAULT_ENDPOINT = "http://127.0.0.1:47687"
 const STATE_FILE = path.join(os.homedir(), ".omp", "agent", "editor-context-bridge.json")
@@ -42,7 +37,7 @@ async function insertEditorContext() {
 
   const editorContext = getEditorContext(activeEditor)
   const prompt = formatContextPrompt(editorContext, getContentMode())
-  const bridgeRequest = getBridgeRequest(prompt)
+  const bridgeRequest = { prompt }
   const bridgeState = await getBridgeState()
 
   try {
@@ -94,16 +89,6 @@ function getEditorContext(activeEditor: vscode.TextEditor): EditorContext {
   }
 }
 
-function getBridgeRequest(prompt: string): BridgeRequest {
-  const configuredDelivery = vscode.workspace
-    .getConfiguration("ompContext")
-    .get<string>("delivery", "paste")
-
-  return {
-    delivery: getDelivery(configuredDelivery),
-    prompt,
-  }
-}
 
 function getRelativePath(document: vscode.TextDocument) {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
@@ -130,13 +115,6 @@ function getContentMode(): ContentMode {
   return "reference"
 }
 
-function getDelivery(value: string): Delivery {
-  if (value === "send" || value === "nextTurn") {
-    return value
-  }
-
-  return "paste"
-}
 
 async function getBridgeState(): Promise<BridgeState> {
   const configuredEndpoint = vscode.workspace
@@ -176,7 +154,7 @@ function isBridgeStateFile(value: unknown): value is BridgeState {
   return typeof candidate.endpoint === "string" && tokenIsValid
 }
 
-async function postContext(bridgeState: BridgeState, bridgeRequest: BridgeRequest) {
+async function postContext(bridgeState: BridgeState, bridgeRequest: { prompt: string }) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
 

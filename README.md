@@ -105,7 +105,6 @@ To see the active endpoint and plugin version in a terminal, run:
 
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
 - `ompContext.contentMode`: `reference` (default) sends only `@file#LxCy-LxCy`; `inline` includes the reference plus selected text as a fenced code block.
-- `ompContext.delivery`: `paste` (default), `send`, or `nextTurn`.
 
 
 ## Feature workflow
@@ -158,7 +157,7 @@ After publishing, verify both directions:
 
 ## Concepts
 
-See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge security model, delivery modes, and known limits.
+See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge security model, and known limits.
 
 ## Security model
 

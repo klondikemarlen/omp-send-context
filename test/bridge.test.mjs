@@ -90,7 +90,6 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     assert.equal(commands.has("ide-status"), true)
 
     const response = await postContext(state, {
-      delivery: "paste",
       prompt: "@src/example.ts#L1C1 ",
     })
 
@@ -102,6 +101,24 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
   })
 })
 
+
+test("OMP bridge rejects context when prompt paste is unavailable", async () => {
+  await withBridge(BASE_PORT + 21, async ({ handlers, sentMessages, stateFile }) => {
+    await handlers.get("session_start")({}, {
+      hasUI: false,
+    })
+
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    const response = await postContext(state, {
+      prompt: "@src/example.ts#L1C1 ",
+    })
+    const body = await response.json()
+
+    assert.equal(response.status, 500)
+    assert.equal(body.error, "No active OMP prompt editor available")
+    assert.deepEqual(sentMessages, [])
+  })
+})
 test("OMP bridge waits for slow delayed end-append before forcing repaint", async () => {
   await withBridge(BASE_PORT + 20, async ({ handlers, stateFile }) => {
     const prompt = "@src/example.ts#L2C3 "
@@ -134,7 +151,6 @@ test("OMP bridge waits for slow delayed end-append before forcing repaint", asyn
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt,
     })
 
@@ -171,7 +187,6 @@ test("OMP bridge refreshes prompt text after paste when editor APIs are availabl
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt,
     })
 
@@ -217,7 +232,6 @@ test("OMP bridge yields between reset and restore repaint writes", async () => {
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt,
     })
 
@@ -258,11 +272,9 @@ test("OMP bridge keeps repeated end pastes visible without rebuilding editor tex
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const firstResponse = await postContext(state, {
-      delivery: "paste",
       prompt: firstPrompt,
     })
     const secondResponse = await postContext(state, {
-      delivery: "paste",
       prompt: secondPrompt,
     })
 
@@ -307,7 +319,6 @@ test("OMP bridge waits for delayed end-append before forcing repaint", async () 
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt,
     })
     await nextTick()
@@ -340,7 +351,6 @@ test("OMP bridge appends pasted prompt when immediate readback is stale", async 
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt: "@src/example.ts#L3C4 ",
     })
 
@@ -370,7 +380,6 @@ test("OMP bridge still appends when stale readback already contains prompt", asy
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
-      delivery: "paste",
       prompt,
     })
 
