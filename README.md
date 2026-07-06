@@ -110,7 +110,7 @@ To see the active endpoint and plugin version in a terminal, run:
 
 ## Feature workflow
 
-For user-facing feature work:
+For user-facing feature work, a request to follow the feature release pattern means completing this whole sequence, not stopping at the pull request:
 
 1. Create a GitHub issue with the user story and acceptance criteria.
 2. Create a branch named for the issue.

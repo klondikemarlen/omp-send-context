@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 - Document OMP 16.3.7+ as the supported runtime floor and remove the older prompt repaint workaround from the bridge.
 
