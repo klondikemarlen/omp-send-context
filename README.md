@@ -42,6 +42,12 @@ Install or update from Marketplace:
 code --install-extension klondikemarlen.omp-vscode-context --force
 ```
 
+If the VS Code CLI is not installed but Devin Desktop is available:
+
+```bash
+devin-desktop --install-extension klondikemarlen.omp-vscode-context --force
+```
+
 Or use VS Code's Extensions view and search for **Oh My Pi Context Bridge**. Marketplace installs normally auto-update with VS Code unless extension auto-update is disabled.
 
 Links:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+- Document the Devin Desktop CLI as a Marketplace install fallback when `code` is unavailable.
+
 ## 1.5.0
 
 - Clarify that inline mode is stale-safe because it sends both the file reference and exact selected text.
