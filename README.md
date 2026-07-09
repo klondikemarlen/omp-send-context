@@ -114,14 +114,15 @@ To see the active endpoint and plugin version in a terminal, run:
 
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
 - `ompContext.contentMode`: `inline` (default) is stale-safe and includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
-- `ompContext.handoffPreface`: editable starter text included in **OMP Context: Insert Agent Handoff Packet**. Default: `Goal:`, `Constraints:`, `Verify with:`.
+- `ompContext.insertMode`: what `Ctrl+Alt+K` / `Cmd+Alt+K` sends. `editorContext` (default) keeps the minimal file/selection prompt; `agentHandoff` sends the bounded handoff packet.
+- `ompContext.handoffPreface`: optional text included as an `Instructions` section in **OMP Context: Insert Agent Handoff Packet**. Empty by default; empty omits the section.
 - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
 - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
 - `ompContext.handoffMaxVisibleEditors`: maximum visible editor references included in the handoff packet. Default: `10`.
 
-Use `Ctrl+Alt+K` / `Cmd+Alt+K` for minimal file/selection context. Use the handoff command from the Command Palette when the agent needs the current editor plus bounded IDE context for a larger autonomous task.
+Use `Ctrl+Alt+K` / `Cmd+Alt+K` in the default `editorContext` mode for minimal file/selection context. Set `ompContext.insertMode` to `agentHandoff` when the normal shortcut should always send the toned-down handoff packet. The separate handoff command remains available as a one-off override.
 
-Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, visible editor paths, and diagnostics. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
+Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, other visible editor paths, and diagnostics when those sections are non-empty. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
 
 ## Feature workflow
 

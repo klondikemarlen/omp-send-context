@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, type EditorContext, type EditorReference, type HandoffDiagnostic } from "./prompt"
+import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type EditorContext, type EditorReference, type HandoffDiagnostic } from "./prompt"
 
 
 interface BridgeState {
@@ -19,7 +19,7 @@ const REQUEST_TIMEOUT_MILLISECONDS = 2000
 const DEFAULT_HANDOFF_MAX_BYTES = 20_000
 const DEFAULT_HANDOFF_MAX_DIAGNOSTICS = 20
 const DEFAULT_HANDOFF_MAX_VISIBLE_EDITORS = 10
-const DEFAULT_HANDOFF_PREFACE = "Goal:\n\nConstraints:\n\nVerify with:"
+const DEFAULT_HANDOFF_PREFACE = ""
 
 export function activate(context: vscode.ExtensionContext) {
   const insertDisposable = vscode.commands.registerCommand(
@@ -43,7 +43,9 @@ async function insertEditorContext() {
     return
   }
 
-  const prompt = formatContextPrompt(getEditorContext(activeEditor), getContentMode())
+  const prompt = getInsertMode() === "agentHandoff"
+    ? buildAgentHandoffPrompt(activeEditor)
+    : formatContextPrompt(getEditorContext(activeEditor), getContentMode())
   await sendPrompt(prompt, "context")
 }
 
@@ -54,13 +56,22 @@ async function insertAgentHandoffContext() {
     return
   }
 
+  await sendPrompt(buildAgentHandoffPrompt(activeEditor), "agent handoff")
+}
+
+function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
   const settings = getHandoffSettings()
+  const current = getEditorContext(activeEditor)
+  const currentReference = editorReferenceFromContext(current)
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
     ?? vscode.workspace.workspaceFolders?.[0]
-  const visibleEditorReferences = vscode.window.visibleTextEditors.map(getEditorReference)
+  const visibleEditorReferences = vscode.window.visibleTextEditors
+    .map(getEditorReference)
+    .filter((reference) => !isSameReference(reference, currentReference))
   const diagnostics = getHandoffDiagnostics()
-  const prompt = formatAgentHandoffPacket({
-    current: getEditorContext(activeEditor),
+
+  return formatAgentHandoffPacket({
+    current,
     contentMode: getContentMode(),
     workspaceRoot: workspaceFolder?.uri.fsPath,
     visibleEditors: visibleEditorReferences.slice(0, settings.maxVisibleEditors),
@@ -71,7 +82,6 @@ async function insertAgentHandoffContext() {
     maxBytes: settings.maxBytes,
   })
 
-  await sendPrompt(prompt, "agent handoff")
 }
 
 async function sendPrompt(prompt: string, label: string) {
@@ -148,8 +158,17 @@ function getContentMode() {
     .get<string>("contentMode"))
 }
 
+function getInsertMode() {
+  return resolveInsertMode(vscode.workspace
+    .getConfiguration("ompContext")
+    .get<string>("insertMode"))
+}
+
 function getEditorReference(editor: vscode.TextEditor): EditorReference {
-  const context = getEditorContext(editor)
+  return editorReferenceFromContext(getEditorContext(editor))
+}
+
+function editorReferenceFromContext(context: EditorContext): EditorReference {
   return {
     relativePath: context.relativePath,
     startLine: context.startLine,
@@ -157,6 +176,14 @@ function getEditorReference(editor: vscode.TextEditor): EditorReference {
     startCharacter: context.startCharacter,
     endCharacter: context.endCharacter,
   }
+}
+
+function isSameReference(left: EditorReference, right: EditorReference) {
+  return left.relativePath === right.relativePath
+    && left.startLine === right.startLine
+    && left.endLine === right.endLine
+    && left.startCharacter === right.startCharacter
+    && left.endCharacter === right.endCharacter
 }
 
 function getHandoffSettings() {

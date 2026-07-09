@@ -37,6 +37,14 @@ export interface AgentHandoffPacket {
 export type ContentMode = "reference" | "inline"
 
 export const DEFAULT_CONTENT_MODE: ContentMode = "inline"
+export type InsertMode = "editorContext" | "agentHandoff"
+
+export const DEFAULT_INSERT_MODE: InsertMode = "editorContext"
+
+export function resolveInsertMode(value: string | undefined): InsertMode {
+  return value === "agentHandoff" ? "agentHandoff" : DEFAULT_INSERT_MODE
+}
+
 
 export function resolveContentMode(value: string | undefined): ContentMode {
   return value === "reference" ? "reference" : DEFAULT_CONTENT_MODE
@@ -68,19 +76,27 @@ export function formatContextPrompt(context: EditorContext, contentMode: Content
 }
 
 export function formatAgentHandoffPacket(packet: AgentHandoffPacket) {
-  const sections = [
-    "# OMP Agent Handoff",
-    "## Goal / constraints / verify with",
-    packet.preface.trim().length > 0 ? packet.preface.trim() : "_Not specified._",
-    "## Active editor",
-    formatContextPrompt(packet.current, packet.contentMode),
-    "## Workspace",
-    packet.workspaceRoot === undefined ? "_No workspace folder._" : `- Root: \`${packet.workspaceRoot}\``,
-    "## Visible editors",
-    formatReferences(packet.visibleEditors, packet.omittedVisibleEditors ?? 0),
-    "## Diagnostics",
-    formatDiagnostics(packet.diagnostics, packet.omittedDiagnostics ?? 0),
-  ]
+  const sections = ["# OMP Agent Handoff"]
+  const preface = packet.preface.trim()
+  if (preface.length > 0) {
+    sections.push("## Instructions", preface)
+  }
+
+  sections.push("## Active editor", formatContextPrompt(packet.current, packet.contentMode))
+
+  if (packet.workspaceRoot !== undefined) {
+    sections.push("## Workspace", `- Root: \`${packet.workspaceRoot}\``)
+  }
+
+  const visibleEditors = formatReferences(packet.visibleEditors, packet.omittedVisibleEditors ?? 0)
+  if (visibleEditors.length > 0) {
+    sections.push("## Other visible editors", visibleEditors)
+  }
+
+  const diagnostics = formatDiagnostics(packet.diagnostics, packet.omittedDiagnostics ?? 0)
+  if (diagnostics.length > 0) {
+    sections.push("## Diagnostics", diagnostics)
+  }
 
   return capBytes(sections.join("\n\n"), packet.maxBytes)
 }
@@ -91,7 +107,7 @@ function formatReferences(references: readonly EditorReference[], omittedCount =
     lines.push(`- … ${omittedCount} more omitted by ompContext.handoffMaxVisibleEditors`)
   }
 
-  return lines.length === 0 ? "_No visible editors._" : lines.join("\n")
+  return lines.join("\n")
 }
 function formatDiagnostics(diagnostics: readonly HandoffDiagnostic[], omittedCount = 0) {
   const lines = diagnostics.map((diagnostic) => {
@@ -102,7 +118,7 @@ function formatDiagnostics(diagnostics: readonly HandoffDiagnostic[], omittedCou
     lines.push(`- … ${omittedCount} more omitted by ompContext.handoffMaxDiagnostics`)
   }
 
-  return lines.length === 0 ? "_No diagnostics in captured scope._" : lines.join("\n")
+  return lines.join("\n")
 }
 function redactSecretishText(text: string) {
   return text
