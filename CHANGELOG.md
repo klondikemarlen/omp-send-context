@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.4
+
+- Make the bounded agent handoff packet the default `Ctrl+Alt+K` mode, with minimal token fallbacks still available through settings.
+
 ## 1.6.3
 
 - Remove low-value handoff packet settings and omit visible editor references from handoff output.
