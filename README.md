@@ -112,13 +112,14 @@ To see the active endpoint and plugin version in a terminal, run:
 
 ## Settings
 
+- `ompContext.insertMode`: primary shortcut mode. `editorContext` (default) keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt; `agentHandoff` sends the bounded handoff packet.
+- `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
-- `ompContext.contentMode`: `inline` (default) is stale-safe and includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
-- `ompContext.insertMode`: what `Ctrl+Alt+K` / `Cmd+Alt+K` sends. `editorContext` (default) keeps the minimal file/selection prompt; `agentHandoff` sends the bounded handoff packet.
-- `ompContext.handoffPreface`: optional text included as an `Instructions` section in **OMP Context: Insert Agent Handoff Packet**. Empty by default; empty omits the section.
-- `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
-- `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
-- `ompContext.handoffMaxVisibleEditors`: maximum visible editor references included in the handoff packet. Default: `10`.
+- Advanced handoff-only settings, used when `ompContext.insertMode` is `agentHandoff` or when the explicit handoff command is used:
+  - `ompContext.handoffPreface`: optional text included as an `Instructions` section. Empty by default; empty omits the section.
+  - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
+  - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
+  - `ompContext.handoffMaxVisibleEditors`: maximum visible editor references included in the handoff packet. Default: `10`.
 
 Use `Ctrl+Alt+K` / `Cmd+Alt+K` in the default `editorContext` mode for minimal file/selection context. Set `ompContext.insertMode` to `agentHandoff` when the normal shortcut should always send the toned-down handoff packet. The separate handoff command remains available as a one-off override.
 
