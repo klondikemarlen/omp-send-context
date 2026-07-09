@@ -78,9 +78,7 @@ test("formatAgentHandoffPacket omits empty optional sections", () => {
       selectedText: "",
     }),
     contentMode: "reference",
-    visibleEditors: [],
     diagnostics: [],
-    preface: "  \n\t",
     maxBytes: 20_000,
   })
 
@@ -101,23 +99,6 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
     }),
     contentMode: "inline",
     workspaceRoot: "/work/omp-vscode-context",
-    visibleEditors: [
-      {
-        relativePath: "src/current.ts",
-        startLine: 3,
-        endLine: 5,
-        startCharacter: 1,
-        endCharacter: 12,
-      },
-      {
-        relativePath: "test/prompt.test.ts",
-        startLine: 42,
-        endLine: 42,
-        startCharacter: 1,
-        endCharacter: 1,
-      },
-    ],
-    omittedVisibleEditors: 2,
     diagnostics: [{
       relativePath: "src/current.ts",
       startLine: 4,
@@ -129,17 +110,14 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
       message: "Type 'string' is not assignable to type 'number'.",
     }],
     omittedDiagnostics: 3,
-    preface: "Goal: fix the failing handoff\nVerify with: targeted tests",
     maxBytes: 20_000,
   })
 
   assert.match(prompt, /^# OMP Agent Handoff/)
-  assert.match(prompt, /## Instructions\n\nGoal: fix the failing handoff\nVerify with: targeted tests/)
+  assert.doesNotMatch(prompt, /## Instructions/)
   assert.match(prompt, /@src\/current\.ts#L3C1-L5C12/)
   assert.match(prompt, /```typescript\nconst current = true\n```/)
   assert.match(prompt, /- Root: `\/work\/omp-vscode-context`/)
-  assert.match(prompt, /- @test\/prompt\.test\.ts#L42C1/)
-  assert.match(prompt, /2 more omitted by ompContext\.handoffMaxVisibleEditors/)
   assert.match(prompt, /- Error ts: @src\/current\.ts#L4C7-L4C14 Type 'string' is not assignable to type 'number'\./)
   assert.match(prompt, /3 more omitted by ompContext\.handoffMaxDiagnostics/)
 })
@@ -152,9 +130,7 @@ test("formatAgentHandoffPacket respects byte cap without splitting UTF-8", () =>
     }),
     contentMode: "inline",
     workspaceRoot: "/work/omp-vscode-context",
-    visibleEditors: [],
     diagnostics: [],
-    preface: "Goal: keep the packet under the configured cap",
     maxBytes: 300,
   })
 
@@ -170,7 +146,6 @@ test("formatAgentHandoffPacket redacts secret-looking diagnostic values", () => 
     }),
     contentMode: "reference",
     workspaceRoot: "/work/omp-vscode-context",
-    visibleEditors: [],
     diagnostics: [{
       relativePath: "src/secrets.ts",
       startLine: 9,
@@ -181,7 +156,6 @@ test("formatAgentHandoffPacket redacts secret-looking diagnostic values", () => 
       source: "eslint",
       message: "Do not commit password: hunter2 token=abc123 api_key=secret-key Authorization: Bearer sk-live-auth-token",
     }],
-    preface: "Check diagnostics",
     maxBytes: 20_000,
   })
 

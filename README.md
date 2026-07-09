@@ -27,7 +27,7 @@ The default inline mode is stale-safe: it includes the reference plus selected t
 
 If the OMP bridge is not reachable, the VS Code extension copies the same context block to the clipboard.
 
-Use **OMP Context: Insert Agent Handoff Packet** when you want a bounded Markdown packet for hands-off agent work. It keeps the same active editor context, then adds your editable goal/constraint/check prompt, workspace root, visible editor references, and capped VS Code diagnostics. It only inserts text into OMP; it does not submit the prompt.
+Use **OMP Context: Insert Agent Handoff Packet** when you want a bounded Markdown packet for hands-off agent work. It keeps the same active editor context, then adds workspace root and capped VS Code diagnostics when available. It only inserts text into OMP; it does not submit the prompt.
 
 ## Install
 
@@ -116,14 +116,12 @@ To see the active endpoint and plugin version in a terminal, run:
 - `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
 - Advanced handoff-only settings, used when `ompContext.insertMode` is `agentHandoff` or when the explicit handoff command is used:
-  - `ompContext.handoffPreface`: optional text included as an `Instructions` section. Empty by default; empty omits the section.
   - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
   - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
-  - `ompContext.handoffMaxVisibleEditors`: maximum visible editor references included in the handoff packet. Default: `10`.
 
 Use `Ctrl+Alt+K` / `Cmd+Alt+K` in the default `editorContext` mode for minimal file/selection context. Set `ompContext.insertMode` to `agentHandoff` when the normal shortcut should always send the toned-down handoff packet. The separate handoff command remains available as a one-off override.
 
-Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, other visible editor paths, and diagnostics when those sections are non-empty. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
+Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, and diagnostics when those sections are non-empty. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
 
 ## Feature workflow
 

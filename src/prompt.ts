@@ -26,11 +26,8 @@ export interface AgentHandoffPacket {
   readonly current: EditorContext
   readonly contentMode: ContentMode
   readonly workspaceRoot?: string
-  readonly visibleEditors: readonly EditorReference[]
   readonly diagnostics: readonly HandoffDiagnostic[]
-  readonly omittedVisibleEditors?: number
   readonly omittedDiagnostics?: number
-  readonly preface: string
   readonly maxBytes: number
 }
 
@@ -77,22 +74,12 @@ export function formatContextPrompt(context: EditorContext, contentMode: Content
 
 export function formatAgentHandoffPacket(packet: AgentHandoffPacket) {
   const sections = ["# OMP Agent Handoff"]
-  const preface = packet.preface.trim()
-  if (preface.length > 0) {
-    sections.push("## Instructions", preface)
-  }
 
   sections.push("## Active editor", formatContextPrompt(packet.current, packet.contentMode))
 
   if (packet.workspaceRoot !== undefined) {
     sections.push("## Workspace", `- Root: \`${packet.workspaceRoot}\``)
   }
-
-  const visibleEditors = formatReferences(packet.visibleEditors, packet.omittedVisibleEditors ?? 0)
-  if (visibleEditors.length > 0) {
-    sections.push("## Other visible editors", visibleEditors)
-  }
-
   const diagnostics = formatDiagnostics(packet.diagnostics, packet.omittedDiagnostics ?? 0)
   if (diagnostics.length > 0) {
     sections.push("## Diagnostics", diagnostics)
@@ -101,14 +88,6 @@ export function formatAgentHandoffPacket(packet: AgentHandoffPacket) {
   return capBytes(sections.join("\n\n"), packet.maxBytes)
 }
 
-function formatReferences(references: readonly EditorReference[], omittedCount = 0) {
-  const lines = references.map((reference) => `- ${buildReference(reference)}`)
-  if (omittedCount > 0) {
-    lines.push(`- … ${omittedCount} more omitted by ompContext.handoffMaxVisibleEditors`)
-  }
-
-  return lines.join("\n")
-}
 function formatDiagnostics(diagnostics: readonly HandoffDiagnostic[], omittedCount = 0) {
   const lines = diagnostics.map((diagnostic) => {
     const source = diagnostic.source === undefined ? "" : ` ${diagnostic.source}:`

@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type EditorContext, type EditorReference, type HandoffDiagnostic } from "./prompt"
+import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "./prompt"
 
 
 interface BridgeState {
@@ -18,8 +18,6 @@ const STATE_FILE = path.join(os.homedir(), ".omp", "agent", "editor-context-brid
 const REQUEST_TIMEOUT_MILLISECONDS = 2000
 const DEFAULT_HANDOFF_MAX_BYTES = 20_000
 const DEFAULT_HANDOFF_MAX_DIAGNOSTICS = 20
-const DEFAULT_HANDOFF_MAX_VISIBLE_EDITORS = 10
-const DEFAULT_HANDOFF_PREFACE = ""
 
 export function activate(context: vscode.ExtensionContext) {
   const insertDisposable = vscode.commands.registerCommand(
@@ -62,23 +60,16 @@ async function insertAgentHandoffContext() {
 function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
   const settings = getHandoffSettings()
   const current = getEditorContext(activeEditor)
-  const currentReference = editorReferenceFromContext(current)
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
     ?? vscode.workspace.workspaceFolders?.[0]
-  const visibleEditorReferences = vscode.window.visibleTextEditors
-    .map(getEditorReference)
-    .filter((reference) => !isSameReference(reference, currentReference))
   const diagnostics = getHandoffDiagnostics()
 
   return formatAgentHandoffPacket({
     current,
     contentMode: getContentMode(),
     workspaceRoot: workspaceFolder?.uri.fsPath,
-    visibleEditors: visibleEditorReferences.slice(0, settings.maxVisibleEditors),
-    omittedVisibleEditors: Math.max(0, visibleEditorReferences.length - settings.maxVisibleEditors),
     diagnostics: diagnostics.slice(0, settings.maxDiagnostics),
     omittedDiagnostics: Math.max(0, diagnostics.length - settings.maxDiagnostics),
-    preface: settings.preface,
     maxBytes: settings.maxBytes,
   })
 
@@ -164,36 +155,13 @@ function getInsertMode() {
     .get<string>("insertMode"))
 }
 
-function getEditorReference(editor: vscode.TextEditor): EditorReference {
-  return editorReferenceFromContext(getEditorContext(editor))
-}
-
-function editorReferenceFromContext(context: EditorContext): EditorReference {
-  return {
-    relativePath: context.relativePath,
-    startLine: context.startLine,
-    endLine: context.endLine,
-    startCharacter: context.startCharacter,
-    endCharacter: context.endCharacter,
-  }
-}
-
-function isSameReference(left: EditorReference, right: EditorReference) {
-  return left.relativePath === right.relativePath
-    && left.startLine === right.startLine
-    && left.endLine === right.endLine
-    && left.startCharacter === right.startCharacter
-    && left.endCharacter === right.endCharacter
-}
 
 function getHandoffSettings() {
   const configuration = vscode.workspace.getConfiguration("ompContext")
 
   return {
-    preface: configuration.get<string>("handoffPreface", DEFAULT_HANDOFF_PREFACE),
     maxBytes: Math.max(1_000, configuration.get<number>("handoffMaxBytes", DEFAULT_HANDOFF_MAX_BYTES)),
     maxDiagnostics: Math.max(0, Math.floor(configuration.get<number>("handoffMaxDiagnostics", DEFAULT_HANDOFF_MAX_DIAGNOSTICS))),
-    maxVisibleEditors: Math.max(0, Math.floor(configuration.get<number>("handoffMaxVisibleEditors", DEFAULT_HANDOFF_MAX_VISIBLE_EDITORS))),
   }
 }
 
