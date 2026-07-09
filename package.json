@@ -105,20 +105,11 @@
           "order": 30,
           "description": "Override the OMP context bridge endpoint. Empty means read ~/.omp/agent/editor-context-bridge.json, then fall back to http://127.0.0.1:47687."
         },
-        "ompContext.handoffPreface": {
-          "type": "string",
-          "default": "",
-          "order": 100,
-          "tags": [
-            "advanced"
-          ],
-          "description": "Optional handoff-only text included as an Instructions section when ompContext.insertMode is agentHandoff or the explicit handoff command is used. Empty omits the section."
-        },
         "ompContext.handoffMaxBytes": {
           "type": "number",
           "default": 20000,
           "minimum": 1000,
-          "order": 110,
+          "order": 100,
           "tags": [
             "advanced"
           ],
@@ -129,22 +120,11 @@
           "default": 20,
           "multipleOf": 1,
           "minimum": 0,
-          "order": 120,
+          "order": 110,
           "tags": [
             "advanced"
           ],
           "description": "Advanced handoff-only maximum VS Code diagnostics included when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
-        },
-        "ompContext.handoffMaxVisibleEditors": {
-          "type": "number",
-          "default": 10,
-          "multipleOf": 1,
-          "minimum": 0,
-          "order": 130,
-          "tags": [
-            "advanced"
-          ],
-          "description": "Advanced handoff-only maximum visible editor references included when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
         }
       }
     }
