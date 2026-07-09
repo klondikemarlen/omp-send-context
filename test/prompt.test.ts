@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, formatAgentHandoffPacket, formatContextPrompt, type EditorContext } from "../src/prompt"
+import { buildReference, formatAgentHandoffPacket, formatContextPrompt, resolveInsertMode, type EditorContext } from "../src/prompt"
 
 function editorContext(overrides: Partial<EditorContext>): EditorContext {
   return {
@@ -66,6 +66,28 @@ test("formatContextPrompt emits a trailing space for cursor references", () => {
   assert.equal(prompt, "@src/example.ts#L3C8 ")
 })
 
+test("resolveInsertMode stays editor context unless agent handoff is selected", () => {
+  assert.equal(resolveInsertMode(undefined), "editorContext")
+  assert.equal(resolveInsertMode("bogus"), "editorContext")
+  assert.equal(resolveInsertMode("agentHandoff"), "agentHandoff")
+})
+
+test("formatAgentHandoffPacket omits empty optional sections", () => {
+  const prompt = formatAgentHandoffPacket({
+    current: editorContext({
+      selectedText: "",
+    }),
+    contentMode: "reference",
+    visibleEditors: [],
+    diagnostics: [],
+    preface: "  \n\t",
+    maxBytes: 20_000,
+  })
+
+  assert.match(prompt, /^# OMP Agent Handoff\n\n## Active editor\n\n@src\/example\.ts#L7C17-L9C20 $/)
+  assert.doesNotMatch(prompt, /## (Goal \/ constraints \/ verify with|Instructions|Other visible editors|Diagnostics)/)
+})
+
 test("formatAgentHandoffPacket includes handoff context and omission notes", () => {
   const prompt = formatAgentHandoffPacket({
     current: editorContext({
@@ -112,7 +134,7 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
   })
 
   assert.match(prompt, /^# OMP Agent Handoff/)
-  assert.match(prompt, /## Goal \/ constraints \/ verify with\n\nGoal: fix the failing handoff\nVerify with: targeted tests/)
+  assert.match(prompt, /## Instructions\n\nGoal: fix the failing handoff\nVerify with: targeted tests/)
   assert.match(prompt, /@src\/current\.ts#L3C1-L5C12/)
   assert.match(prompt, /```typescript\nconst current = true\n```/)
   assert.match(prompt, /- Root: `\/work\/omp-vscode-context`/)

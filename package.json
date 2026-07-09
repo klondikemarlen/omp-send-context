@@ -93,10 +93,19 @@
           "default": "inline",
           "description": "What Ctrl+Alt+K inserts for a selection. Inline includes the reference plus selected text as a fenced code block; reference sends only @file#Lx-Ly so OMP can read the file."
         },
+        "ompContext.insertMode": {
+          "type": "string",
+          "enum": [
+            "editorContext",
+            "agentHandoff"
+          ],
+          "default": "editorContext",
+          "description": "What the Ctrl+Alt+K command sends. editorContext keeps the minimal file/selection prompt; agentHandoff sends the bounded handoff packet."
+        },
         "ompContext.handoffPreface": {
           "type": "string",
-          "default": "Goal:\n\nConstraints:\n\nVerify with:",
-          "description": "Editable starter text included in OMP Context: Insert Agent Handoff Packet."
+          "default": "",
+          "description": "Optional text included as an Instructions section in OMP Context: Insert Agent Handoff Packet. Empty omits the section."
         },
         "ompContext.handoffMaxBytes": {
           "type": "number",
