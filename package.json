@@ -85,9 +85,9 @@
             "editorContext",
             "agentHandoff"
           ],
-          "default": "editorContext",
+          "default": "agentHandoff",
           "order": 10,
-          "description": "What the Ctrl+Alt+K command sends. editorContext keeps the minimal file/selection prompt; agentHandoff sends the bounded handoff packet."
+          "description": "What the Ctrl+Alt+K command sends. agentHandoff sends the bounded handoff packet by default; editorContext keeps the minimal file/selection prompt."
         },
         "ompContext.contentMode": {
           "type": "string",

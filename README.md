@@ -6,28 +6,30 @@ VS Code extension plus Oh My Pi extension for sending the active editor location
 
 Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.
 
-With a selection, OMP receives a file reference plus the exact selected text by default:
+By default, OMP receives a bounded agent handoff packet with the active editor context, workspace root, and diagnostics when present:
 
 ````text
+# OMP Agent Handoff
+
+## Active editor
+
 @src/example.ts#L7C17-L9C20 
 
 ```typescript
 const value = 1
 return value
 ```
+
+## Workspace
+
+- Root: `/path/to/workspace`
 ````
 
-Without a selection, OMP receives the current file and cursor position:
-
-```text
-@src/example.ts#L7C17 
-```
-
-The default inline mode is stale-safe: it includes the reference plus selected text as a fenced code block, so OMP receives the exact bytes you selected even if the file changes before the agent reads it. Set `ompContext.contentMode` to `reference` to send only `@file#LxCy-LxCy` when you prefer the smaller file-reference optimization.
+The default inline content mode is stale-safe for ordinary selections: it includes the reference plus selected text as a fenced code block, so OMP receives the exact bytes you selected unless the bounded handoff packet reaches `ompContext.handoffMaxBytes`. Set `ompContext.contentMode` to `reference` to send only `@file#LxCy-LxCy` when you prefer the smaller file-reference optimization.
 
 If the OMP bridge is not reachable, the VS Code extension copies the same context block to the clipboard.
 
-Use **OMP Context: Insert Agent Handoff Packet** when you want a bounded Markdown packet for hands-off agent work. It keeps the same active editor context, then adds workspace root and capped VS Code diagnostics when available. It only inserts text into OMP; it does not submit the prompt.
+Set `ompContext.insertMode` to `editorContext` when you want `Ctrl+Alt+K` / `Cmd+Alt+K` to send only the active file reference and selected text.
 
 ## Install
 
@@ -112,14 +114,14 @@ To see the active endpoint and plugin version in a terminal, run:
 
 ## Settings
 
-- `ompContext.insertMode`: primary shortcut mode. `editorContext` (default) keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt; `agentHandoff` sends the bounded handoff packet.
+- `ompContext.insertMode`: primary shortcut mode. `agentHandoff` (default) sends the bounded handoff packet; `editorContext` keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt.
 - `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
 - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
 - Advanced handoff-only settings, used when `ompContext.insertMode` is `agentHandoff` or when the explicit handoff command is used:
   - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
   - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
 
-Use `Ctrl+Alt+K` / `Cmd+Alt+K` in the default `editorContext` mode for minimal file/selection context. Set `ompContext.insertMode` to `agentHandoff` when the normal shortcut should always send the toned-down handoff packet. The separate handoff command remains available as a one-off override.
+Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback. The separate handoff command remains available as a one-off override.
 
 Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, and diagnostics when those sections are non-empty. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
 
