@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.2
+
+- Prioritize `ompContext.insertMode` in VS Code settings and mark handoff-only tuning settings as advanced.
+
 ## 1.6.1
 
 - Add `ompContext.insertMode` so `Ctrl+Alt+K` can opt into handoff packets, and quiet handoff output by omitting empty sections and duplicate active-editor references.
