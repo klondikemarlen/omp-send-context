@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- Add `ompContext.insertMode` so `Ctrl+Alt+K` can opt into handoff packets, and quiet handoff output by omitting empty sections and duplicate active-editor references.
+
 ## 1.6.0
 
 - Add the `OMP Context: Insert Agent Handoff Packet` command for bounded Markdown handoffs with active editor context, workspace root, visible editor references, capped diagnostics, byte caps, and clipboard fallback.
