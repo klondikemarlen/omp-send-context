@@ -36,10 +36,10 @@ export type ContentMode = "reference" | "inline"
 export const DEFAULT_CONTENT_MODE: ContentMode = "inline"
 export type InsertMode = "editorContext" | "agentHandoff"
 
-export const DEFAULT_INSERT_MODE: InsertMode = "editorContext"
+export const DEFAULT_INSERT_MODE: InsertMode = "agentHandoff"
 
 export function resolveInsertMode(value: string | undefined): InsertMode {
-  return value === "agentHandoff" ? "agentHandoff" : DEFAULT_INSERT_MODE
+  return value === "editorContext" || value === "agentHandoff" ? value : DEFAULT_INSERT_MODE
 }
 
 

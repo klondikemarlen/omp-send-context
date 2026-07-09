@@ -51,11 +51,11 @@ The VS Code extension posts JSON to `/context`:
 Only `prompt` is sent. VS Code owns editor inspection and packet assembly; OMP only needs the text to paste. Rich handoff packets still use this same transport shape.
 ## Content modes and handoff packets
 
-- `inline`: default. Sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text, making the prompt context stale-safe for active editing, unsaved buffers, and generated files.
+- `inline`: default. Sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text, making ordinary selections stale-safe for active editing, unsaved buffers, and generated files. Handoff packets still cap total output with `ompContext.handoffMaxBytes`.
 - `reference`: sends only `@file#LxCy-LxCy `. Smaller prompt for saved workspace files because OMP can inspect the file directly.
-- Agent handoff packet: separate command, or the normal shortcut when `ompContext.insertMode` is `agentHandoff`. It wraps the active editor context with only non-empty extras: workspace root and capped diagnostics. Empty optional sections are omitted.
+- Agent handoff packet: default normal shortcut mode, or the separate handoff command. It wraps the active editor context with only non-empty extras: workspace root and capped diagnostics. Empty optional sections are omitted.
 
-Use `reference` for large selections when you prefer a compact prompt over copying selected text into OMP. Keep `ompContext.insertMode` at `editorContext` for the minimal shortcut, and switch it to `agentHandoff` when `Ctrl+Alt+K` should always send the bounded handoff packet.
+Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback.
 
 
 ## Prompt repaint compatibility

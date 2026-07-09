@@ -66,9 +66,10 @@ test("formatContextPrompt emits a trailing space for cursor references", () => {
   assert.equal(prompt, "@src/example.ts#L3C8 ")
 })
 
-test("resolveInsertMode stays editor context unless agent handoff is selected", () => {
-  assert.equal(resolveInsertMode(undefined), "editorContext")
-  assert.equal(resolveInsertMode("bogus"), "editorContext")
+test("resolveInsertMode defaults to agent handoff unless editor context is selected", () => {
+  assert.equal(resolveInsertMode(undefined), "agentHandoff")
+  assert.equal(resolveInsertMode("bogus"), "agentHandoff")
+  assert.equal(resolveInsertMode("editorContext"), "editorContext")
   assert.equal(resolveInsertMode("agentHandoff"), "agentHandoff")
 })
 
