@@ -79,10 +79,15 @@
     "configuration": {
       "title": "OMP VS Code Context",
       "properties": {
-        "ompContext.endpoint": {
+        "ompContext.insertMode": {
           "type": "string",
-          "default": "",
-          "description": "Override the OMP context bridge endpoint. Empty means read ~/.omp/agent/editor-context-bridge.json, then fall back to http://127.0.0.1:47687."
+          "enum": [
+            "editorContext",
+            "agentHandoff"
+          ],
+          "default": "editorContext",
+          "order": 10,
+          "description": "What the Ctrl+Alt+K command sends. editorContext keeps the minimal file/selection prompt; agentHandoff sends the bounded handoff packet."
         },
         "ompContext.contentMode": {
           "type": "string",
@@ -91,41 +96,55 @@
             "inline"
           ],
           "default": "inline",
-          "description": "What Ctrl+Alt+K inserts for a selection. Inline includes the reference plus selected text as a fenced code block; reference sends only @file#Lx-Ly so OMP can read the file."
+          "order": 20,
+          "description": "How selected text is included in editor context and handoff packets. Inline includes the reference plus selected text as a fenced code block; reference sends only @file#Lx-Ly so OMP can read the file."
         },
-        "ompContext.insertMode": {
+        "ompContext.endpoint": {
           "type": "string",
-          "enum": [
-            "editorContext",
-            "agentHandoff"
-          ],
-          "default": "editorContext",
-          "description": "What the Ctrl+Alt+K command sends. editorContext keeps the minimal file/selection prompt; agentHandoff sends the bounded handoff packet."
+          "default": "",
+          "order": 30,
+          "description": "Override the OMP context bridge endpoint. Empty means read ~/.omp/agent/editor-context-bridge.json, then fall back to http://127.0.0.1:47687."
         },
         "ompContext.handoffPreface": {
           "type": "string",
           "default": "",
-          "description": "Optional text included as an Instructions section in OMP Context: Insert Agent Handoff Packet. Empty omits the section."
+          "order": 100,
+          "tags": [
+            "advanced"
+          ],
+          "description": "Optional handoff-only text included as an Instructions section when ompContext.insertMode is agentHandoff or the explicit handoff command is used. Empty omits the section."
         },
         "ompContext.handoffMaxBytes": {
           "type": "number",
           "default": 20000,
           "minimum": 1000,
-          "description": "Maximum bytes inserted by OMP Context: Insert Agent Handoff Packet."
+          "order": 110,
+          "tags": [
+            "advanced"
+          ],
+          "description": "Advanced handoff-only maximum bytes inserted when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
         },
         "ompContext.handoffMaxDiagnostics": {
           "type": "number",
           "default": 20,
           "multipleOf": 1,
           "minimum": 0,
-          "description": "Maximum VS Code diagnostics included in OMP Context: Insert Agent Handoff Packet."
+          "order": 120,
+          "tags": [
+            "advanced"
+          ],
+          "description": "Advanced handoff-only maximum VS Code diagnostics included when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
         },
         "ompContext.handoffMaxVisibleEditors": {
           "type": "number",
           "default": 10,
           "multipleOf": 1,
           "minimum": 0,
-          "description": "Maximum visible editor references included in OMP Context: Insert Agent Handoff Packet."
+          "order": 130,
+          "tags": [
+            "advanced"
+          ],
+          "description": "Advanced handoff-only maximum visible editor references included when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
         }
       }
     }
