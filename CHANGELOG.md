@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.5
+
+- End handoff packets with an edit-friendly blank line and move the endpoint override into advanced settings.
+
 ## 1.6.4
 
 - Make the bounded agent handoff packet the default `Ctrl+Alt+K` mode, with minimal token fallbacks still available through settings.
