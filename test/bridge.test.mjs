@@ -59,6 +59,11 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
   } finally {
     await handlers.get("session_shutdown")?.()
     process.env.HOME = originalHome
+    if (originalPort === undefined) {
+      delete process.env.OMP_CONTEXT_BRIDGE_PORT
+    } else {
+      process.env.OMP_CONTEXT_BRIDGE_PORT = originalPort
+    }
     Object.defineProperty(process, "platform", originalPlatform)
     await fs.rm(homeDirectory, {
       recursive: true,
