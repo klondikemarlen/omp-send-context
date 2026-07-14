@@ -22,6 +22,12 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
   const commands = new Map()
   const registeredFlags = new Map()
   const sentMessages = []
+  const terminalWrites = []
+  const originalStdoutWrite = process.stdout.write
+  process.stdout.write = (data) => {
+    terminalWrites.push(String(data))
+    return true
+  }
 
   try {
     const moduleUrl = pathToFileURL(path.resolve("omp/index.js"))
@@ -55,6 +61,7 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
       sentMessages,
       stateFile: path.join(homeDirectory, ".omp", "agent", "editor-context-bridge.json"),
       registeredFlags,
+      terminalWrites,
     })
   } finally {
     await handlers.get("session_shutdown")?.()
@@ -65,10 +72,21 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
       process.env.OMP_CONTEXT_BRIDGE_PORT = originalPort
     }
     Object.defineProperty(process, "platform", originalPlatform)
+    process.stdout.write = originalStdoutWrite
     await fs.rm(homeDirectory, {
       recursive: true,
       force: true,
     })
+  }
+}
+
+async function waitFor(check) {
+  const deadline = Date.now() + 1000
+  while (!(await check())) {
+    if (Date.now() >= deadline) {
+      throw new Error("Timed out waiting for bridge focus claim")
+    }
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
 }
 
@@ -308,7 +326,7 @@ test("focus routing is disabled by default", async () => {
     await handlers.get("session_start")({}, {
       hasUI: true,
       ui: {
-        onTerminalFocusChange() {
+        onTerminalInput() {
           subscribed = true
           return () => {}
         },
@@ -324,22 +342,25 @@ test("plugin setting enables Linux focus routing", async () => {
   assert.deepEqual(packageJson.omp.settings.claimIdeContextOnFocus, {
     type: "boolean",
     default: false,
-    description: "On Linux, claim IDE context automatically when this terminal gains focus.",
+    description: "On Linux, claim IDE context automatically after this terminal receives an xterm focus report.",
   })
 
-  await withBridge(BASE_PORT + 11, async ({ handlers }) => {
-    let subscribed = false
+  await withBridge(BASE_PORT + 11, async ({ handlers, terminalWrites }) => {
+    let focusHandler
     await handlers.get("session_start")({}, {
       hasUI: true,
       ui: {
-        onTerminalFocusChange() {
-          subscribed = true
+        onTerminalInput(handler) {
+          focusHandler = handler
           return () => {}
         },
       },
     })
 
-    assert.equal(subscribed, true)
+    assert.equal(typeof focusHandler, "function")
+    assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
+    assert.deepEqual(focusHandler("\x1b"), { data: "\x1b" })
+    assert.deepEqual(focusHandler("[I"), { data: "[I" })
   }, {
     pluginSettings: {
       claimIdeContextOnFocus: true,
@@ -348,12 +369,12 @@ test("plugin setting enables Linux focus routing", async () => {
 })
 
 test("focus routing is disabled outside Linux", async () => {
-  await withBridge(BASE_PORT + 12, async ({ handlers }) => {
+  await withBridge(BASE_PORT + 12, async ({ handlers, terminalWrites }) => {
     let subscribed = false
     await handlers.get("session_start")({}, {
       hasUI: true,
       ui: {
-        onTerminalFocusChange() {
+        onTerminalInput() {
           subscribed = true
           return () => {}
         },
@@ -361,6 +382,7 @@ test("focus routing is disabled outside Linux", async () => {
     })
 
     assert.equal(subscribed, false)
+    assert.deepEqual(terminalWrites, [])
   }, {
     pluginSettings: {
       claimIdeContextOnFocus: true,
@@ -369,7 +391,7 @@ test("focus routing is disabled outside Linux", async () => {
   })
 })
 
-test("focus routing warns when the runtime cannot report focus", async () => {
+test("focus routing warns when terminal input listeners are unavailable", async () => {
   await withBridge(BASE_PORT + 9, async ({ handlers }) => {
     const notifications = []
     await handlers.get("session_start")({}, {
@@ -382,7 +404,7 @@ test("focus routing warns when the runtime cannot report focus", async () => {
     })
 
     assert.deepEqual(notifications, [{
-      message: "Claim IDE context on focus requires a newer OMP runtime.",
+      message: "Claim IDE context on focus requires OMP 16.5.1 or newer.",
       type: "warning",
     }])
   }, {
@@ -392,8 +414,8 @@ test("focus routing warns when the runtime cannot report focus", async () => {
   })
 })
 
-test("focus flag claims the bridge after a terminal focus report", async () => {
-  await withBridge(BASE_PORT + 7, async ({ handlers, registeredFlags, stateFile }) => {
+test("focus flag claims the bridge after an xterm focus report", async () => {
+  await withBridge(BASE_PORT + 7, async ({ handlers, registeredFlags, stateFile, terminalWrites }) => {
     const ownerPort = BASE_PORT + 8
     const ownerServer = createServer((_request, response) => {
       response.writeHead(200, {
@@ -418,7 +440,7 @@ test("focus flag claims the bridge after a terminal focus report", async () => {
       await handlers.get("session_start")({}, {
         hasUI: true,
         ui: {
-          onTerminalFocusChange(handler) {
+          onTerminalInput(handler) {
             focusHandler = handler
             return () => {
               focusUnsubscribed = true
@@ -432,16 +454,16 @@ test("focus flag claims the bridge after a terminal focus report", async () => {
         type: "boolean",
         default: false,
       })
+      assert.deepEqual(focusHandler("\x1b[O"), { consume: true })
+      assert.deepEqual(focusHandler("prefix\x1b[Osuffix"), { data: "prefixsuffix" })
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId, "owner-instance")
 
-      await focusHandler(false)
-      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId, "owner-instance")
-
-      await focusHandler(true)
-      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, `http://127.0.0.1:${BASE_PORT + 7}`)
+      assert.deepEqual(focusHandler("\x1b[I"), { consume: true })
+      await waitFor(async () => JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint === `http://127.0.0.1:${BASE_PORT + 7}`)
 
       await handlers.get("session_shutdown")()
       assert.equal(focusUnsubscribed, true)
+      assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
     } finally {
       await new Promise((resolve) => ownerServer.close(resolve))
     }

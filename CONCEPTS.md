@@ -87,7 +87,9 @@ Multiple OMP terminals can run the plugin at the same time. Each terminal listen
 
 ### Experimental Linux terminal focus routing
 
-On Linux, the OMP-side **Claim IDE context on focus** plugin setting and `--claim-ide-context-on-focus` flag are disabled by default. When the runtime exposes terminal-focus reporting and the terminal emits xterm DECSET 1004 focus-in, the focused OMP instance force-claims the same state file. This is a Linux capability-based feature: no terminal-emulator, desktop, PID, or VS Code API detection is involved. Focus-out does nothing; unsupported Linux transports retain `/ide` routing. The setting is inert outside Linux.
+On Linux, the OMP-side **Claim IDE context on focus** plugin setting and `--claim-ide-context-on-focus` flag are disabled by default. When enabled, the plugin subscribes to raw terminal input, enables xterm DECSET 1004, and force-claims the shared state file after a focus-in (`CSI I`) report. It removes focus-in and focus-out reports from the forwarded input but forwards all other bytes unchanged. This is a Linux capability-based feature: no terminal-emulator, desktop, PID, or VS Code API detection is involved. Focus-out does nothing; unsupported Linux transports retain `/ide` routing. The setting is inert outside Linux.
+
+This feature requires OMP `16.5.1` or newer.
 
 Terminal multiplexers must forward xterm focus reports to OMP for automatic claiming; otherwise the feature remains inactive and `/ide` is the manual route.
 

@@ -54,7 +54,7 @@ export default function ompVscodeContextExtension(pi) {
     activeContext = ctx
     await ensureServer(pi, ctx)
     await claimActiveBridge()
-    await enableFocusClaiming(pi, ctx)
+    enableFocusClaiming(pi, ctx)
   })
 
   pi.on("session_switch", async (_event, ctx) => {
@@ -64,14 +64,13 @@ export default function ompVscodeContextExtension(pi) {
   })
 
   pi.on("session_shutdown", async () => {
-    focusUnsubscribe?.()
-    focusUnsubscribe = undefined
+    disableFocusClaiming()
     activeContext = undefined
     await closeServer()
   })
 }
 
-async function enableFocusClaiming(pi, ctx) {
+function enableFocusClaiming(pi, ctx) {
   if (
     process.platform !== "linux"
     || !ctx.hasUI
@@ -81,16 +80,37 @@ async function enableFocusClaiming(pi, ctx) {
     return
   }
 
-  if (typeof ctx.ui?.onTerminalFocusChange !== "function") {
-    ctx.ui.notify("Claim IDE context on focus requires a newer OMP runtime.", "warning")
+  if (typeof ctx.ui?.onTerminalInput !== "function") {
+    ctx.ui.notify("Claim IDE context on focus requires OMP 16.5.1 or newer.", "warning")
     return
   }
 
-  focusUnsubscribe = ctx.ui.onTerminalFocusChange(async (focused) => {
-    if (focused) {
-      await claimActiveBridge({ force: true })
+  focusUnsubscribe = ctx.ui.onTerminalInput(handleFocusInput)
+  process.stdout.write("\x1b[?1004h")
+}
+
+function disableFocusClaiming() {
+  if (focusUnsubscribe === undefined) {
+    return
+  }
+  focusUnsubscribe()
+  focusUnsubscribe = undefined
+  process.stdout.write("\x1b[?1004l")
+}
+
+function handleFocusInput(data) {
+  let focused = false
+  const forwarded = data.replace(/\x1b\[([IO])/g, (_report, state) => {
+    if (state === "I") {
+      focused = true
     }
+    return ""
   })
+
+  if (focused) {
+    void claimActiveBridge({ force: true }).catch(() => {})
+  }
+  return forwarded.length > 0 ? { data: forwarded } : { consume: true }
 }
 
 
