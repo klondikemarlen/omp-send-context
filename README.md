@@ -112,6 +112,16 @@ To see the active endpoint and plugin version in a terminal, run:
 /ide-status
 ```
 
+### Experimental Linux terminal focus routing
+
+On Linux, enable **Claim IDE context on focus** in OMP **Settings → Plugins → omp-vscode-context**, or start OMP with `--claim-ide-context-on-focus`. Both are off by default; `/ide` remains the explicit override. This setting does nothing outside Linux.
+
+This feature requires OMP `16.5.1` or newer.
+
+The plugin listens to raw terminal input and enables xterm focus reporting (DECSET 1004). A terminal or transport that forwards a focus-in report (`CSI I`) makes its OMP instance claim the active bridge. Hover is not enough: the terminal must actually receive focus. Other input, including incomplete or non-focus escape sequences, is forwarded unchanged. Unsupported terminals preserve the normal manual route.
+
+When using a terminal multiplexer, configure it to forward xterm focus reports to OMP; otherwise automatic claiming stays inactive and `/ide` remains available.
+
 ## Settings
 
 - `ompContext.insertMode`: primary shortcut mode. `agentHandoff` (default) sends the bounded handoff packet; `editorContext` keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt.

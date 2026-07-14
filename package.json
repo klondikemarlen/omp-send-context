@@ -53,7 +53,14 @@
   "omp": {
     "extensions": [
       "./omp/index.js"
-    ]
+    ],
+    "settings": {
+      "claimIdeContextOnFocus": {
+        "type": "boolean",
+        "default": false,
+        "description": "On Linux, claim IDE context automatically after this terminal receives an xterm focus report."
+      }
+    }
   },
   "contributes": {
     "commands": [
