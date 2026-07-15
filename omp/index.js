@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto"
 import { createServer } from "node:http"
+import { watch } from "node:fs"
 import { link, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { dirname, join } from "node:path"
+import { basename, dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const DEFAULT_PORT = Number.parseInt(process.env.OMP_CONTEXT_BRIDGE_PORT ?? "47687", 10)
@@ -12,6 +13,8 @@ const MAX_BODY_BYTES = 2 * 1024 * 1024
 const HEALTH_TIMEOUT_MILLISECONDS = 500
 const STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
 const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
+const PLUGINS_LOCK_FILE = join(homedir(), ".omp", "plugins", "omp-plugins.lock.json")
+const PLUGIN_NAME = "omp-vscode-context"
 
 let activeContext
 let instanceId
@@ -21,6 +24,8 @@ let serverPort
 let token
 let serverEndpoint
 let focusUnsubscribe
+let focusSettingsWatcher
+let focusSettingsRefreshTimer
 
 export default function ompVscodeContextExtension(pi) {
   pi.setLabel("VS Code Context Bridge")
@@ -54,7 +59,8 @@ export default function ompVscodeContextExtension(pi) {
     activeContext = ctx
     await ensureServer(pi, ctx)
     await claimActiveBridge()
-    enableFocusClaiming(pi, ctx)
+    await refreshFocusClaiming(pi)
+    watchFocusSettings(pi)
   })
 
   pi.on("session_switch", async (_event, ctx) => {
@@ -64,19 +70,62 @@ export default function ompVscodeContextExtension(pi) {
   })
 
   pi.on("session_shutdown", async () => {
+    stopFocusSettingsWatcher()
     disableFocusClaiming()
     activeContext = undefined
     await closeServer()
   })
 }
 
-function enableFocusClaiming(pi, ctx) {
-  if (
-    process.platform !== "linux"
-    || !ctx.hasUI
-    || focusUnsubscribe !== undefined
-    || !(pi.getFlag("claim-ide-context-on-focus") === true || pi.getPluginSettings?.().claimIdeContextOnFocus === true)
-  ) {
+async function refreshFocusClaiming(pi) {
+  if (process.platform !== "linux" || activeContext === undefined) {
+    return
+  }
+
+  const setting = await readFocusClaimingSetting()
+  if (pi.getFlag("claim-ide-context-on-focus") === true || setting === true) {
+    enableFocusClaiming(activeContext)
+  } else if (setting === false) {
+    disableFocusClaiming()
+  }
+}
+
+async function readFocusClaimingSetting() {
+  try {
+    const config = JSON.parse(await readFile(PLUGINS_LOCK_FILE, "utf8"))
+    return config.settings?.[PLUGIN_NAME]?.claimIdeContextOnFocus === true
+  } catch (error) {
+    return error?.code === "ENOENT" ? false : undefined
+  }
+}
+
+function watchFocusSettings(pi) {
+  if (process.platform !== "linux" || pi.getFlag("claim-ide-context-on-focus") === true || focusSettingsWatcher !== undefined) {
+    return
+  }
+
+  try {
+    focusSettingsWatcher = watch(dirname(PLUGINS_LOCK_FILE), { persistent: false }, (_event, filename) => {
+      if (filename === null || basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
+        return
+      }
+      clearTimeout(focusSettingsRefreshTimer)
+      focusSettingsRefreshTimer = setTimeout(() => {
+        void refreshFocusClaiming(pi)
+      }, 25)
+    })
+  } catch {}
+}
+
+function stopFocusSettingsWatcher() {
+  focusSettingsWatcher?.close()
+  focusSettingsWatcher = undefined
+  clearTimeout(focusSettingsRefreshTimer)
+  focusSettingsRefreshTimer = undefined
+}
+
+function enableFocusClaiming(ctx) {
+  if (process.platform !== "linux" || !ctx.hasUI || focusUnsubscribe !== undefined) {
     return
   }
 

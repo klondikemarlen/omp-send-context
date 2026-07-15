@@ -118,6 +118,8 @@ On Linux, enable **Claim IDE context on focus** in OMP **Settings â†’ Plugins â†
 
 This feature requires OMP `16.5.1` or newer.
 
+Changing this setting starts or stops focus reporting in every running Linux OMP instance; no reload or restart is required. `--claim-ide-context-on-focus` remains a per-process override.
+
 The plugin listens to raw terminal input and enables xterm focus reporting (DECSET 1004). A terminal or transport that forwards a focus-in report (`CSI I`) makes its OMP instance claim the active bridge. Hover is not enough: the terminal must actually receive focus. Other input, including incomplete or non-focus escape sequences, is forwarded unchanged. Unsupported terminals preserve the normal manual route.
 
 When using a terminal multiplexer, configure it to forward xterm focus reports to OMP; otherwise automatic claiming stays inactive and `/ide` remains available.

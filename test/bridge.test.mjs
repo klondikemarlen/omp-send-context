@@ -17,6 +17,15 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
   process.env.OMP_CONTEXT_BRIDGE_PORT = String(port)
   const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform")
   Object.defineProperty(process, "platform", { ...originalPlatform, value: platform })
+  const pluginsLockFile = path.join(homeDirectory, ".omp", "plugins", "omp-plugins.lock.json")
+  await fs.mkdir(path.dirname(pluginsLockFile), {
+    recursive: true,
+  })
+  await fs.writeFile(pluginsLockFile, JSON.stringify({
+    settings: {
+      "omp-vscode-context": pluginSettings,
+    },
+  }))
 
   const handlers = new Map()
   const commands = new Map()
@@ -39,9 +48,6 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
       getFlag(name) {
         return flags[name]
       },
-      getPluginSettings() {
-        return pluginSettings
-      },
       setLabel() {},
       on(eventName, handler) {
         handlers.set(eventName, handler)
@@ -62,6 +68,7 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
       stateFile: path.join(homeDirectory, ".omp", "agent", "editor-context-bridge.json"),
       registeredFlags,
       terminalWrites,
+      pluginsLockFile,
     })
   } finally {
     await handlers.get("session_shutdown")?.()
@@ -365,6 +372,45 @@ test("plugin setting enables Linux focus routing", async () => {
     pluginSettings: {
       claimIdeContextOnFocus: true,
     },
+  })
+})
+
+test("plugin setting changes focus routing in a running Linux session", async () => {
+  await withBridge(BASE_PORT + 13, async ({ handlers, pluginsLockFile, terminalWrites }) => {
+    let focusHandler
+    let focusUnsubscribed = false
+    await handlers.get("session_start")({}, {
+      hasUI: true,
+      ui: {
+        onTerminalInput(handler) {
+          focusHandler = handler
+          return () => {
+            focusUnsubscribed = true
+          }
+        },
+      },
+    })
+
+    assert.equal(focusHandler, undefined)
+    await fs.writeFile(pluginsLockFile, JSON.stringify({
+      settings: {
+        "omp-vscode-context": {
+          claimIdeContextOnFocus: true,
+        },
+      },
+    }))
+    await waitFor(() => typeof focusHandler === "function")
+    assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
+
+    await fs.writeFile(pluginsLockFile, JSON.stringify({
+      settings: {
+        "omp-vscode-context": {
+          claimIdeContextOnFocus: false,
+        },
+      },
+    }))
+    await waitFor(() => focusUnsubscribed)
+    assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
   })
 })
 
