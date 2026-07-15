@@ -91,6 +91,8 @@ On Linux, the OMP-side **Claim IDE context on focus** plugin setting and `--clai
 
 This feature requires OMP `16.5.1` or newer.
 
+On Linux, the plugin watches the OMP plugin runtime configuration that the Settings UI writes. Changing this setting starts or stops focus reporting in every running OMP instance without a reload or restart. The CLI flag remains a per-process override.
+
 Terminal multiplexers must forward xterm focus reports to OMP for automatic claiming; otherwise the feature remains inactive and `/ide` is the manual route.
 
 ## Shortcut semantics
