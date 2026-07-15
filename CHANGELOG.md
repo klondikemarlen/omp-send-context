@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.8
+
+- Apply the Linux terminal-focus setting immediately to running OMP sessions.
+
 ## 1.6.7
 
 - Add opt-in Linux terminal-focus routing so VS Code context follows the OMP terminal that reports xterm focus.
