@@ -16,7 +16,7 @@ async function availablePort() {
 }
 
 test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vscode-context-runtime-"))
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-send-context-runtime-"))
   const stateFile = path.join(directory, "agent", "editor-context-bridge.json")
   const deliveredPrompts = []
   const runtime = createBridgeRuntime({
