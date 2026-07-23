@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+
+- Add a source-agnostic protocol-v1 envelope for context clients.
+- Add a Firefox GitHub pull-request client with permalink metadata and clipboard fallback.
+- Add a secure native-messaging host for direct Firefox-to-OMP delivery.
+
 ## 1.6.10
 
 - Isolate the bridge runtime from OMP event registration.
