@@ -1,4 +1,4 @@
-# Oh My Pi Context Bridge
+# OMP Send Context
 
 VS Code client plus OMP extension for sending source selections to OMP with `Ctrl+Alt+K`; a Firefox GitHub client is also available under `firefox/`.
 
