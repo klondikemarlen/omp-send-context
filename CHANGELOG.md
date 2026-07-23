@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+
+- Cut over the VS Code Marketplace and OMP plugin identities to `omp-send-context`.
+
 ## 1.7.4
 
 - Document the one-time OMP plugin migration required after the repository rename.
