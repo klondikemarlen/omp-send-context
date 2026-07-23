@@ -114,8 +114,8 @@ export function createBridgeRuntime({
       sendJson(response, 400, { error: error instanceof Error ? error.message : "Invalid request body" })
       return
     }
-    if (typeof body !== "object" || body === null || typeof body.prompt !== "string" || body.prompt.length === 0) {
-      sendJson(response, 400, { error: "Expected a context request with a prompt string" })
+    if (!isContextEnvelope(body)) {
+      sendJson(response, 400, { error: "Expected a version 1 context envelope with source and prompt" })
       return
     }
 
@@ -256,6 +256,34 @@ async function readPackageVersion(packageFile) {
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, { "Content-Type": "application/json" })
   response.end(JSON.stringify(body))
+}
+
+function isContextEnvelope(value) {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const candidate = value
+  if (
+    candidate.version !== 1
+    || (candidate.source !== "vscode" && candidate.source !== "firefox")
+    || typeof candidate.prompt !== "string"
+    || candidate.prompt.length === 0
+  ) {
+    return false
+  }
+
+  if (candidate.metadata === undefined) {
+    return true
+  }
+  if (typeof candidate.metadata !== "object" || candidate.metadata === null || Array.isArray(candidate.metadata)) {
+    return false
+  }
+
+  return (
+    (candidate.metadata.url === undefined || typeof candidate.metadata.url === "string")
+    && (candidate.metadata.title === undefined || typeof candidate.metadata.title === "string")
+  )
 }
 
 function isAddressInUse(error) {

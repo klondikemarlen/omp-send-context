@@ -53,10 +53,51 @@ test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${state.token}`,
       },
-      body: JSON.stringify({ prompt: "@src/example.ts#L1C1" }),
+      body: JSON.stringify({
+        version: 1,
+        source: "vscode",
+        prompt: "@src/example.ts#L1C1",
+      }),
     })
     assert.equal(delivered.status, 200)
     assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1"])
+
+    const firefoxContext = await fetch(`${runtime.endpoint}/context`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.token}`,
+      },
+      body: JSON.stringify({
+        version: 1,
+        source: "firefox",
+        prompt: "github selection",
+        metadata: {
+          url: "https://github.com/example/repo/pull/1/files#diff-abcR53",
+          title: "Pull request",
+        },
+      }),
+    })
+    assert.equal(firefoxContext.status, 200)
+    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection"])
+
+    for (const body of [
+      { prompt: "legacy" },
+      { version: 2, source: "vscode", prompt: "unsupported" },
+      { version: 1, source: "unknown", prompt: "unsupported" },
+      { version: 1, source: "firefox", prompt: "unsupported", metadata: [] },
+    ]) {
+      const invalid = await fetch(`${runtime.endpoint}/context`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.token}`,
+        },
+        body: JSON.stringify(body),
+      })
+      assert.equal(invalid.status, 400)
+    }
+    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection"])
 
     await runtime.close()
     await assert.rejects(fs.stat(stateFile))
