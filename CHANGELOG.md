@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+- Add Selenium WebDriver as a development dependency and document Firefox manual QA and AMO publishing workflows.
+
 ## 1.7.0
 
 - Add a source-agnostic protocol-v1 envelope for context clients.
