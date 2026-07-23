@@ -10,11 +10,11 @@ Use this guide to verify the Firefox GitHub client and its automatic OMP deliver
 - OMP with the repository plugin installed:
 
   ```bash
-  omp plugin install github:klondikemarlen/omp-vscode-context
+  omp plugin install github:klondikemarlen/omp-send-context
   omp plugin list
   ```
 
-  Confirm `omp-vscode-context@1.7.0` or newer is listed.
+Confirm `omp-vscode-context@1.7.1` or newer is listed.
 
 - A local checkout with dependencies installed:
 

@@ -52,28 +52,28 @@ If the VS Code CLI is not installed but Devin Desktop is available:
 devin-desktop --install-extension klondikemarlen.omp-vscode-context --force
 ```
 
-Or use VS Code's Extensions view and search for **Oh My Pi Context Bridge**. Marketplace installs normally auto-update with VS Code unless extension auto-update is disabled.
+Or use VS Code's Extensions view and search for **OMP Send Context for VS Code**. Marketplace installs normally auto-update with VS Code unless extension auto-update is disabled.
 
 Links:
 
 - Marketplace: https://marketplace.visualstudio.com/items?itemName=klondikemarlen.omp-vscode-context
 - Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen
-- GitHub: https://github.com/klondikemarlen/omp-vscode-context
+- GitHub: https://github.com/klondikemarlen/omp-send-context
 
 ### OMP plugin
 
 Install the companion OMP extension from GitHub:
 
 ```bash
-omp plugin install github:klondikemarlen/omp-vscode-context
+omp plugin install github:klondikemarlen/omp-send-context
 ```
 
-`omp install github:klondikemarlen/omp-vscode-context` also works; `omp plugin install` is clearer because this is an OMP plugin, not the VS Code extension.
+`omp install github:klondikemarlen/omp-send-context` also works; `omp plugin install` is clearer because this is an OMP plugin, not the VS Code extension.
 
 Update an already-installed GitHub plugin with the same command:
 
 ```bash
-omp plugin install github:klondikemarlen/omp-vscode-context
+omp plugin install github:klondikemarlen/omp-send-context
 ```
 
 Then restart OMP or run `/reload-plugins`.
@@ -118,8 +118,8 @@ Maintenance guides:
 For normal use, install from GitHub as shown above. For development on a local checkout, link the local package so OMP loads your working tree instead of a pinned GitHub commit:
 
 ```bash
-git clone https://github.com/klondikemarlen/omp-vscode-context.git
-cd omp-vscode-context
+git clone https://github.com/klondikemarlen/omp-send-context.git
+cd omp-send-context
 npm install
 npm run package:vsix
 omp plugin link "$PWD"
