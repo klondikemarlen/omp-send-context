@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.3
+
+- Align the README branding with the `omp-send-context` repository name.
+
 ## 1.7.2
 
 - Rename the repository to `omp-send-context` and preserve compatibility-sensitive VS Code and OMP package identifiers.
