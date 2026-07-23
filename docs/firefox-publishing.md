@@ -22,12 +22,11 @@ Official references:
 
 1. Create a GitHub issue and issue-named branch.
 2. Implement the client and open a pull request against `main`.
-3. Run the repository checks:
+3. Install dependencies and run the reproducible checks:
 
    ```bash
    npm install
    npm test
-   npm run package:vsix
    npx web-ext lint --source-dir firefox
    ```
 
@@ -36,18 +35,16 @@ Official references:
 6. Confirm the manifest's `browser_specific_settings.gecko.id`, minimum Firefox version, permissions, host scope, and `data_collection_permissions` are intentional.
 7. Merge the implementation pull request only after review, automated checks, and interactive QA are complete.
 
-## Build the unsigned artifact
+## Build the AMO upload artifact
 
-From the merged release checkout:
+From the release checkout:
 
 ```bash
-rm -rf dist/firefox
-mkdir -p dist/firefox
-npx web-ext build --source-dir firefox --artifacts-dir dist/firefox
-unzip -l dist/firefox/*.zip
+npm install
+npm run package:firefox
 ```
 
-`web-ext build` creates the upload artifact. The generated ZIP/XPI is disposable; do not commit it unless the repository release policy explicitly requires checked-in artifacts.
+The command cleans `dist/firefox`, builds one unsigned ZIP, and prints its path and SHA-256. Upload that printed ZIP to the AMO submission form. The generated ZIP is disposable; do not commit it unless the repository release policy explicitly requires checked-in artifacts.
 
 ## Signed pre-release validation
 
