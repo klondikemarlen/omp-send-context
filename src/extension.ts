@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "./prompt"
+import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type ContextEnvelope, type EditorContext, type HandoffDiagnostic } from "./prompt"
 
 
 interface BridgeState {
@@ -76,8 +76,14 @@ function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
 }
 
 async function sendPrompt(prompt: string, label: string) {
+  const request: ContextEnvelope = {
+    version: 1,
+    source: "vscode",
+    prompt,
+  }
+
   try {
-    await postContext(await getBridgeState(), { prompt })
+    await postContext(await getBridgeState(), request)
   } catch (error) {
     await vscode.env.clipboard.writeText(prompt)
     const message = error instanceof Error ? error.message : "Unknown bridge error"
@@ -219,7 +225,7 @@ function isBridgeStateFile(value: unknown): value is BridgeState {
   return typeof candidate.endpoint === "string" && tokenIsValid
 }
 
-async function postContext(bridgeState: BridgeState, bridgeRequest: { prompt: string }) {
+async function postContext(bridgeState: BridgeState, bridgeRequest: ContextEnvelope) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
 

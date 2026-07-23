@@ -30,6 +30,17 @@ export interface AgentHandoffPacket {
   readonly omittedDiagnostics?: number
   readonly maxBytes: number
 }
+export type ContextSource = "vscode" | "firefox"
+
+export interface ContextEnvelope {
+  readonly version: 1
+  readonly source: ContextSource
+  readonly prompt: string
+  readonly metadata?: {
+    readonly url?: string
+    readonly title?: string
+  }
+}
 
 export type ContentMode = "reference" | "inline"
 

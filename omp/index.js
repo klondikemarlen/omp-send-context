@@ -1,4 +1,4 @@
-import { watch } from "node:fs"
+import { unwatchFile, watch, watchFile } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { dirname, basename, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -15,26 +15,26 @@ let focusUnsubscribe
 let focusSettingsWatcher
 let focusSettingsRefreshTimer
 
-export default function ompVscodeContextExtension(pi) {
-  pi.setLabel("VS Code Context Bridge")
+export default function ompSendContextExtension(pi) {
+  pi.setLabel("Send Context to OMP")
 
   pi.registerFlag("claim-ide-context-on-focus", {
-    description: "On Linux, claim IDE context when this terminal gains focus",
+    description: "On Linux, claim context when this terminal gains focus",
     type: "boolean",
     default: false,
   })
 
   pi.registerCommand("ide", {
-    description: "Route VS Code editor context to this OMP terminal",
+    description: "Route context to this OMP terminal",
     handler: async (args, ctx) => {
       activeContext = ctx
       await ensureServer()
       if (args[0] === "status") {
-        ctx.ui.notify(`VS Code Context Bridge ${bridge.version} is listening on ${bridge.endpoint}.`, "info")
+        ctx.ui.notify(`Send Context to OMP ${bridge.version} is listening on ${bridge.endpoint}.`, "info")
         return
       }
       if (await claimActiveBridge({ force: true })) {
-        ctx.ui.notify(`VS Code context will target this terminal via ${bridge.endpoint}.`, "info")
+        ctx.ui.notify(`Context will target this terminal via ${bridge.endpoint}.`, "info")
       }
     },
   })
@@ -88,17 +88,28 @@ function watchFocusSettings(pi) {
     return
   }
 
+  const refresh = () => {
+    clearTimeout(focusSettingsRefreshTimer)
+    focusSettingsRefreshTimer = setTimeout(() => {
+      void refreshFocusClaiming(pi)
+    }, 25)
+  }
+
   try {
     focusSettingsWatcher = watch(dirname(PLUGINS_LOCK_FILE), { persistent: false }, (_event, filename) => {
-      if (filename === null || basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
+      if (filename !== null && basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
         return
       }
-      clearTimeout(focusSettingsRefreshTimer)
-      focusSettingsRefreshTimer = setTimeout(() => {
-        void refreshFocusClaiming(pi)
-      }, 25)
+      refresh()
     })
-  } catch {}
+  } catch {
+    watchFile(PLUGINS_LOCK_FILE, { persistent: false, interval: 100 }, refresh)
+    focusSettingsWatcher = {
+      close() {
+        unwatchFile(PLUGINS_LOCK_FILE, refresh)
+      },
+    }
+  }
 }
 
 function stopFocusSettingsWatcher() {

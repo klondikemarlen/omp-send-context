@@ -97,14 +97,19 @@ async function waitFor(check) {
   }
 }
 
-async function postContext(state, body) {
+async function postContext(state, { prompt, source = "vscode", metadata }) {
   return fetch(`${state.endpoint}/context`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${state.token}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      version: 1,
+      source,
+      prompt,
+      ...(metadata === undefined ? {} : { metadata }),
+    }),
   })
 }
 
@@ -135,7 +140,7 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     assert.equal(commands.has("ide-status"), false)
     await commands.get("ide").handler(["status"], context)
     assert.deepEqual(notifications, [{
-      message: `VS Code Context Bridge ${packageJson.version} is listening on ${state.endpoint}.`,
+      message: `Send Context to OMP ${packageJson.version} is listening on ${state.endpoint}.`,
       level: "info",
     }])
 
@@ -505,7 +510,7 @@ test("focus flag claims the bridge after an xterm focus report", async () => {
       })
 
       assert.deepEqual(registeredFlags.get("claim-ide-context-on-focus"), {
-        description: "On Linux, claim IDE context when this terminal gains focus",
+        description: "On Linux, claim context when this terminal gains focus",
         type: "boolean",
         default: false,
       })
