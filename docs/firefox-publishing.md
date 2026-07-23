@@ -49,6 +49,22 @@ unzip -l dist/firefox/*.zip
 
 `web-ext build` creates the upload artifact. The generated ZIP/XPI is disposable; do not commit it unless the repository release policy explicitly requires checked-in artifacts.
 
+## Signed pre-release validation
+
+To avoid `about:debugging` without exposing an untested add-on to normal users, submit the same artifact through AMO as **unlisted** first. Install the signed XPI in a fresh Firefox profile and run the manual QA flow. This signs the add-on for normal Firefox installation but does not create a public listing.
+
+With AMO API credentials configured locally:
+
+```bash
+npx web-ext sign \
+  --source-dir firefox \
+  --artifacts-dir dist/firefox \
+  --channel unlisted
+```
+
+Do not submit the listed release until the signed XPI passes manual QA.
+
+
 ## Submit through AMO
 
 1. Sign in to the [AMO Developer Hub](https://addons.mozilla.org/developers/).
