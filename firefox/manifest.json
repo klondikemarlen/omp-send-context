@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OMP Send Context",
-  "version": "0.1.0",
+  "version": "1.7.0",
   "description": "Send selected GitHub pull-request context to Oh My Pi.",
   "browser_specific_settings": {
     "gecko": {
