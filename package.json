@@ -1,6 +1,6 @@
 {
   "name": "omp-vscode-context",
-  "displayName": "Oh My Pi Context Bridge",
+  "displayName": "OMP Send Context for VS Code",
   "description": "Send VS Code file and selection references to Oh My Pi with Ctrl+Alt+K.",
   "version": "1.7.1",
   "publisher": "klondikemarlen",
@@ -8,11 +8,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/klondikemarlen/omp-vscode-context.git"
+    "url": "git+https://github.com/klondikemarlen/omp-send-context.git"
   },
-  "homepage": "https://github.com/klondikemarlen/omp-vscode-context#readme",
+  "homepage": "https://github.com/klondikemarlen/omp-send-context#readme",
   "bugs": {
-    "url": "https://github.com/klondikemarlen/omp-vscode-context/issues"
+    "url": "https://github.com/klondikemarlen/omp-send-context/issues"
   },
   "qna": false,
   "keywords": [
@@ -84,7 +84,7 @@
       }
     ],
     "configuration": {
-      "title": "OMP VS Code Context",
+      "title": "OMP Send Context for VS Code",
       "properties": {
         "ompContext.insertMode": {
           "type": "string",

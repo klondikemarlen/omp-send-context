@@ -12,7 +12,7 @@ const BASE_PORT = 48731
 async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform = process.platform } = {}) {
   const originalHome = process.env.HOME
   const originalPort = process.env.OMP_CONTEXT_BRIDGE_PORT
-  const homeDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-vscode-context-"))
+  const homeDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-send-context-"))
   process.env.HOME = homeDirectory
   process.env.OMP_CONTEXT_BRIDGE_PORT = String(port)
   const originalPlatform = Object.getOwnPropertyDescriptor(process, "platform")

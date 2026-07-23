@@ -99,7 +99,7 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
       languageId: "typescript",
     }),
     contentMode: "inline",
-    workspaceRoot: "/work/omp-vscode-context",
+    workspaceRoot: "/work/omp-send-context",
     diagnostics: [{
       relativePath: "src/current.ts",
       startLine: 4,
@@ -118,7 +118,7 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
   assert.doesNotMatch(prompt, /## Instructions/)
   assert.match(prompt, /@src\/current\.ts#L3C1-L5C12/)
   assert.match(prompt, /```typescript\nconst current = true\n```/)
-  assert.match(prompt, /- Root: `\/work\/omp-vscode-context`/)
+  assert.match(prompt, /- Root: `\/work\/omp-send-context`/)
   assert.match(prompt, /- Error ts: @src\/current\.ts#L4C7-L4C14 Type 'string' is not assignable to type 'number'\./)
   assert.match(prompt, /3 more omitted by ompContext\.handoffMaxDiagnostics/)
   assert.equal(prompt.endsWith("\n\n"), true)
@@ -131,7 +131,7 @@ test("formatAgentHandoffPacket respects byte cap without splitting UTF-8", () =>
       languageId: "typescript",
     }),
     contentMode: "inline",
-    workspaceRoot: "/work/omp-vscode-context",
+    workspaceRoot: "/work/omp-send-context",
     diagnostics: [],
     maxBytes: 300,
   })
@@ -147,7 +147,7 @@ test("formatAgentHandoffPacket redacts secret-looking diagnostic values", () => 
       selectedText: "",
     }),
     contentMode: "reference",
-    workspaceRoot: "/work/omp-vscode-context",
+    workspaceRoot: "/work/omp-send-context",
     diagnostics: [{
       relativePath: "src/secrets.ts",
       startLine: 9,
