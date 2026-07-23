@@ -2,53 +2,54 @@
 
 ## Intent
 
-**WHY this document exists:** The bridge spans two plugin systems. Future changes need to preserve which side owns editor state, prompt state, and transport security.
+**WHY this document exists:** The bridge spans multiple context clients. Future changes need to preserve which side owns source inspection, prompt state, and transport security.
 
 **WHAT this document produces:** A compact map of the concepts, request flow, data contract, and known limits.
 
 **Decision Rules:**
-- **Editor facts come from VS Code:** Current file, cursor, selection, selected text, and language id are captured by the VS Code extension only.
+- **Source facts come from clients:** VS Code, Firefox, and future clients capture their own selection and source metadata.
 - **Prompt mutation happens in OMP:** OMP owns the live prompt editor, so prompt insertion uses an OMP runtime extension.
 - **Local bridge, not public API:** The HTTP server binds to `127.0.0.1` and requires the token written by the running OMP extension.
-- **Inline first:** Default to stale-safe `@file#LxCy-LxCy` plus selected text so OMP receives the exact bytes even if the file changes before the agent reads it. Reference-only mode stays available as the compact saved-file optimization.
+- **Clients format prompts:** The OMP side validates and transports a versioned envelope but does not parse editor- or browser-specific context.
 
 ## Problem shape
 
 Claude Code and OpenCode feel integrated because the IDE extension knows the editor selection and the agent UI knows how to append to its prompt. OMP has the agent-side extension API, but VS Code still needs a separate extension to read selected text.
 
-This repo is therefore two integrations in one package:
+This repo currently ships the VS Code client and the OMP `omp-send-context` runtime in one package:
 
-1. VS Code extension: registers `OMP Context: Insert Editor Context` for minimal file/selection context and `OMP Context: Insert Agent Handoff Packet` for an explicit bounded Markdown handoff.
+1. Context client: captures source-specific selection and formats the prompt.
 2. OMP extension: starts a loopback bridge and inserts received prompt text into the OMP prompt.
 
+Firefox is a planned separate client using the same OMP transport contract.
 ## Runtime flow
 
 ```mermaid
 sequenceDiagram
-  participant VSCode as VS Code editor
-  participant Extension as VS Code extension
+  participant Client as Context client
   participant Bridge as OMP loopback bridge
   participant OMP as OMP prompt UI
 
-  VSCode->>Extension: Ctrl+Alt+K
-  Extension->>Extension: Read active file, selection, language id
-  Extension->>Extension: Format @file#LxCy-LxCy reference
-  Extension->>Bridge: POST /context with bearer token
+  Client->>Client: Capture source-specific selection
+  Client->>Client: Format source reference and selected text
+  Client->>Bridge: POST /context with bearer token and protocol envelope
   Bridge->>OMP: pasteToEditor(prompt)
-  OMP-->>VSCode: Context appears in prompt
+  OMP-->>Client: Context appears in prompt
 ```
 
 ## Data contract
 
-The VS Code extension posts JSON to `/context`:
+Context clients post a versioned envelope to `/context`:
 
 ```json
 {
+  "version": 1,
+  "source": "vscode",
   "prompt": "@src/example.ts#L7C17-L9C20 "
 }
 ```
 
-Only `prompt` is sent. VS Code owns editor inspection and packet assembly; OMP only needs the text to paste. Rich handoff packets still use this same transport shape.
+The `source` is currently `vscode` or `firefox`. Optional metadata may contain `url` and `title`. Clients own source inspection and packet assembly; OMP validates the envelope and inserts only its `prompt` field. Rich handoff packets use this same transport contract.
 ## Content modes and handoff packets
 
 - `inline`: default. Sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text, making ordinary selections stale-safe for active editing, unsaved buffers, and generated files. Handoff packets still cap total output with `ompContext.handoffMaxBytes`.
