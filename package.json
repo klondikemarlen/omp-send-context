@@ -37,13 +37,9 @@
     "Machine Learning",
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:ompContext.insertEditorContext",
-    "onCommand:ompContext.insertAgentHandoff"
-  ],
   "main": "./dist/extension.cjs",
   "files": [
-    "dist",
+    "dist/extension.cjs",
     "omp",
     "README.md",
     "CONCEPTS.md",
@@ -145,6 +141,7 @@
     "compile": "npm run check-types && node esbuild.js",
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package",
+    "package:firefox": "node scripts/package-firefox.mjs",
     "publish:marketplace": "vsce publish",
     "test": "npm run check-types && node --import tsx --test test/*.test.ts test/*.test.mjs"
   },
@@ -155,6 +152,7 @@
     "esbuild": "^0.25.3",
     "selenium-webdriver": "^4.46.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "web-ext": "10.5.0"
   }
 }
