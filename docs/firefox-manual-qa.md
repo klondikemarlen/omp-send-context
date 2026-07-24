@@ -24,6 +24,7 @@ Confirm `omp-send-context@2.0.0` or newer is listed.
   npx web-ext lint --source-dir firefox
   ```
 
+- For Firefox installed as a Snap or Flatpak, install `xdg-native-messaging-proxy` before native-messaging QA. On Ubuntu 26.04 (Resolute), install the distribution package with `sudo apt install xdg-native-messaging-proxy`; use the equivalent package for other distributions. Then run `npm run install:firefox-host -- --sandboxed`; the command fails if the proxy D-Bus service is not installed. The proxy exposes host native-messaging services to sandboxed callers; review the [upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme) before enabling it.
 - The Firefox native messaging host (Linux setup currently supported) is installed as described in the [README](../README.md#firefox-native-messaging-host-linux-setup). Confirm that `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the executable checkout path and allowlists `omp-send-context@klondikemarlen.github.io`.
 
 The `selenium-webdriver` development dependency is available for driver-based browser automation. Selenium Manager obtains a compatible geckodriver when the test environment permits it; these manual steps remain the source of truth for user-visible acceptance.

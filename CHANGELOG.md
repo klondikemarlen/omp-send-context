@@ -1,6 +1,7 @@
 # Changelog
 
 
+
 ## 2.0.1
 
 - Enable Linux terminal focus routing by default while preserving explicit opt-out and non-Linux behavior.
@@ -8,6 +9,10 @@
 ## 2.0.0
 
 - Cut over the VS Code Marketplace and OMP plugin identities to `omp-send-context`.
+
+## 1.7.6
+
+- Add a Linux Firefox native-host installer with an explicit `xdg-native-messaging-proxy` check for Snap and Flatpak Firefox.
 
 ## 1.7.4
 

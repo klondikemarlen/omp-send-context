@@ -108,17 +108,31 @@ The client first tries the native-messaging host. If the host is unavailable or 
 
 The Firefox native messaging host is a separately installed local process. It reads the OMP bridge state from `~/.omp/agent/editor-context-bridge.json`, validates the envelope, and forwards it to the authenticated loopback bridge. Firefox only receives a success or failure response.
 
-On Linux:
+On Linux, install the host through the repository workflow:
 
 ```bash
-chmod +x firefox/native-host/omp-send-context-host.mjs
-mkdir -p ~/.mozilla/native-messaging-hosts
-cp firefox/native-host/omp_send_context.json.example ~/.mozilla/native-messaging-hosts/omp_send_context.json
-sed -i "s#^  \"path\":.*#  \"path\": \"$PWD/firefox/native-host/omp-send-context-host.mjs\",#" \
-  ~/.mozilla/native-messaging-hosts/omp_send_context.json
+npm run install:firefox-host
 ```
 
-After installing the host, restart Firefox or disable and re-enable the installed add-on, then start OMP. When developing with a temporary add-on, reload it from `about:debugging` instead. The host manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`.
+For a Snap or Flatpak Firefox, use the strict sandbox check instead:
+
+```bash
+npm run install:firefox-host -- --sandboxed
+```
+
+The installer makes the host executable and writes `~/.mozilla/native-messaging-hosts/omp_send_context.json` with the current checkout path. It allowlists the extension ID `omp-send-context@klondikemarlen.github.io`.
+
+If Firefox is installed as a Snap or Flatpak, install the host-side `xdg-native-messaging-proxy` package first. It is required for sandboxed Firefox to reach native-messaging hosts through the user D-Bus service. On Ubuntu 26.04 (Resolute), the package is in `universe`:
+
+```bash
+sudo apt install xdg-native-messaging-proxy
+```
+
+On other distributions, install the equivalent supported package and confirm that it provides the `org.freedesktop.NativeMessagingProxy` user D-Bus service. The proxy exposes host native-messaging services to sandboxed callers; upstream warns that this can be **insecure**, so install it only when you trust the host manifests available on your machine ([upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme)).
+
+Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory; the proxy discovers the normal `~/.mozilla/native-messaging-hosts/` location.
+
+After installing the host, restart Firefox or disable and re-enable the installed add-on, then start OMP. When developing with a temporary add-on, reload it from `about:debugging` instead.
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
 
