@@ -102,6 +102,7 @@ async function deliver(envelope, tabId) {
     await notify(tabId, "Context sent to OMP.")
   } catch (error) {
     await recordDebug(`native:failed:${nativeErrorCode(error)}`)
+    await recordDebug(`native:failure-detail:${nativeErrorDetail(error)}`)
     try {
       await recordDebug("clipboard:starting")
       await browser.tabs.sendMessage(tabId, { type: "copy-context", text: envelope.prompt })
@@ -126,6 +127,16 @@ function nativeErrorCode(error) {
     return "bridge-rejected"
   }
   return "unknown"
+}
+
+function nativeErrorDetail(error) {
+  const name = String(error?.name ?? "Error").replace(/\s+/g, " ").trim()
+  const message = String(error?.message ?? "").replace(/\s+/g, " ").trim()
+  const safe = `${name}: ${message}`
+    .replace(/\b(?:authorization\s*[:=]\s*(?:bearer\s+)?|bearer\s+|(?:token|secret|password)\s*[:=]\s*)\S+/gi, "[redacted]")
+    .replace(/(?:https?|file):\/\/\S+/gi, "[url]")
+    .replace(/(?:[A-Za-z]:)?\/[^\s]+/g, "[path]")
+  return safe.slice(0, 160) || "no-message"
 }
 
 async function toggleDebugLogging() {

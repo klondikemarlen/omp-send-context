@@ -109,6 +109,15 @@ test("Firefox client falls back when the native host rejects delivery", async ()
   assert.ok(result.logs.some(entry => entry.includes("native:failed:bridge-rejected")))
 })
 
+test("Firefox debug log records redacted native failures", async () => {
+  const result = await runFlow(Promise.reject(new Error("Native host failed at /home/marlen/secret Authorization: Bearer abc123")))
+  const detail = result.logs.find(entry => entry.includes("native:failure-detail:"))
+
+  assert.match(detail, /native:failure-detail:Error: Native host failed at \[path\] \[redacted\]/)
+  assert.equal(detail.includes("abc123"), false)
+  assert.equal(detail.includes("/home/marlen"), false)
+})
+
 test("Firefox client does not fall back after native delivery succeeds", async () => {
   const result = await runFlow({ ok: true })
 
