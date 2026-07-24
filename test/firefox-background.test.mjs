@@ -12,7 +12,7 @@ function event() {
       listeners.push(listener)
     },
     async emit(...args) {
-      await Promise.all(listeners.map(listener => listener(...args)))
+      return Promise.all(listeners.map(listener => listener(...args)))
     },
   }
 }
@@ -27,6 +27,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   }
   const messages = []
   const notifications = []
+  const indicator = { icon: null, badgeText: "", badgeColor: undefined, title: "" }
   const logs = []
   let debugLogging = false
   const browser = {
@@ -42,6 +43,18 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     },
     browserAction: {
       onClicked: events.browserAction,
+      async setIcon({ path }) {
+        indicator.icon = path
+      },
+      async setBadgeText({ text }) {
+        indicator.badgeText = text
+      },
+      async setBadgeBackgroundColor({ color }) {
+        indicator.badgeColor = color
+      },
+      async setTitle({ title }) {
+        indicator.title = title
+      },
     },
     commands: {
       onCommand: events.commands,
@@ -96,10 +109,10 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     Date,
   })
 
-  await events.browserAction.emit()
+  await events.messages.emit({ type: "toggle-debug" })
   await events.commands.emit("send-context")
   await new Promise(resolve => setTimeout(resolve, 10))
-  return { messages, logs, notifications }
+  return { messages, logs, notifications, indicator, events }
 }
 
 test("Firefox client falls back when the native host rejects delivery", async () => {
@@ -123,6 +136,22 @@ test("Firefox client does not fall back after native delivery succeeds", async (
 
   assert.ok(result.logs.some(entry => entry.includes("native:succeeded")))
   assert.equal(result.messages.some(message => message.type === "copy-context"), false)
+})
+
+test("Firefox toolbar controls expose debug state and copy action", async () => {
+  const result = await runFlow({ ok: true })
+  const state = (await result.events.messages.emit({ type: "get-debug-state" }))[0]
+
+  assert.equal(state.enabled, true)
+  assert.equal(result.indicator.icon[48], "icons/icon-debug-48.png")
+  assert.equal(result.indicator.badgeText, "!")
+
+  const toggled = (await result.events.messages.emit({ type: "toggle-debug" }))[0]
+  assert.equal(toggled.enabled, false)
+  assert.equal(result.indicator.icon[48], "icons/icon-48.png")
+
+  const copied = (await result.events.messages.emit({ type: "copy-debug-log" }))[0]
+  assert.equal(copied.ok, true)
 })
 
 test("Firefox client ignores non-pull-request pages", async () => {

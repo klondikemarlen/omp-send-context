@@ -30,6 +30,11 @@ test("Firefox manifest declares branded icons and supported desktop metadata", a
     "128": "icons/icon-128.png",
   })
   assert.deepEqual(manifest.browser_action.default_icon, manifest.icons)
+  assert.equal(manifest.browser_action.default_popup, "popup.html")
+  for (const iconSize of ["48", "96", "128"]) {
+    const bytes = await fs.readFile(new URL(`../firefox/icons/icon-debug-${iconSize}.png`, import.meta.url))
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
+  }
   assert.equal(firefoxPackage.version, manifest.version)
   for (const iconPath of Object.values(manifest.icons)) {
     const bytes = await fs.readFile(new URL(`../firefox/${iconPath}`, import.meta.url))
