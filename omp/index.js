@@ -8,6 +8,7 @@ import { createBridgeRuntime } from "./bridge-runtime.js"
 const PLUGIN_NAME = "omp-send-context"
 const PLUGINS_LOCK_FILE = join(process.env.HOME ?? "", ".omp", "plugins", "omp-plugins.lock.json")
 const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
+const DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS = process.platform === "linux"
 
 let activeContext
 let bridge
@@ -67,8 +68,9 @@ async function refreshFocusClaiming(pi) {
   }
 
   const setting = await readFocusClaimingSetting()
-  if (pi.getFlag("claim-ide-context-on-focus") === true || setting === true) {
-    enableFocusClaiming(activeContext)
+  const force = pi.getFlag("claim-ide-context-on-focus") === true
+  if (force || setting === true) {
+    enableFocusClaiming(activeContext, force)
   } else if (setting === false) {
     disableFocusClaiming()
   }
@@ -77,9 +79,10 @@ async function refreshFocusClaiming(pi) {
 async function readFocusClaimingSetting() {
   try {
     const config = JSON.parse(await readFile(PLUGINS_LOCK_FILE, "utf8"))
-    return config.settings?.[PLUGIN_NAME]?.claimIdeContextOnFocus === true
+    const setting = config.settings?.[PLUGIN_NAME]?.claimIdeContextOnFocus
+    return setting === undefined ? DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS : setting === true
   } catch (error) {
-    return error?.code === "ENOENT" ? false : undefined
+    return error?.code === "ENOENT" ? DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS : undefined
   }
 }
 
@@ -119,13 +122,15 @@ function stopFocusSettingsWatcher() {
   focusSettingsRefreshTimer = undefined
 }
 
-function enableFocusClaiming(ctx) {
+function enableFocusClaiming(ctx, force = false) {
   if (process.platform !== "linux" || !ctx.hasUI || focusUnsubscribe !== undefined) {
     return
   }
 
   if (typeof ctx.ui?.onTerminalInput !== "function") {
-    ctx.ui.notify("Claim IDE context on focus requires OMP 16.5.1 or newer.", "warning")
+    if (force) {
+      ctx.ui.notify("Claim IDE context on focus requires OMP 16.5.1 or newer.", "warning")
+    }
     return
   }
 

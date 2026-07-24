@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 2.0.1
+
+- Enable Linux terminal focus routing by default while preserving explicit opt-out and non-Linux behavior.
+
 ## 2.0.0
 
 - Cut over the VS Code Marketplace and OMP plugin identities to `omp-send-context`.

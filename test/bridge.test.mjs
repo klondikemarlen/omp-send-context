@@ -341,7 +341,7 @@ test("shutdown cannot delete a successor bridge claim", async () => {
   }
 })
 
-test("focus routing is disabled by default", async () => {
+test("focus routing is enabled by default on Linux", async () => {
   await withBridge(BASE_PORT + 6, async ({ handlers }) => {
     let subscribed = false
     await handlers.get("session_start")({}, {
@@ -354,7 +354,28 @@ test("focus routing is disabled by default", async () => {
       },
     })
 
+    assert.equal(subscribed, true)
+  })
+})
+
+test("focus routing can be disabled explicitly on Linux", async () => {
+  await withBridge(BASE_PORT + 7, async ({ handlers }) => {
+    let subscribed = false
+    await handlers.get("session_start")({}, {
+      hasUI: true,
+      ui: {
+        onTerminalInput() {
+          subscribed = true
+          return () => {}
+        },
+      },
+    })
+
     assert.equal(subscribed, false)
+  }, {
+    pluginSettings: {
+      claimIdeContextOnFocus: false,
+    },
   })
 })
 
@@ -362,7 +383,7 @@ test("plugin setting enables Linux focus routing", async () => {
   const packageJson = JSON.parse(await fs.readFile("package.json", "utf8"))
   assert.deepEqual(packageJson.omp.settings.claimIdeContextOnFocus, {
     type: "boolean",
-    default: false,
+    default: true,
     description: "On Linux, claim IDE context automatically after this terminal receives an xterm focus report.",
   })
 
@@ -406,6 +427,7 @@ test("plugin setting changes focus routing in a running Linux session", async ()
     })
 
     assert.equal(focusHandler, undefined)
+
     await fs.writeFile(pluginsLockFile, JSON.stringify({
       settings: {
         "omp-send-context": {
@@ -425,10 +447,14 @@ test("plugin setting changes focus routing in a running Linux session", async ()
     }))
     await waitFor(() => focusUnsubscribed)
     assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
+  }, {
+    pluginSettings: {
+      claimIdeContextOnFocus: false,
+    },
   })
 })
 
-test("focus routing is disabled outside Linux", async () => {
+test("focus routing is disabled outside Linux by default", async () => {
   await withBridge(BASE_PORT + 12, async ({ handlers, terminalWrites }) => {
     let subscribed = false
     await handlers.get("session_start")({}, {
@@ -444,9 +470,6 @@ test("focus routing is disabled outside Linux", async () => {
     assert.equal(subscribed, false)
     assert.deepEqual(terminalWrites, [])
   }, {
-    pluginSettings: {
-      claimIdeContextOnFocus: true,
-    },
     platform: "darwin",
   })
 })
