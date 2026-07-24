@@ -74,6 +74,7 @@ async function sendActiveContext() {
   }
   if (!ompSendContext.isSupportedGithubUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
+    await notify(tab.id, "This page is not a supported GitHub pull request.")
     return
   }
 
@@ -162,7 +163,15 @@ async function notify(tabId, message) {
   try {
     await browser.tabs.sendMessage(tabId, { type: "notify", message })
   } catch {
-    await recordDebug("notify:failed")
+    try {
+      await browser.notifications.create({
+        type: "basic",
+        title: "OMP Send Context",
+        message,
+      })
+    } catch {
+      await recordDebug("notify:failed")
+    }
   }
 }
 

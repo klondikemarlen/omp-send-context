@@ -26,6 +26,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     commands: event(),
   }
   const messages = []
+  const notifications = []
   const logs = []
   let debugLogging = false
   const browser = {
@@ -45,6 +46,11 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     commands: {
       onCommand: events.commands,
     },
+    notifications: {
+      async create(options) {
+        notifications.push(options)
+      },
+    },
     storage: {
       local: {
         async get() {
@@ -60,6 +66,9 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
         return [{ id: 42, url: pageUrl }]
       },
       async sendMessage(_tabId, message) {
+        if (message.type === "notify" && !pageUrl.includes("/pull/")) {
+          throw new Error("No content script on this page")
+        }
         messages.push(message)
         if (message.type === "capture-context") {
           return {
@@ -90,7 +99,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   await events.browserAction.emit()
   await events.commands.emit("send-context")
   await new Promise(resolve => setTimeout(resolve, 10))
-  return { messages, logs }
+  return { messages, logs, notifications }
 }
 
 test("Firefox client falls back when the native host rejects delivery", async () => {
@@ -113,5 +122,6 @@ test("Firefox client ignores non-pull-request pages", async () => {
   })
 
   assert.equal(result.messages.some(message => message.type === "capture-context"), false)
+  assert.ok(result.notifications.some(notification => notification.message.includes("not a supported GitHub pull request")))
   assert.ok(result.logs.some(entry => entry.includes("shortcut:unsupported-page")))
 })
