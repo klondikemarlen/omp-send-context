@@ -159,7 +159,7 @@ To see the active endpoint and plugin version in a terminal, run:
 
 ### Experimental Linux terminal focus routing
 
-On Linux, enable **Claim IDE context on focus** in OMP **Settings → Plugins → omp-send-context**, or start OMP with `--claim-ide-context-on-focus`. Both are off by default; `/ide` remains the explicit override. This setting does nothing outside Linux.
+On Linux, focus routing is enabled by default. Set **Claim IDE context on focus** to `false` in OMP **Settings → Plugins → omp-send-context** to disable it, or start OMP with `--claim-ide-context-on-focus` to force it on for a process. This setting does nothing outside Linux.
 
 This feature requires OMP `16.5.1` or newer.
 
