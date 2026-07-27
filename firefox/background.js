@@ -3,9 +3,21 @@ const GITHUB_PR_URL_PATTERN = "https://github.com/*/*/pull/*"
 const MENU_ID = "omp-send-context"
 const DEBUG_MENU_ID = "omp-send-context-debug"
 const DEBUG_STORAGE_KEY = "debugLogging"
+const DEFAULT_ICON_PATHS = {
+  48: "icons/icon-48.png",
+  96: "icons/icon-96.png",
+  128: "icons/icon-128.png",
+}
+const DEBUG_ICON_PATHS = {
+  48: "icons/icon-debug-48.png",
+  96: "icons/icon-debug-96.png",
+  128: "icons/icon-debug-128.png",
+}
 const MAX_DEBUG_ENTRIES = 100
 
 const debugEntries = []
+let debugIndicatorRevision = 0
+void updateDebugIndicator()
 
 browser.runtime.onInstalled.addListener(() => {
   browser.menus.create({
@@ -21,7 +33,6 @@ browser.runtime.onInstalled.addListener(() => {
     documentUrlPatterns: [GITHUB_PR_URL_PATTERN],
   })
 })
-
 browser.menus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === DEBUG_MENU_ID) {
     void copyDebugLog(tab?.id)
@@ -37,6 +48,16 @@ browser.browserAction.onClicked.addListener(() => {
 browser.runtime.onMessage.addListener((message) => {
   if (message?.type === "debug-event" && typeof message.event === "string") {
     void recordDebug(`content:${message.event}`)
+    return
+  }
+  if (message?.type === "get-debug-state") {
+    return readDebugEnabled().then(enabled => ({ enabled }))
+  }
+  if (message?.type === "toggle-debug") {
+    return toggleDebugLogging().then(enabled => ({ enabled }))
+  }
+  if (message?.type === "copy-debug-log") {
+    return copyDebugLogActiveTab()
   }
 })
 
@@ -74,6 +95,7 @@ async function sendActiveContext() {
   }
   if (!ompSendContext.isSupportedGithubUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
+    await notify(tab.id, "This page is not a supported GitHub pull request.")
     return
   }
 
@@ -101,15 +123,44 @@ async function deliver(envelope, tabId) {
     await notify(tabId, "Context sent to OMP.")
   } catch (error) {
     await recordDebug(`native:failed:${nativeErrorCode(error)}`)
+    await recordDebug(`native:failure-detail:${nativeErrorDetail(error)}`)
     try {
       await recordDebug("clipboard:starting")
-      await browser.tabs.sendMessage(tabId, { type: "copy-context", text: envelope.prompt })
+      await copyTextToClipboard(envelope.prompt)
       await recordDebug("clipboard:succeeded")
       await notify(tabId, "OMP host unavailable; context copied to the clipboard.")
     } catch {
       await recordDebug("clipboard:failed")
       throw new Error("Unable to deliver context to OMP or the clipboard.")
     }
+  }
+}
+
+async function copyTextToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    await recordDebug("clipboard:api-succeeded")
+    return
+  } catch {
+    await recordDebug("clipboard:api-failed")
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  document.body.append(textarea)
+  textarea.select()
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Clipboard command returned false.")
+    }
+    await recordDebug("clipboard:fallback-succeeded")
+  } catch {
+    await recordDebug("clipboard:fallback-failed")
+    throw new Error("Clipboard write failed.")
+  } finally {
+    textarea.remove()
   }
 }
 
@@ -127,12 +178,39 @@ function nativeErrorCode(error) {
   return "unknown"
 }
 
+function nativeErrorDetail(error) {
+  const name = String(error?.name ?? "Error").replace(/\s+/g, " ").trim()
+  const message = String(error?.message ?? "").replace(/\s+/g, " ").trim()
+  const safe = `${name}: ${message}`
+    .replace(/\b(?:authorization\s*[:=]\s*(?:bearer\s+)?|bearer\s+|(?:token|secret|password)\s*[:=]\s*)\S+/gi, "[redacted]")
+    .replace(/(?:https?|file):\/\/\S+/gi, "[url]")
+    .replace(/(?:[A-Za-z]:)?\/[^\s]+/g, "[path]")
+  return safe.slice(0, 160) || "no-message"
+}
+
+async function updateDebugIndicator(enabled) {
+  const revision = ++debugIndicatorRevision
+  const currentEnabled = enabled ?? await readDebugEnabled()
+  if (revision !== debugIndicatorRevision) {
+    return
+  }
+  await browser.browserAction.setIcon({ path: currentEnabled ? DEBUG_ICON_PATHS : DEFAULT_ICON_PATHS })
+  await browser.browserAction.setBadgeText({ text: currentEnabled ? "!" : "" })
+  await browser.browserAction.setBadgeBackgroundColor({ color: currentEnabled ? "#d1242f" : "#57606a" })
+  await browser.browserAction.setTitle({
+    title: currentEnabled ? "OMP Send Context; debug logging is ON" : "OMP Send Context; debug logging is OFF",
+  })
+}
+
 async function toggleDebugLogging() {
   const enabled = await readDebugEnabled()
-  await browser.storage.local.set({ [DEBUG_STORAGE_KEY]: !enabled })
+  const nextEnabled = !enabled
+  await browser.storage.local.set({ [DEBUG_STORAGE_KEY]: nextEnabled })
   debugEntries.length = 0
-  await recordDebug(!enabled ? "debug:enabled" : "debug:disabled")
-  await notifyActiveTab(`Debug logging ${!enabled ? "enabled" : "disabled"}.`)
+  await updateDebugIndicator(nextEnabled)
+  await recordDebug(nextEnabled ? "debug:enabled" : "debug:disabled")
+  await notifyActiveTab(`Debug logging ${nextEnabled ? "enabled" : "disabled"}.`)
+  return nextEnabled
 }
 
 async function copyDebugLog(tabId) {
@@ -143,11 +221,22 @@ async function copyDebugLog(tabId) {
     ...debugEntries,
   ].join("\n")
   try {
-    await browser.tabs.sendMessage(tabId, { type: "copy-context", text: report })
+    await copyTextToClipboard(report)
     await notify(tabId, "Debug log copied to the clipboard.")
+    return true
   } catch {
     await recordDebug("debug-export:failed")
+    return false
   }
+}
+
+async function copyDebugLogActiveTab() {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
+  if (tab?.id === undefined) {
+    return { ok: false, message: "No active tab." }
+  }
+  const ok = await copyDebugLog(tab.id)
+  return { ok, message: ok ? undefined : "Debug log could not be copied." }
 }
 
 async function notifyActiveTab(message) {
@@ -162,7 +251,15 @@ async function notify(tabId, message) {
   try {
     await browser.tabs.sendMessage(tabId, { type: "notify", message })
   } catch {
-    await recordDebug("notify:failed")
+    try {
+      await browser.notifications.create({
+        type: "basic",
+        title: "OMP Send Context",
+        message,
+      })
+    } catch {
+      await recordDebug("notify:failed")
+    }
   }
 }
 

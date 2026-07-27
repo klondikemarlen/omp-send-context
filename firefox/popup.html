@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OMP Send Context</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { width: 220px; margin: 0; padding: 14px; font: 13px system-ui, sans-serif; }
+    h1 { font-size: 14px; margin: 0 0 10px; }
+    button { width: 100%; margin-top: 8px; padding: 8px; border: 1px solid #8b949e; border-radius: 5px; background: ButtonFace; color: ButtonText; text-align: left; cursor: pointer; }
+    button:hover { background: Highlight; color: HighlightText; }
+    #status { min-height: 2.4em; margin-top: 10px; color: GrayText; }
+  </style>
+</head>
+<body>
+  <h1>OMP Send Context</h1>
+  <button id="debug" type="button"></button>
+  <button id="copy" type="button">Copy debug log</button>
+  <div id="status" role="status" aria-live="polite"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
