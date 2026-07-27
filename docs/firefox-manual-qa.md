@@ -24,7 +24,8 @@ Confirm `omp-send-context@2.0.0` or newer is listed.
   npx web-ext lint --source-dir firefox
   ```
 
-- The Firefox native messaging host (Linux setup currently supported) is installed as described in the [README](../README.md#firefox-native-messaging-host-linux-setup). Confirm that `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the executable checkout path and allowlists `omp-send-context@klondikemarlen.github.io`.
+- **Snap or Flatpak Firefox prerequisite:** install the host-side `xdg-native-messaging-proxy` before native-messaging QA. On Ubuntu 26.04 (Resolute), run `sudo apt install xdg-native-messaging-proxy`; use the equivalent package elsewhere. Then, from the checkout, run `npm run install:firefox-host -- --sandboxed`. This command must pass; it fails when the proxy D-Bus service is unavailable. Review the [upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme) before enabling the proxy.
+- **Native-host registration:** confirm `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the executable launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script, and allowlists `omp-send-context@klondikemarlen.github.io`. Do not place the manifest in a Snap/Flatpak-private directory. Reload the add-on or fully restart Firefox if the new registration is not picked up live; start a fresh OMP process and require `native:succeeded` in the debug log for native-delivery QA. Clipboard fallback alone does not pass the native-delivery gate.
 
 The `selenium-webdriver` development dependency is available for driver-based browser automation. Selenium Manager obtains a compatible geckodriver when the test environment permits it; these manual steps remain the source of truth for user-visible acceptance.
 

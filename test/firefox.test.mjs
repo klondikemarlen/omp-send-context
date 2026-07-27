@@ -5,6 +5,7 @@ import vm from "node:vm"
 
 const contextSource = await fs.readFile(new URL("../firefox/context.js", import.meta.url), "utf8")
 const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json", import.meta.url), "utf8"))
+const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
 vm.runInNewContext(contextSource, context)
 const { createEnvelope, formatPrompt, isSupportedGithubUrl } = context.ompSendContext
@@ -16,8 +17,29 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
 })
 
 test("Firefox manifest scopes page access to GitHub pull-request paths", () => {
+  assert.ok(manifest.permissions.includes("menus"))
   assert.deepEqual(manifest.permissions.at(-1), "https://github.com/*/*/pull/*")
   assert.deepEqual(manifest.content_scripts[0].matches, ["https://github.com/*/*/pull/*"])
+})
+
+test("Firefox manifest declares branded icons and supported desktop metadata", async () => {
+  assert.equal(manifest.browser_specific_settings.gecko.strict_min_version_android, undefined)
+  assert.deepEqual(manifest.icons, {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png",
+  })
+  assert.deepEqual(manifest.browser_action.default_icon, manifest.icons)
+  assert.equal(manifest.browser_action.default_popup, "popup.html")
+  for (const iconSize of ["48", "96", "128"]) {
+    const bytes = await fs.readFile(new URL(`../firefox/icons/icon-debug-${iconSize}.png`, import.meta.url))
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
+  }
+  assert.equal(firefoxPackage.version, manifest.version)
+  for (const iconPath of Object.values(manifest.icons)) {
+    const bytes = await fs.readFile(new URL(`../firefox/${iconPath}`, import.meta.url))
+    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
+  }
 })
 
 test("Firefox client creates a protocol v1 envelope with permalink metadata", () => {

@@ -6,6 +6,11 @@ if (!issuer || !secret) {
   throw new Error("AMO_API_ISSUER and AMO_API_SECRET must be exported before signing")
 }
 
+const channel = process.env.AMO_CHANNEL ?? "listed"
+if (channel !== "listed" && channel !== "unlisted") {
+  throw new Error("AMO_CHANNEL must be listed or unlisted")
+}
+
 const command = process.platform === "win32" ? "web-ext.cmd" : "web-ext"
 const args = [
   "sign",
@@ -14,7 +19,7 @@ const args = [
   "--ignore-files", "native-host/**", "native-host/",
   "--amo-metadata", "docs/firefox-amo-metadata.json",
   "--approval-timeout", "0",
-  "--channel", "listed",
+  "--channel", channel,
 ]
 
 await new Promise((resolve, reject) => {

@@ -3,9 +3,6 @@ browser.runtime.onMessage.addListener((message) => {
     reportDebug("capture:start")
     return Promise.resolve(captureContext())
   }
-  if (message?.type === "copy-context") {
-    return copyText(message.text).then(() => undefined)
-  }
   if (message?.type === "notify") {
     showNotification(message.message)
   }
@@ -20,34 +17,6 @@ function captureContext() {
     linkUrl: anchor?.href,
     pageUrl: window.location.href,
     title: document.title,
-  }
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text)
-    reportDebug("clipboard:api-succeeded")
-    return
-  } catch {
-    reportDebug("clipboard:api-failed")
-  }
-
-  const textarea = document.createElement("textarea")
-  textarea.value = text
-  textarea.style.position = "fixed"
-  textarea.style.opacity = "0"
-  document.body.append(textarea)
-  textarea.select()
-  try {
-    if (!document.execCommand("copy")) {
-      throw new Error("Clipboard command returned false.")
-    }
-    reportDebug("clipboard:fallback-succeeded")
-  } catch {
-    reportDebug("clipboard:fallback-failed")
-    throw new Error("Clipboard write failed.")
-  } finally {
-    textarea.remove()
   }
 }
 
