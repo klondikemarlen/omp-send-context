@@ -108,17 +108,29 @@ The client first tries the native-messaging host. If the host is unavailable or 
 
 The Firefox native messaging host is a separately installed local process. It reads the OMP bridge state from `~/.omp/agent/editor-context-bridge.json`, validates the envelope, and forwards it to the authenticated loopback bridge. Firefox only receives a success or failure response.
 
-On Linux:
+Install the host after installing the add-on. Choose the setup that matches how Firefox is installed:
 
-```bash
-chmod +x firefox/native-host/omp-send-context-host.mjs
-mkdir -p ~/.mozilla/native-messaging-hosts
-cp firefox/native-host/omp_send_context.json.example ~/.mozilla/native-messaging-hosts/omp_send_context.json
-sed -i "s#^  \"path\":.*#  \"path\": \"$PWD/firefox/native-host/omp-send-context-host.mjs\",#" \
-  ~/.mozilla/native-messaging-hosts/omp_send_context.json
-```
+- **System Firefox:**
 
-After installing the host, restart Firefox or disable and re-enable the installed add-on, then start OMP. When developing with a temporary add-on, reload it from `about:debugging` instead. The host manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`.
+  ```bash
+  npm run install:firefox-host
+  ```
+
+- **Snap or Flatpak Firefox (required sandbox proxy):**
+
+  On Ubuntu 26.04 (Resolute):
+
+  ```bash
+  sudo apt install xdg-native-messaging-proxy
+  npm run install:firefox-host -- --sandboxed
+  ```
+
+  On other distributions, install the equivalent package and confirm that it provides the `org.freedesktop.NativeMessagingProxy` user D-Bus service. The installer fails clearly if the service is missing. The proxy exposes host native-messaging services to sandboxed callers; upstream warns that this can be **insecure**, so install it only when you trust the host manifests available on your machine ([upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme)).
+
+The installer makes the host executable, writes an executable launcher at `~/.local/share/omp-send-context/omp_send_context-host`, and writes `~/.mozilla/native-messaging-hosts/omp_send_context.json` pointing to that launcher. The launcher uses the Node runtime that ran the installer and invokes the checkout host script. The manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`. Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory because the proxy discovers the normal host-manifest location.
+
+After installation, start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; if it does not, reload the add-on or fully restart Firefox. When developing with a temporary add-on, reload it from `about:debugging` instead. Invoke `Ctrl+Alt+K` on a GitHub pull request and enable debug logging if needed: native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
+
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
 
