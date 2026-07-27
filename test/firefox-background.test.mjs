@@ -32,11 +32,17 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   let debugLogging = false
   let clipboardText = ""
   let textarea
+  const delivered = []
+  let contentReady = pageUrl.includes("/pull/")
+  let injected = false
   const browser = {
     runtime: {
       onInstalled: events.installed,
       onMessage: events.messages,
-      sendNativeMessage: async () => nativeResponse,
+      sendNativeMessage: async (_host, envelope) => {
+        delivered.push(envelope)
+        return nativeResponse
+      },
       getManifest: () => ({ version: "1.7.1" }),
     },
     menus: {
@@ -81,7 +87,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
         return [{ id: 42, url: pageUrl }]
       },
       async sendMessage(_tabId, message) {
-        if (message.type === "notify" && !pageUrl.includes("/pull/")) {
+        if (!contentReady) {
           throw new Error("No content script on this page")
         }
         messages.push(message)
@@ -89,10 +95,14 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
           return {
             selectionText: "const value = 1",
             pageUrl,
-            title: "Test pull request",
+            title: pageUrl.includes("/pull/") ? "Test pull request" : "Test web page",
           }
         }
         return undefined
+      },
+      async executeScript() {
+        injected = true
+        contentReady = true
       },
     },
   }
@@ -129,8 +139,12 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     console: { info: (...args) => logs.push(args.join(" ")) },
     ompSendContext: {
       isSupportedGithubUrl: value => value.includes("/pull/"),
+      isEligiblePageUrl: value => value.startsWith("http://") || value.startsWith("https://"),
       createEnvelope(capture) {
-        return { prompt: `selected:${capture.selectionText}` }
+        return {
+          prompt: `selected:${capture.selectionText}`,
+          metadata: { url: capture.pageUrl, title: capture.title },
+        }
       },
     },
     setTimeout,
@@ -146,7 +160,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     error = caught
   }
   await new Promise(resolve => setTimeout(resolve, 10))
-  return { messages, logs, notifications, indicator, events, clipboardText, error }
+  return { messages, logs, notifications, indicator, events, clipboardText, error, injected, delivered }
 }
 
 test("Firefox client falls back when the native host rejects delivery", async () => {
@@ -229,12 +243,45 @@ test("Firefox debug export reports clipboard failure accurately", async () => {
   assert.equal(copied.message, "Debug log could not be copied.")
 })
 
-test("Firefox client ignores non-pull-request pages", async () => {
+test("Firefox client captures generic web pages through activeTab injection", async () => {
   const result = await runFlow({ ok: true }, {
-    pageUrl: "https://github.com/org/repo/issues/42",
+    pageUrl: "https://example.com/article",
   })
 
+  assert.equal(result.injected, true)
+  assert.ok(result.messages.some(message => message.type === "capture-context"))
+  assert.ok(result.logs.some(entry => entry.includes("native:succeeded")))
+})
+
+test("Firefox client sends generic selected text from the context menu", async () => {
+  const result = await runFlow({ ok: true }, {
+    pageUrl: "https://example.com/article",
+  })
+
+  await result.events.menuClicked.emit({
+    menuItemId: "omp-send-context",
+    pageUrl: "https://example.com/article",
+    selectionText: "menu selection",
+  }, {
+    id: 42,
+    url: "https://example.com/article",
+    title: "Test web page",
+  })
+  await new Promise(resolve => setTimeout(resolve, 10))
+
+  assert.equal(result.delivered[1].prompt, "selected:menu selection")
+  assert.deepEqual(result.delivered[1].metadata, {
+    url: "https://example.com/article",
+    title: "Test web page",
+  })
+})
+test("Firefox client rejects unsupported shortcut pages", async () => {
+  const result = await runFlow({ ok: true }, {
+    pageUrl: "about:blank",
+  })
+
+  assert.equal(result.injected, false)
   assert.equal(result.messages.some(message => message.type === "capture-context"), false)
-  assert.ok(result.notifications.some(notification => notification.message.includes("not a supported GitHub pull request")))
+  assert.ok(result.notifications.some(notification => notification.message.includes("does not support web context")))
   assert.ok(result.logs.some(entry => entry.includes("shortcut:unsupported-page")))
 })

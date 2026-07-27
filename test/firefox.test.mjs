@@ -8,7 +8,7 @@ const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json"
 const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
 vm.runInNewContext(contextSource, context)
-const { createEnvelope, formatPrompt, isSupportedGithubUrl } = context.ompSendContext
+const { createEnvelope, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl } = context.ompSendContext
 
 test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://github.com/org/repo/pull/42/files"), true)
@@ -16,10 +16,17 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
 })
 
-test("Firefox manifest scopes page access to GitHub pull-request paths", () => {
-  assert.ok(manifest.permissions.includes("menus"))
-  assert.deepEqual(manifest.permissions.at(-1), "https://github.com/*/*/pull/*")
+test("Firefox manifest keeps generic capture on click-time activeTab access", () => {
+  assert.ok(manifest.permissions.includes("activeTab"))
+  assert.equal(manifest.permissions.some(permission => permission.includes("*://")), false)
   assert.deepEqual(manifest.content_scripts[0].matches, ["https://github.com/*/*/pull/*"])
+})
+
+test("Firefox client recognizes eligible web pages", () => {
+  assert.equal(isEligiblePageUrl("https://example.com/article"), true)
+  assert.equal(isEligiblePageUrl("http://localhost:3000/"), true)
+  assert.equal(isEligiblePageUrl("about:blank"), false)
+  assert.equal(isEligiblePageUrl("file:///tmp/example.html"), false)
 })
 
 test("Firefox manifest declares branded icons and supported desktop metadata", async () => {
@@ -61,6 +68,25 @@ test("Firefox client creates a protocol v1 envelope with permalink metadata", ()
   })
 })
 
+test("Firefox client creates a generic web-page envelope with page metadata", () => {
+  const envelope = createEnvelope({
+    selectionText: "const value = 1",
+    linkUrl: "https://example.com/other",
+    pageUrl: "https://example.com/article",
+    title: "An article",
+  })
+
+  assert.deepEqual(JSON.parse(JSON.stringify(envelope)), {
+    version: 1,
+    source: "firefox",
+    prompt: "# OMP Agent Handoff\n\n## Web page\n\n- Title: An article\n\n- Location: https://example.com/article\n\n## Selected text\n\n```\nconst value = 1\n```",
+    metadata: {
+      url: "https://example.com/article",
+      title: "An article",
+    },
+  })
+})
+
 test("Firefox client lengthens fences and falls back to the page URL", () => {
   const selection = "```js\nconst value = 1\n```"
   assert.equal(formatPrompt({
@@ -83,6 +109,6 @@ test("Firefox client rejects empty selection and unsupported pages", () => {
   }), /Select GitHub code/)
   assert.throws(() => createEnvelope({
     selectionText: "const value = 1",
-    pageUrl: "https://github.com/org/repo/issues/42",
-  }), /pull-request pages/)
+    pageUrl: "about:blank",
+  }), /does not support this page/)
 })
