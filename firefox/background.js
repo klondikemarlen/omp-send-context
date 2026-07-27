@@ -41,10 +41,6 @@ browser.menus.onClicked.addListener((info, tab) => {
   void sendMenuContext(info, tab)
 })
 
-browser.browserAction.onClicked.addListener(() => {
-  void toggleDebugLogging()
-})
-
 browser.runtime.onMessage.addListener((message) => {
   if (message?.type === "debug-event" && typeof message.event === "string") {
     void recordDebug(`content:${message.event}`)
