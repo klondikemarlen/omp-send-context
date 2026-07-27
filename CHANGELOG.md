@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 1.8.1
+
+- Add the GitHub repository as the Firefox add-on homepage for AMO submissions.
+
 ## 1.8.0
 
 - Capture selected text, page URL, and document title from ordinary HTTP(S) pages while retaining GitHub pull-request metadata.
