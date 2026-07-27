@@ -100,6 +100,14 @@ Do not paste credentials into issue, pull-request, or release notes. If AMO requ
 6. Confirm test case 4 separately by temporarily making the Linux Firefox native messaging host unavailable and verifying the exact clipboard fallback.
 7. Record the AMO URL, visible version, Firefox version, OMP version, Linux native-host version, host-install command result, and PASS/FAIL/BLOCKED results.
 
+## Troubleshooting persistent installs
+
+- **Stale temporary add-on:** remove the old entry from `about:debugging#/runtime/this-firefox`, then install the signed XPI from AMO. A temporary add-on is disposable and cannot be made persistent by the local host installer.
+- **AMO review delay:** keep the submitted version and AMO developer/version URL in the release record; do not reuse the version or claim publication until the AMO listing exposes the signed version.
+- **Wrong extension ID:** confirm `about:addons` and `firefox/manifest.json` show `omp-send-context@klondikemarlen.github.io`. The native-host manifest must allowlist the same ID exactly.
+- **Missing native host:** reinstall with `npm run install:firefox-host` (or the documented `-- --sandboxed` flow after installing `xdg-native-messaging-proxy`), verify the launcher path and stable allowlist, then restart Firefox and OMP.
+- **Clipboard fallback:** if native delivery fails, paste the copied packet and verify it contains only the expected selected-page context. Restore the host and require `native:succeeded` for the native-delivery cases.
+
 ## Rollback
 
 If the published add-on is defective:
