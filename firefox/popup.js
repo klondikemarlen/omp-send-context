@@ -1,7 +1,9 @@
 const debugButton = document.querySelector("#debug")
 const copyButton = document.querySelector("#copy")
 const status = document.querySelector("#status")
+const version = document.querySelector("#version")
 const buttons = [debugButton, copyButton]
+version.textContent = `Version ${browser.runtime.getManifest().version}`
 
 async function send(message) {
   return browser.runtime.sendMessage(message)

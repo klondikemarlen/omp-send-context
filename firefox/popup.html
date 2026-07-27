@@ -85,6 +85,11 @@
       margin: 12px 2px 0;
       color: var(--muted);
     }
+    #version {
+      margin: 12px 2px 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -98,6 +103,7 @@
     <button id="copy" type="button">Copy debug log</button>
   </div>
   <div id="status" role="status" aria-live="polite"></div>
+  <p id="version" aria-label="Extension version"></p>
   <script src="popup.js"></script>
 </body>
 </html>
