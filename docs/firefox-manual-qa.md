@@ -1,12 +1,12 @@
 # Firefox Manual QA
 
-Use this guide to verify the Firefox GitHub client and its automatic OMP delivery path. The test covers the user-visible flow that unit tests cannot prove.
+Use this guide to verify the Firefox web-page context client and its automatic OMP delivery path. The test covers the user-visible flow that unit tests cannot prove.
 
 ## Prerequisites
 
 - Node.js 20 or newer.
 - Firefox 142 or newer. The extension declares this minimum for Firefox data-collection permissions.
-- A GitHub account that can open the target pull request and its **Files changed** view.
+- A GitHub account that can open the target pull request and its **Files changed** view for cases 2–4.
 - OMP with the repository plugin installed:
 
   ```bash
@@ -44,12 +44,27 @@ If the pull request requires authentication, sign in to the temporary profile be
 
 Start a fresh OMP process after the native host is installed. Keep its prompt visible.
 
-To capture diagnostics for this first release, click the add-on toolbar button to enable debug logging. After reproducing a failure, use the GitHub page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens.
+To capture diagnostics for this first release, click the add-on toolbar button to enable debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens.
 
 
 ## Test cases
 
-### 1. Context-menu delivery
+### 1. Generic page context-menu delivery
+
+1. Open an ordinary `https://` or `http://` page, such as an article or local development page.
+2. Select a sentence or code fragment.
+3. Open the Firefox page context menu.
+4. Choose **Send selection and link to OMP**.
+5. Inspect the active OMP prompt.
+
+Expected:
+
+- The prompt contains `# OMP Agent Handoff` and a `## Web page` section.
+- It contains the selected text in a fenced block, the document title, and the page URL.
+- The packet appears once in the active OMP session.
+- Firefox does not display a token, local bridge path, or selected text in diagnostics.
+
+### 2. GitHub context-menu delivery
 
 1. Open the pull request's **Files changed** tab.
 2. Select one or more lines of source code.
@@ -66,7 +81,7 @@ Expected:
 - The packet appears once in the active OMP session.
 - Firefox does not display a token or local bridge path.
 
-### 2. Keyboard-shortcut delivery
+### 3. GitHub keyboard-shortcut delivery
 
 1. Select different source text on the same pull request.
 2. Press the configured **Send selected GitHub context to OMP** shortcut. The suggested default is `Ctrl+Alt+K` on Linux and Windows, or `Command+Alt+K` on macOS.
@@ -74,7 +89,7 @@ Expected:
 
 Expected: the same packet shape and single insertion as the context-menu path. The shortcut and context menu must capture the current selection, not the previous test selection.
 
-### 3. Link metadata
+### 4. GitHub link metadata
 
 1. Select a line or range with GitHub's line/permalink link available.
 2. Invoke the context-menu action.
@@ -82,7 +97,7 @@ Expected: the same packet shape and single insertion as the context-menu path. T
 
 Expected: the most specific available HTTP(S) GitHub link is used. If no line link is available, the pull-request page URL is used.
 
-### 4. Clipboard fallback
+### 5. Clipboard fallback
 
 1. Stop OMP or temporarily move the native-host manifest out of `~/.mozilla/native-messaging-hosts/`.
 2. Select source text on a pull request.
@@ -96,14 +111,14 @@ Expected:
 - The clipboard contains the exact packet that automatic delivery would have sent.
 - No partial packet or stale selection is copied.
 
-### 5. Unsupported and empty selections
+### 6. Unsupported and empty selections
 
-1. On a GitHub issue or non-GitHub page, invoke the shortcut.
-2. On a supported pull-request page, invoke the action with no selected text.
+1. On `about:blank`, a `file:` page, or another non-HTTP(S) page, invoke the shortcut.
+2. On an eligible HTTP(S) page, invoke the action with no selected text.
 
-Expected: no request is sent and a clear user-facing error appears. Existing clipboard contents remain unchanged for rejected input.
+Expected: no request is sent and a clear user-facing error appears in both cases. Existing clipboard contents remain unchanged for rejected input.
 
-### 6. Multiple OMP sessions
+### 7. Multiple OMP sessions
 
 1. Start two OMP sessions.
 2. Explicitly claim one with `/ide`.
@@ -122,4 +137,4 @@ Use one result per test case:
 - **FAIL** — the flow ran but an expected behavior was wrong; include the exact step and visible result.
 - **BLOCKED** — the environment prevented the test from running, such as missing Firefox, unavailable GitHub access, missing native host, or Selenium Manager unable to obtain geckodriver.
 
-A release is not interactive-QA complete until test cases 1, 2, and 4 pass in a fresh Firefox profile.
+A release is not interactive-QA complete until test cases 1, 2, 3, 4, and 5 pass in a fresh Firefox profile.

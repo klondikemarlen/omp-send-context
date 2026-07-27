@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 1.8.0
+
+- Capture selected text, page URL, and document title from ordinary HTTP(S) pages while retaining GitHub pull-request metadata.
+- Use click-time `activeTab` injection for generic shortcut capture without adding permanent access to every website.
 
 ## 2.0.1
 

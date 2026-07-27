@@ -31,7 +31,7 @@ Official references:
    ```
 
 4. Install the Linux native-messaging host before interactive QA. For system Firefox run `npm run install:firefox-host`. For Snap or Flatpak Firefox, first run `sudo apt install xdg-native-messaging-proxy`, then run `npm run install:firefox-host -- --sandboxed`. The sandboxed command must pass. Verify that `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script.
-5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run the [Firefox Manual QA](firefox-manual-qa.md) flow in a fresh Firefox profile. Test cases 1, 2, and 3 must be **PASS** with `native:succeeded`. Test case 4 must be **PASS** with the expected clipboard fallback evidence.
+5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run the [Firefox Manual QA](firefox-manual-qa.md) flow in a fresh Firefox profile. Test cases 1–4 must be **PASS** with `native:succeeded`; test case 5 must be **PASS** with the expected clipboard fallback evidence.
 6. Review the packaged source. Do not include credentials, local bridge state, test fixtures, or the native host in the Firefox add-on artifact.
 7. Confirm the manifest's `browser_specific_settings.gecko.id`, minimum Firefox version, permissions, host scope, and `data_collection_permissions` are intentional.
 8. Merge the implementation pull request only after review, automated checks, native-host registration, and interactive QA are complete.
@@ -96,8 +96,8 @@ Do not paste credentials into issue, pull-request, or release notes. If AMO requ
 2. In a fresh Firefox profile, install the published AMO add-on rather than the temporary checkout.
 3. Confirm **about:addons** shows the expected extension name and version.
 4. Install the matching Linux native-messaging host. For Snap or Flatpak Firefox, install `xdg-native-messaging-proxy` with `sudo apt install xdg-native-messaging-proxy`, rerun `npm run install:firefox-host -- --sandboxed`, and require that command to pass. Verify the manifest points to the launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script, and allowlists the stable extension ID.
-5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run Firefox Manual QA test cases 1, 2, and 3. Require `native:succeeded` for native-delivery cases.
-6. Confirm test case 4 separately by temporarily making the Linux Firefox native messaging host unavailable and verifying the exact clipboard fallback.
+5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run Firefox Manual QA test cases 1–4. Require `native:succeeded` for native-delivery cases.
+6. Confirm test case 5 separately by temporarily making the Linux Firefox native messaging host unavailable and verifying the exact clipboard fallback.
 7. Record the AMO URL, visible version, Firefox version, OMP version, Linux native-host version, host-install command result, and PASS/FAIL/BLOCKED results.
 
 ## Rollback

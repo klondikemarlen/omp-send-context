@@ -1,5 +1,5 @@
 const NATIVE_HOST_NAME = "omp_send_context"
-const GITHUB_PR_URL_PATTERN = "https://github.com/*/*/pull/*"
+const WEB_URL_PATTERNS = ["http://*/*", "https://*/*"]
 const MENU_ID = "omp-send-context"
 const DEBUG_MENU_ID = "omp-send-context-debug"
 const DEBUG_STORAGE_KEY = "debugLogging"
@@ -24,13 +24,13 @@ browser.runtime.onInstalled.addListener(() => {
     id: MENU_ID,
     title: "Send selection and link to OMP",
     contexts: ["selection", "link"],
-    documentUrlPatterns: [GITHUB_PR_URL_PATTERN],
+    documentUrlPatterns: WEB_URL_PATTERNS,
   })
   browser.menus.create({
     id: DEBUG_MENU_ID,
     title: "Copy OMP Send Context debug log",
     contexts: ["all"],
-    documentUrlPatterns: [GITHUB_PR_URL_PATTERN],
+    documentUrlPatterns: WEB_URL_PATTERNS,
   })
 })
 browser.menus.onClicked.addListener((info, tab) => {
@@ -38,7 +38,9 @@ browser.menus.onClicked.addListener((info, tab) => {
     void copyDebugLog(tab?.id)
     return
   }
-  void sendMenuContext(info, tab)
+  if (info.menuItemId === MENU_ID) {
+    void sendMenuContext(info, tab)
+  }
 })
 
 browser.runtime.onMessage.addListener((message) => {
@@ -89,15 +91,15 @@ async function sendActiveContext() {
     await recordDebug("shortcut:no-active-tab")
     return
   }
-  if (!ompSendContext.isSupportedGithubUrl(tab.url ?? "")) {
+  if (!ompSendContext.isEligiblePageUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
-    await notify(tab.id, "This page is not a supported GitHub pull request.")
+    await notify(tab.id, "This page does not support web context capture.")
     return
   }
 
   try {
     await recordDebug("capture:requested")
-    const capture = await browser.tabs.sendMessage(tab.id, { type: "capture-context" })
+    const capture = await captureTabContext(tab.id)
     await recordDebug("capture:received")
     const envelope = ompSendContext.createEnvelope(capture)
     await recordDebug("envelope:created")
@@ -105,6 +107,15 @@ async function sendActiveContext() {
   } catch (error) {
     await recordDebug("shortcut:failed")
     await notify(tab.id, errorMessage(error))
+  }
+}
+
+async function captureTabContext(tabId) {
+  try {
+    return await browser.tabs.sendMessage(tabId, { type: "capture-context" })
+  } catch {
+    await browser.tabs.executeScript(tabId, { file: "content.js" })
+    return browser.tabs.sendMessage(tabId, { type: "capture-context" })
   }
 }
 
