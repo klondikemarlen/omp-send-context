@@ -14,19 +14,24 @@
     }
   }
 
+  function isEligiblePageUrl(value) {
+    return isHttpUrl(value)
+  }
+
   function createEnvelope({ selectionText, linkUrl, pageUrl, title }) {
-    if (typeof selectionText !== "string" || selectionText.trim().length === 0) {
-      throw new Error("Select GitHub code before sending context to OMP.")
+    if (!isEligiblePageUrl(pageUrl)) {
+      throw new Error("OMP Send Context does not support this page.")
     }
-    if (!isSupportedGithubUrl(pageUrl)) {
-      throw new Error("OMP Send Context supports GitHub pull-request pages only.")
+    if (typeof selectionText !== "string" || selectionText.trim().length === 0) {
+      throw new Error(isSupportedGithubUrl(pageUrl) ? "Select GitHub code before sending context to OMP." : "Select text before sending context to OMP.")
     }
 
-    const url = isHttpUrl(linkUrl) ? linkUrl : pageUrl
+    const github = isSupportedGithubUrl(pageUrl)
+    const url = github && isHttpUrl(linkUrl) ? linkUrl : pageUrl
     return {
       version: 1,
       source: "firefox",
-      prompt: formatPrompt({ selectionText, url, title }),
+      prompt: formatPrompt({ selectionText, url, title, github }),
       metadata: {
         url,
         ...(typeof title === "string" && title.length > 0 ? { title } : {}),
@@ -34,8 +39,8 @@
     }
   }
 
-  function formatPrompt({ selectionText, url, title }) {
-    const sections = ["# OMP Agent Handoff", "## GitHub"]
+  function formatPrompt({ selectionText, url, title, github = true }) {
+    const sections = ["# OMP Agent Handoff", github ? "## GitHub" : "## Web page"]
     if (typeof title === "string" && title.length > 0) {
       sections.push(`- Title: ${title}`)
     }
@@ -66,6 +71,7 @@
   return {
     createEnvelope,
     formatPrompt,
+    isEligiblePageUrl,
     isSupportedGithubUrl,
   }
 })

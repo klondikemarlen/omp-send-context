@@ -89,12 +89,13 @@ Supported OMP runtime: `16.3.7` or newer. That release includes upstream OMP [ca
 
 This plugin is installed from the GitHub repo because it ships an OMP runtime extension, while the VS Code half is installed from Marketplace.
 
-### Firefox GitHub client
+### Firefox client
 
-> **Experimental:** The Firefox client is under active development and may not work in every GitHub pull-request view or Firefox environment. It includes opt-in, redacted debug logging to help diagnose first-release failures.
+> **Experimental:** The Firefox client is under active development and may not work in every Firefox environment. It includes opt-in, redacted debug logging to help diagnose first-release failures.
 
+The Firefox client is a separate WebExtension under `firefox/`. On ordinary `http://` and `https://` pages, its **Send selection and link to OMP** context-menu action and configurable `Ctrl+Alt+K` shortcut send the current selected text, page URL, and document title. The add-on uses `activeTab` click-time access for shortcut capture, so it does not request permanent access to every website. Firefox internal pages, `file:` pages, empty selections, and other unsupported inputs are rejected without delivery.
 
-The Firefox client is a separate WebExtension under `firefox/`. It adds a **Send selection and link to OMP** context-menu action and a configurable `Ctrl+Alt+K` shortcut for GitHub pull-request pages. It sends selected text, the GitHub page/permalink, and the page title as a protocol-v1 context envelope.
+GitHub pull-request pages keep the richer behavior: the same menu action and shortcut preserve the GitHub title, selected-link/permalink metadata, and `## GitHub` prompt section. Generic pages use `## Web page` and always retain the page URL.
 
 For normal distribution, install the signed add-on from its AMO listing once published. The OMP plugin and the Firefox add-on are separate installs; installing the add-on does not install the native-messaging host.
 
@@ -128,8 +129,7 @@ Install the host after installing the add-on. Choose the setup that matches how 
   On other distributions, install the equivalent package and confirm that it provides the `org.freedesktop.NativeMessagingProxy` user D-Bus service. The installer fails clearly if the service is missing. The proxy exposes host native-messaging services to sandboxed callers; upstream warns that this can be **insecure**, so install it only when you trust the host manifests available on your machine ([upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme)).
 
 The installer makes the host executable, writes an executable launcher at `~/.local/share/omp-send-context/omp_send_context-host`, and writes `~/.mozilla/native-messaging-hosts/omp_send_context.json` pointing to that launcher. The launcher uses the Node runtime that ran the installer and invokes the checkout host script. The manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`. Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory because the proxy discovers the normal host-manifest location.
-
-After installation, start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; if it does not, reload the add-on or fully restart Firefox. When developing with a temporary add-on, reload it from `about:debugging` instead. Invoke `Ctrl+Alt+K` on a GitHub pull request and enable debug logging if needed: native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
+After installation, start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; if it does not, reload the add-on or fully restart Firefox. When developing with a temporary add-on, reload it from `about:debugging` instead. Invoke `Ctrl+Alt+K` on any eligible HTTP(S) page, including GitHub pull requests, and enable debug logging if needed: native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
 
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.

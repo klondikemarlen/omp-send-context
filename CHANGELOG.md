@@ -1,6 +1,18 @@
 # Changelog
 
 
+## 1.8.2
+
+- Prepare the listed AMO review submission after the signed unlisted 1.8.1 validation build.
+
+## 1.8.1
+
+- Add the GitHub repository as the Firefox add-on homepage for AMO submissions.
+
+## 1.8.0
+
+- Capture selected text, page URL, and document title from ordinary HTTP(S) pages while retaining GitHub pull-request metadata.
+- Use click-time `activeTab` injection for generic shortcut capture without adding permanent access to every website.
 
 ## 2.0.1
 

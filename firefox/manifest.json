@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
   "name": "OMP Send Context",
-  "version": "1.7.7",
-  "description": "Send selected GitHub pull-request context to Oh My Pi.",
+  "version": "1.8.2",
+  "description": "Send selected web-page context to Oh My Pi.",
+  "homepage_url": "https://github.com/klondikemarlen/omp-send-context",
   "icons": {
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png",
@@ -44,7 +45,7 @@
         "windows": "Ctrl+Alt+K",
         "mac": "Command+Alt+K"
       },
-      "description": "Send selected GitHub context to OMP"
+      "description": "Send selected web-page context to OMP"
     }
   },
   "browser_action": {
