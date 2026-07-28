@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.6
+
+- Promote the Firefox add-on to supported release status.
+- Update AMO listing metadata to mark the add-on as a supported release.
+
 ## 1.8.5
 
 - Publish the prompt-boundary fix after AMO reserved 1.8.4 for unlisted validation.
