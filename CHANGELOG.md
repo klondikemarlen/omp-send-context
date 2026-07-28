@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 1.8.2
+
+- Prepare the listed AMO review submission after the signed unlisted 1.8.1 validation build.
+
 ## 1.8.1
 
 - Add the GitHub repository as the Firefox add-on homepage for AMO submissions.
