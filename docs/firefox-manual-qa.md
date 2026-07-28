@@ -36,9 +36,17 @@ Run the extension from a temporary Firefox profile:
 ```bash
 npx web-ext run \
   --source-dir firefox \
-  --firefox-binary firefox \
+  --firefox-binary /snap/firefox/current/usr/lib/firefox/firefox \
   --url https://github.com/OWNER/REPOSITORY/pull/NUMBER/files
 ```
+
+For Snap Firefox, use the native binary rather than the `/usr/bin/firefox` wrapper:
+
+```bash
+--firefox-binary /snap/firefox/current/usr/lib/firefox/firefox
+```
+
+The wrapper can start Firefox successfully but prevent `web-ext` from connecting to its temporary remote-debugging endpoint.
 
 If the pull request requires authentication, sign in to the temporary profile before testing. Alternatively, open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and choose `firefox/manifest.json`.
 
