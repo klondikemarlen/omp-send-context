@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OMP Send Context",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "description": "Send selected web-page context to Oh My Pi.",
   "homepage_url": "https://github.com/klondikemarlen/omp-send-context",
   "icons": {
