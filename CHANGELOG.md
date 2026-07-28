@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.3
+
+- Keep Firefox debug state and diagnostic entries in memory for the current browser session only.
+- Remove persistent GitHub page access and static page injection; capture uses click-time `activeTab` access on eligible HTTP(S) pages.
+- Refresh the normal and debug toolbar artwork.
+
 
 ## 1.8.2
 
