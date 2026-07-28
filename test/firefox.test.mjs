@@ -19,7 +19,8 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
 test("Firefox manifest keeps generic capture on click-time activeTab access", () => {
   assert.ok(manifest.permissions.includes("activeTab"))
   assert.equal(manifest.permissions.some(permission => permission.includes("*://")), false)
-  assert.deepEqual(manifest.content_scripts[0].matches, ["https://github.com/*/*/pull/*"])
+  assert.equal(manifest.permissions.includes("storage"), false)
+  assert.equal(manifest.content_scripts, undefined)
 })
 
 test("Firefox client recognizes eligible web pages", () => {
