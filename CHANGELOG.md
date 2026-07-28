@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.4
+
+- Terminate Firefox handoff prompts with a blank line so follow-up comments stay outside the selected-text fence.
+
 ## 1.8.3
 
 - Keep Firefox debug state and diagnostic entries in memory for the current browser session only.
