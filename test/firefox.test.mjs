@@ -61,7 +61,7 @@ test("Firefox client creates a protocol v1 envelope with permalink metadata", ()
   assert.deepEqual(JSON.parse(JSON.stringify(envelope)), {
     version: 1,
     source: "firefox",
-    prompt: "# OMP Agent Handoff\n\n## GitHub\n\n- Title: Add transactions\n\n- Location: https://github.com/org/repo/pull/42/files#diff-abcR53\n\n## Selected text\n\n```\nreturn db.transaction(async () => {})\n```",
+    prompt: "# OMP Agent Handoff\n\n## GitHub\n\n- Title: Add transactions\n\n- Location: https://github.com/org/repo/pull/42/files#diff-abcR53\n\n## Selected text\n\n```\nreturn db.transaction(async () => {})\n```\n\n",
     metadata: {
       url: "https://github.com/org/repo/pull/42/files#diff-abcR53",
       title: "Add transactions",
@@ -80,7 +80,7 @@ test("Firefox client creates a generic web-page envelope with page metadata", ()
   assert.deepEqual(JSON.parse(JSON.stringify(envelope)), {
     version: 1,
     source: "firefox",
-    prompt: "# OMP Agent Handoff\n\n## Web page\n\n- Title: An article\n\n- Location: https://example.com/article\n\n## Selected text\n\n```\nconst value = 1\n```",
+    prompt: "# OMP Agent Handoff\n\n## Web page\n\n- Title: An article\n\n- Location: https://example.com/article\n\n## Selected text\n\n```\nconst value = 1\n```\n\n",
     metadata: {
       url: "https://example.com/article",
       title: "An article",
@@ -93,7 +93,18 @@ test("Firefox client lengthens fences and falls back to the page URL", () => {
   assert.equal(formatPrompt({
     selectionText: selection,
     url: "https://github.com/org/repo/pull/42",
-  }), "# OMP Agent Handoff\n\n## GitHub\n\n- Location: https://github.com/org/repo/pull/42\n\n## Selected text\n\n````\n```js\nconst value = 1\n```\n````")
+  }), "# OMP Agent Handoff\n\n## GitHub\n\n- Location: https://github.com/org/repo/pull/42\n\n## Selected text\n\n````\n```js\nconst value = 1\n```\n````\n\n")
+
+test("Firefox prompt leaves follow-up text outside the selection fence", () => {
+  const prompt = formatPrompt({
+    selectionText: "selected text",
+    url: "https://example.com/article",
+    github: false,
+  })
+
+  assert.equal(prompt.endsWith("```\n\n"), true)
+  assert.equal(`${prompt}that seemed to work?`.includes("```\n\nthat seemed to work?"), true)
+})
 
   const envelope = createEnvelope({
     selectionText: "const value = 1",

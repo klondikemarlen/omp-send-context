@@ -48,7 +48,7 @@
 
     const fence = codeFence(selectionText)
     sections.push("## Selected text", `${fence}\n${selectionText}\n${fence}`)
-    return sections.join("\n\n")
+    return `${sections.join("\n\n")}\n\n`
   }
 
   function codeFence(text) {
