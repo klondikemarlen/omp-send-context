@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.5
+
+- Publish the prompt-boundary fix after AMO reserved 1.8.4 for unlisted validation.
+
 ## 1.8.4
 
 - Terminate Firefox handoff prompts with a blank line so follow-up comments stay outside the selected-text fence.
