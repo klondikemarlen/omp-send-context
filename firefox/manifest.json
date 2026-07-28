@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "OMP Send Context",
-  "version": "1.8.2",
+  "version": "1.8.5",
   "description": "Send selected web-page context to Oh My Pi.",
   "homepage_url": "https://github.com/klondikemarlen/omp-send-context",
   "icons": {
@@ -23,20 +23,11 @@
     "clipboardWrite",
     "menus",
     "nativeMessaging",
-    "notifications",
-    "storage",
-    "https://github.com/*/*/pull/*"
+    "notifications"
   ],
   "background": {
     "scripts": ["context.js", "background.js"]
   },
-  "content_scripts": [
-    {
-      "matches": ["https://github.com/*/*/pull/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "commands": {
     "send-context": {
       "suggested_key": {

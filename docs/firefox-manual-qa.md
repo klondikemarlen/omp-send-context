@@ -5,7 +5,7 @@ Use this guide to verify the Firefox web-page context client and its automatic O
 ## Prerequisites
 
 - Node.js 20 or newer.
-- Firefox 142 or newer. The extension declares this minimum for Firefox data-collection permissions.
+- Firefox 142 or newer, matching the extension's declared minimum.
 - A GitHub account that can open the target pull request and its **Files changed** view for cases 2–4.
 - OMP with the repository plugin installed:
 
@@ -36,22 +36,30 @@ Run the extension from a temporary Firefox profile:
 ```bash
 npx web-ext run \
   --source-dir firefox \
-  --firefox-binary firefox \
+  --firefox-binary /snap/firefox/current/usr/lib/firefox/firefox \
   --url https://github.com/OWNER/REPOSITORY/pull/NUMBER/files
 ```
+
+For Snap Firefox, use the native binary rather than the `/usr/bin/firefox` wrapper:
+
+```bash
+--firefox-binary /snap/firefox/current/usr/lib/firefox/firefox
+```
+
+The wrapper can start Firefox successfully but prevent `web-ext` from connecting to its temporary remote-debugging endpoint.
 
 If the pull request requires authentication, sign in to the temporary profile before testing. Alternatively, open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and choose `firefox/manifest.json`.
 
 Start a fresh OMP process after the native host is installed. Keep its prompt visible.
 
-To capture diagnostics for this first release, click the add-on toolbar button to enable debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens.
+To capture diagnostics for this release, click the add-on toolbar button to enable session-only debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens. Debug entries disappear when Firefox restarts.
 
 
 ## Test cases
 
 ### 1. Generic page context-menu delivery
 
-1. Open an ordinary `https://` or `http://` page, such as an article or local development page.
+1. Open an ordinary `https://` or `http://` page, such as an article, `https://addons.mozilla.org/`, or a local development page.
 2. Select a sentence or code fragment.
 3. Open the Firefox page context menu.
 4. Choose **Send selection and link to OMP**.

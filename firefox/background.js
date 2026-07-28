@@ -2,7 +2,6 @@ const NATIVE_HOST_NAME = "omp_send_context"
 const WEB_URL_PATTERNS = ["http://*/*", "https://*/*"]
 const MENU_ID = "omp-send-context"
 const DEBUG_MENU_ID = "omp-send-context-debug"
-const DEBUG_STORAGE_KEY = "debugLogging"
 const DEFAULT_ICON_PATHS = {
   48: "icons/icon-48.png",
   96: "icons/icon-96.png",
@@ -16,6 +15,7 @@ const DEBUG_ICON_PATHS = {
 const MAX_DEBUG_ENTRIES = 100
 
 const debugEntries = []
+let debugLogging = false
 let debugIndicatorRevision = 0
 void updateDebugIndicator()
 
@@ -212,7 +212,7 @@ async function updateDebugIndicator(enabled) {
 async function toggleDebugLogging() {
   const enabled = await readDebugEnabled()
   const nextEnabled = !enabled
-  await browser.storage.local.set({ [DEBUG_STORAGE_KEY]: nextEnabled })
+  debugLogging = nextEnabled
   debugEntries.length = 0
   await updateDebugIndicator(nextEnabled)
   await recordDebug(nextEnabled ? "debug:enabled" : "debug:disabled")
@@ -271,12 +271,7 @@ async function notify(tabId, message) {
 }
 
 async function readDebugEnabled() {
-  try {
-    const values = await browser.storage.local.get(DEBUG_STORAGE_KEY)
-    return values[DEBUG_STORAGE_KEY] === true
-  } catch {
-    return false
-  }
+  return debugLogging
 }
 
 async function recordDebug(event) {

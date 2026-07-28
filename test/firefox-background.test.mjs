@@ -29,11 +29,10 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   const notifications = []
   const indicator = { icon: null, badgeText: "", badgeColor: undefined, title: "" }
   const logs = []
-  let debugLogging = false
   let clipboardText = ""
   let textarea
   const delivered = []
-  let contentReady = pageUrl.includes("/pull/")
+  let contentReady = false
   let injected = false
   const browser = {
     runtime: {
@@ -70,16 +69,6 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     notifications: {
       async create(options) {
         notifications.push(options)
-      },
-    },
-    storage: {
-      local: {
-        async get() {
-          return { debugLogging }
-        },
-        async set(values) {
-          debugLogging = values.debugLogging
-        },
       },
     },
     tabs: {

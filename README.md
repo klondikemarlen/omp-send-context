@@ -101,7 +101,7 @@ For normal distribution, install the signed add-on from its AMO listing once pub
 
 For local development, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts.
 
-The toolbar button toggles opt-in debug logging. With debug logging enabled, the **Copy OMP Send Context debug log** context-menu action copies bounded stage/error codes only; it never includes selected text, URLs, titles, prompts, bridge state, or bearer tokens.
+The toolbar button toggles opt-in, session-only debug logging. Debug entries disappear when Firefox restarts. With debug logging enabled, the **Copy OMP Send Context debug log** context-menu action copies bounded stage/error codes only; it never includes selected text, URLs, titles, prompts, bridge state, or bearer tokens. The add-on does not persist page context or collect telemetry.
 
 The client first tries the native-messaging host. If the host is unavailable or rejects delivery, it copies the exact prompt packet to the clipboard; no bridge token is exposed to Firefox.
 

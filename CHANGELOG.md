@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.8.5
+
+- Publish the prompt-boundary fix after AMO reserved 1.8.4 for unlisted validation.
+
+## 1.8.4
+
+- Terminate Firefox handoff prompts with a blank line so follow-up comments stay outside the selected-text fence.
+
+## 1.8.3
+
+- Keep Firefox debug state and diagnostic entries in memory for the current browser session only.
+- Remove persistent GitHub page access and static page injection; capture uses click-time `activeTab` access on eligible HTTP(S) pages.
+- Refresh the normal and debug toolbar artwork.
+
 
 ## 1.8.2
 
