@@ -53,7 +53,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       padding: 10px 14px 4px;
     }
     section { display: flex; flex-direction: column; gap: 2px; }
@@ -77,6 +77,25 @@
       background: #1c2026;
     }
     .context-card { align-items: flex-start; }
+    .steps { display: grid; gap: 4px; }
+    .step {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      gap: 4px;
+      color: #dfe2eb;
+      font-size: 11px;
+      line-height: 16px;
+    }
+    .step-number {
+      color: #67df70;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-weight: 600;
+    }
+    .fallback-note {
+      margin: 4px 0 0;
+      color: #909097;
+      font: 11px/14px Inter, system-ui, sans-serif;
+    }
     .context-icon {
       flex: 0 0 auto;
       margin-top: 1px;
@@ -197,20 +216,14 @@
     <h1>OMP Send Context</h1>
   </header>
   <main>
-    <section aria-labelledby="delivery-label">
-      <h2 id="delivery-label" class="section-label">Delivery</h2>
-      <div class="card status-row">
-        <span class="card-title">Handoff</span>
-        <span class="status-pill">Native / copy</span>
-      </div>
-    </section>
-    <section aria-labelledby="context-label">
-      <h2 id="context-label" class="section-label">Current context</h2>
+    <section aria-labelledby="quick-start-label">
+      <h2 id="quick-start-label" class="section-label">Quick start</h2>
       <div class="card context-card">
-        <span class="context-icon" aria-hidden="true">&gt;_</span>
-        <div>
-          <div class="card-title">Active selection</div>
-          <div class="card-detail">Select text, then press Ctrl+Alt+K.</div>
+        <div class="steps">
+          <div class="step"><span class="step-number">1</span><span>Select text on a web page</span></div>
+          <div class="step"><span class="step-number">2</span><span>Press Ctrl+Alt+K</span></div>
+          <div class="step"><span class="step-number">3</span><span>OMP receives the page and selection context</span></div>
+          <p class="fallback-note">If direct delivery is unavailable, context is copied to your clipboard.</p>
         </div>
       </div>
     </section>
