@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.7
+
+- Refresh Firefox toolbar artwork with the OMP send-context terminal mark.
+- Redesign the Firefox popup around the dark technical-minimal visual system with compact delivery, context, and debug controls.
+- Add focused coverage for the popup's branded surface, version display, and debug-state controls.
+
 ## 1.8.6
 
 - Promote the Firefox add-on to supported release status.
