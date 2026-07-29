@@ -14,6 +14,8 @@ test("Firefox popup keeps the branded compact dark surface", () => {
   assert.match(popupHtml, /JetBrains Mono/)
   assert.match(popupHtml, /Quick start/)
   assert.match(popupHtml, /If direct delivery is unavailable, context is copied to your clipboard\./)
+  assert.doesNotMatch(popupHtml, /margin-top:\s*auto/)
+  assert.match(popupHtml, /button\[aria-pressed="true"\]/)
   assert.doesNotMatch(popupHtml, /cdn\.tailwindcss|fonts\.googleapis/)
 })
 

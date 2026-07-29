@@ -145,7 +145,6 @@
     .actions {
       display: grid;
       gap: 6px;
-      margin-top: auto;
     }
     button {
       width: 100%;
@@ -153,32 +152,30 @@
       align-items: center;
       gap: 8px;
       padding: 5px 8px;
-      border: 1px solid #8b949e;
+      border: 1px solid #45464d;
       border-radius: 6px;
-      background: #21262d;
+      background: transparent;
       color: #dfe2eb;
-      font: 600 13px/18px Inter, system-ui, sans-serif;
+      font: 400 13px/18px Inter, system-ui, sans-serif;
       text-align: left;
       cursor: pointer;
     }
-    button:hover { background: #30363d; }
+    button:hover { background: #31353c; }
     button:focus-visible {
       outline: 2px solid #58a6ff;
       outline-offset: 2px;
     }
-    button.secondary {
-      border-color: #45464d;
-      background: transparent;
-      font-weight: 400;
+    button[aria-pressed="true"] {
+      border-color: #8b949e;
+      background: #21262d;
     }
-    button.secondary:hover { background: #31353c; }
+    button[aria-pressed="true"]:hover { background: #30363d; }
     .button-icon {
       width: 14px;
       color: #67df70;
       font-family: "JetBrains Mono", ui-monospace, monospace;
       text-align: center;
     }
-    button.secondary .button-icon { color: #c6c6cd; }
     #status {
       min-height: 14px;
       margin-top: 2px;
