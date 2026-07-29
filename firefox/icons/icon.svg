@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OMP Send Context</title>
+  <desc id="desc">A terminal window with a cyan send arrow</desc>
+  <defs>
+    <linearGradient id="accent" x1="20" y1="20" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#67df70"/>
+    </linearGradient>
+  </defs>
+  <rect x="7" y="7" width="114" height="114" rx="28" fill="#10141a" stroke="#45464d" stroke-width="4"/>
+  <rect x="27" y="29" width="74" height="66" rx="11" fill="#131b2e" stroke="#67df70" stroke-width="5"/>
+  <path d="M40 52 51 63 40 74" fill="none" stroke="#67df70" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/>
+  <path d="M60 78h20" stroke="#67df70" stroke-linecap="round" stroke-width="5"/>
+  <path d="M16 76c17-23 40-32 67-20l-10-10m10 10-13 9" fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+</svg>
