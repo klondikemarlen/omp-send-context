@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.8
+
+- Release the refreshed Firefox toolbar artwork and compact popup controls.
+
 ## 1.8.7
 
 - Refresh Firefox toolbar artwork with the OMP send-context terminal mark.
