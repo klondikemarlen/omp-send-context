@@ -89,6 +89,7 @@
     const permalink = buildDiffPermalink(document, locations)
     const headCommit = extractGithubCommit(document)
     return {
+      file: files[0],
       version: versions.length === 1 && versions[0] === "both" ? "original and modified" : versions.length === 1 ? versions[0] : "original and modified",
       change: changes.length === 1 ? changes[0] : "mixed",
       ...(lines ? { lines } : {}),
