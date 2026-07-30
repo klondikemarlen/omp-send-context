@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.19
+
+- Include exact GitHub PR diff permalinks in context handoffs.
+
 ## 1.8.18
 
 - Include GitHub PR diff file, line, and side context in handoffs.
