@@ -55,10 +55,13 @@
     const locations = rows.map(row => {
       const file = row.closest?.("[data-tagsearch-path]")?.getAttribute("data-tagsearch-path")
       const tr = row.closest?.("tr")
-      const before = tr?.querySelector?.(".blob-num-deletion[data-line-number]")?.getAttribute("data-line-number")
-      const after = tr?.querySelector?.(".blob-num-addition[data-line-number]")?.getAttribute("data-line-number")
+      const beforeCell = tr?.querySelector?.(".blob-num-deletion[data-line-number]")
+      const afterCell = tr?.querySelector?.(".blob-num-addition[data-line-number]")
+      const before = beforeCell?.getAttribute("data-line-number")
+      const after = afterCell?.getAttribute("data-line-number")
       const side = row.classList?.contains("blob-code-deletion") ? "before" : row.classList?.contains("blob-code-addition") ? "after" : undefined
-      return { file, before, after, side }
+      const anchor = side === "before" ? beforeCell?.getAttribute("id") : side === "after" ? afterCell?.getAttribute("id") : undefined
+      return { file, before, after, side, anchor }
     }).filter(location => typeof location.file === "string" && (location.before || location.after))
     if (locations.length === 0) {
       return undefined
@@ -71,12 +74,15 @@
     const after = locations.filter(location => location.side === "after" || (!location.side && location.after)).map(location => location.after).filter(Boolean)
     const beforeRange = lineRange(before)
     const afterRange = lineRange(after)
+    const anchors = locations.map(location => location.anchor)
+    const permalink = anchors.length === locations.length && anchors.every(Boolean) ? buildDiffPermalink(document, anchors[0]) : undefined
     return {
       file: files[0],
       ...(beforeRange ? { before: beforeRange } : {}),
       ...(afterRange ? { after: afterRange } : {}),
       ...(locations.every(location => location.side === "before") ? { side: "before" } : {}),
       ...(locations.every(location => location.side === "after") ? { side: "after" } : {}),
+      ...(permalink ? { permalink } : {}),
     }
   }
 
@@ -88,6 +94,16 @@
     return values.length === 1 ? String(values[0]) : `${values[0]}-${values.at(-1)}`
   }
 
+  function buildDiffPermalink(document, anchor) {
+    try {
+      const url = new URL(document.location.href)
+      url.hash = `#${anchor}`
+      return url.toString()
+    } catch {
+      return undefined
+    }
+  }
+
   function createEnvelope({ selectionText, linkUrl, pageUrl, title, diffLocation }) {
     if (!isEligiblePageUrl(pageUrl)) {
       throw new Error("OMP Send Context does not support this page.")
@@ -97,7 +113,7 @@
     }
 
     const github = isSupportedGithubUrl(pageUrl)
-    const url = github && isHttpUrl(linkUrl) ? linkUrl : pageUrl
+    const url = github && isHttpUrl(diffLocation?.permalink) ? diffLocation.permalink : github && isHttpUrl(linkUrl) ? linkUrl : pageUrl
     return {
       version: 1,
       source: "firefox",

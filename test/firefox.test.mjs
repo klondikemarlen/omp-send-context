@@ -72,7 +72,7 @@ test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
     }
     const tr = {
       querySelector: selector => ({
-        getAttribute: () => selector.includes("addition") ? String(line) : undefined,
+        getAttribute: name => name === "data-line-number" && selector.includes("addition") ? String(line) : undefined,
       }),
     }
     return code
@@ -96,12 +96,42 @@ test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
   }).prompt, /- File: src\/example\.ts\n\n- Side: after\n\n- Lines: 124-125/)
 })
 
+test("Firefox builds exact GitHub diff permalinks for both sides", () => {
+  const makeLocation = (side, line) => {
+    const cell = {
+      getAttribute: name => name === "data-line-number" ? String(line) : `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1${side === "after" ? "R" : "L"}${line}`,
+    }
+    const code = {
+      classList: { contains: name => name === `blob-code-${side === "after" ? "addition" : "deletion"}` },
+      closest: selector => selector === "[data-tagsearch-path]"
+        ? { getAttribute: () => "web/src/components/dashboards/DashboardTitleRow.vue" }
+        : { querySelector: query => query.includes(side === "after" ? "addition" : "deletion") ? cell : undefined },
+    }
+    return extractGithubDiffLocation({
+      location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
+      querySelectorAll: selector => {
+        assert.equal(selector, ".blob-code.js-file-line")
+        return [code]
+      },
+    }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  }
+  const after = makeLocation("after", 8)
+  const before = makeLocation("before", 8)
+  assert.equal(after.permalink, "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R8")
+  assert.equal(before.permalink, "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1L8")
+  assert.match(createEnvelope({
+    selectionText: "selected after code",
+    pageUrl: "https://github.com/icefoganalytics/wrap/pull/490/changes",
+    diffLocation: after,
+  }).prompt, /- Location: https:\/\/github\.com\/icefoganalytics\/wrap\/pull\/490\/changes#diff-.*R8/)
+})
+
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
   const code = {
     classList: { contains: name => name === "blob-code-deletion" },
     closest: selector => selector === "[data-tagsearch-path]"
       ? { getAttribute: () => "src/removed.ts" }
-      : { querySelector: query => ({ getAttribute: () => query.includes("deletion") ? "42" : undefined }) },
+      : { querySelector: query => ({ getAttribute: name => name === "data-line-number" && query.includes("deletion") ? "42" : undefined }) },
   }
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
@@ -118,7 +148,7 @@ test("Firefox omits non-contiguous GitHub line ranges", () => {
     classList: { contains: name => name === "blob-code-addition" },
     closest: selector => selector === "[data-tagsearch-path]"
       ? { getAttribute: () => "src/example.ts" }
-      : { querySelector: query => ({ getAttribute: () => query.includes("addition") ? String(line) : undefined }) },
+      : { querySelector: query => ({ getAttribute: name => name === "data-line-number" && query.includes("addition") ? String(line) : undefined }) },
   })
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
