@@ -126,6 +126,28 @@ test("Firefox builds exact GitHub diff permalinks for both sides", () => {
   }).prompt, /- Location: https:\/\/github\.com\/icefoganalytics\/wrap\/pull\/490\/changes#diff-.*R8/)
 })
 
+test("Firefox builds a GitHub diff range permalink for contiguous same-side selections", () => {
+  const lines = [8, 9]
+  const rows = lines.map(line => {
+    const cell = {
+      getAttribute: name => name === "data-line-number"
+        ? String(line)
+        : `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R${line}`,
+    }
+    return {
+      classList: { contains: name => name === "blob-code-addition" },
+      closest: selector => selector === "[data-tagsearch-path]"
+        ? { getAttribute: () => "src/example.ts" }
+        : { querySelector: query => query.includes("addition") ? cell : undefined },
+    }
+  })
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: () => rows,
+  }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.equal(location.permalink, "https://github.com/org/repo/pull/42/files#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R8-R9")
+})
+
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
   const code = {
     classList: { contains: name => name === "blob-code-deletion" },

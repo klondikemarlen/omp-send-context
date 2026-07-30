@@ -74,8 +74,7 @@
     const after = locations.filter(location => location.side === "after" || (!location.side && location.after)).map(location => location.after).filter(Boolean)
     const beforeRange = lineRange(before)
     const afterRange = lineRange(after)
-    const anchors = locations.map(location => location.anchor)
-    const permalink = anchors.length === locations.length && anchors.every(Boolean) ? buildDiffPermalink(document, anchors[0]) : undefined
+    const permalink = buildDiffPermalink(document, locations)
     return {
       file: files[0],
       ...(beforeRange ? { before: beforeRange } : {}),
@@ -94,10 +93,25 @@
     return values.length === 1 ? String(values[0]) : `${values[0]}-${values.at(-1)}`
   }
 
-  function buildDiffPermalink(document, anchor) {
+  function buildDiffPermalink(document, locations) {
+    const anchors = locations.map(location => location.anchor)
+    if (anchors.length === 0 || anchors.some(anchor => typeof anchor !== "string")) {
+      return undefined
+    }
+    const parsed = anchors.map(anchor => /^(.+)([LR])(\d+)$/.exec(anchor))
+    const first = parsed[0]
+    if (!first || parsed.some(match => !match || match[1] !== first[1] || match[2] !== first[2])) {
+      return undefined
+    }
+    const start = Number(first[3])
+    if (parsed.some((match, index) => Number(match[3]) !== start + index)) {
+      return undefined
+    }
+    const end = parsed.at(-1)
+    const fragment = anchors.length === 1 ? anchors[0] : `${anchors[0]}-${end[2]}${end[3]}`
     try {
       const url = new URL(document.location.href)
-      url.hash = `#${anchor}`
+      url.hash = `#${fragment}`
       return url.toString()
     } catch {
       return undefined
