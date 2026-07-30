@@ -45,7 +45,16 @@
       return undefined
     }
     const range = selection.getRangeAt(0)
+    const endpointSides = [selection.anchorNode, selection.focusNode]
+      .map(getDiffSide)
+      .filter(side => side === "left" || side === "right")
+    const singleEndpointSide = endpointSides.length === 2 && endpointSides[0] === endpointSides[1]
+      ? endpointSides[0]
+      : undefined
     const rows = [...(document.querySelectorAll?.(".blob-code.js-file-line, [data-line-anchor][data-line-number]") ?? [])].filter(node => {
+      if (singleEndpointSide !== undefined && getDiffSide(node) !== singleEndpointSide) {
+        return false
+      }
       try {
         return range.intersectsNode(node)
       } catch {
@@ -54,17 +63,25 @@
     })
     const locations = rows.map(row => {
       const tr = row.closest?.("tr")
-      const deleted = row.classList?.contains("blob-code-deletion") || row.classList?.contains("deletion") || row.querySelector?.(".deletion")
-      const added = row.classList?.contains("blob-code-addition") || row.classList?.contains("addition") || row.querySelector?.(".addition")
-      const diffSide = row.getAttribute?.("data-diff-side")
+      const diffSide = getDiffSide(row)
+      const splitSide = row.getAttribute?.("data-split-side")
+      const deleted = row.classList?.contains("blob-code-deletion") || row.classList?.contains("deletion") || splitSide === undefined && row.querySelector?.(".deletion")
+      const added = row.classList?.contains("blob-code-addition") || row.classList?.contains("addition") || splitSide === undefined && row.querySelector?.(".addition")
       const version = diffSide === "left" || deleted ? "original" : diffSide === "right" || added ? "modified" : "both"
+      const sideCell = diffSide === "left"
+        ? tr?.querySelector?.(".blob-num:not(.js-blob-rnum)[data-line-number]")
+        : diffSide === "right"
+          ? tr?.querySelector?.(".blob-num.js-blob-rnum[data-line-number]")
+          : undefined
       const beforeCell = tr?.querySelector?.(".blob-num-deletion[data-line-number]")
       const afterCell = tr?.querySelector?.(".blob-num-addition[data-line-number]")
       const line = row.getAttribute?.("data-line-number")
+        ?? sideCell?.getAttribute("data-line-number")
         ?? (version === "original" ? beforeCell?.getAttribute("data-line-number") : afterCell?.getAttribute("data-line-number"))
         ?? beforeCell?.getAttribute("data-line-number")
         ?? afterCell?.getAttribute("data-line-number")
       const anchor = row.getAttribute?.("data-line-anchor")
+        ?? sideCell?.getAttribute("id")
         ?? (version === "original" ? beforeCell?.getAttribute("id") : afterCell?.getAttribute("id"))
       return {
         file: diffFileFromRow(row),
@@ -98,6 +115,17 @@
     }
   }
 
+  function getDiffSide(node) {
+    const directSide = node?.getAttribute?.("data-diff-side") ?? node?.getAttribute?.("data-split-side")
+    if (directSide != null) {
+      return directSide
+    }
+
+    const sideElement = node?.closest?.("[data-diff-side], [data-split-side]")
+      ?? node?.parentElement?.closest?.("[data-diff-side], [data-split-side]")
+    return sideElement?.getAttribute?.("data-diff-side") ?? sideElement?.getAttribute?.("data-split-side")
+  }
+
   function diffFileFromRow(row) {
     const legacyPath = row.closest?.("[data-tagsearch-path]")?.getAttribute("data-tagsearch-path")
     if (legacyPath) {
@@ -108,8 +136,19 @@
   }
 
   function extractGithubCommit(document) {
-    return [...(document.querySelectorAll?.("[data-head-sha], [data-head-commit-sha], [data-pull-request-head-sha]") ?? [])]
-      .map(node => node.getAttribute?.("data-head-sha") ?? node.getAttribute?.("data-head-commit-sha") ?? node.getAttribute?.("data-pull-request-head-sha"))
+    const headAttributes = [...(document.querySelectorAll?.("[data-head-sha], [data-head-commit-sha], [data-pull-request-head-sha]") ?? [])]
+      .flatMap(node => [
+        node.getAttribute?.("data-head-sha"),
+        node.getAttribute?.("data-head-commit-sha"),
+        node.getAttribute?.("data-pull-request-head-sha"),
+      ])
+    const headCommit = headAttributes.find(value => /^[0-9a-f]{7,40}$/i.test(value ?? ""))
+    if (headCommit) {
+      return headCommit
+    }
+
+    return [...(document.querySelectorAll?.("[data-commit], a[data-commit]") ?? [])]
+      .map(node => node.getAttribute?.("data-commit"))
       .find(value => /^[0-9a-f]{7,40}$/i.test(value ?? ""))
   }
 

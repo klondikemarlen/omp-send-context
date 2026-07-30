@@ -3,7 +3,7 @@ import esbuild from "esbuild"
 const production = process.argv.includes("--production")
 
 await esbuild.build({
-  entryPoints: ["src/extension.ts"],
+  entryPoints: ["vscode/extension.ts"],
   bundle: true,
   external: ["vscode"],
   format: "cjs",

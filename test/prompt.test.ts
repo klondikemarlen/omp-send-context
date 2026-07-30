@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, formatAgentHandoffPacket, formatContextPrompt, resolveInsertMode, type EditorContext } from "../src/prompt"
+import { buildReference, formatAgentHandoffPacket, formatContextPrompt, resolveInsertMode, type EditorContext } from "../vscode/prompt"
 
 function editorContext(overrides: Partial<EditorContext>): EditorContext {
   return {
