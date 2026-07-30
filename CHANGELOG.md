@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.13
+
+- Show actionable reload guidance when an existing tab has no capture content listener.
+
 ## 1.8.12
 
 - Preload the capture content script so generic-page shortcuts do not depend on runtime injection.
