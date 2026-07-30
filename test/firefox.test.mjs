@@ -16,9 +16,10 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
 })
 
-test("Firefox manifest keeps generic capture on click-time activeTab access", () => {
-  assert.ok(manifest.permissions.includes("activeTab"))
-  assert.equal(manifest.permissions.some(permission => permission.includes("*://")), false)
+test("Firefox manifest requests generic HTTP(S) page access", () => {
+  assert.equal(manifest.permissions.includes("http://*/*"), true)
+  assert.equal(manifest.permissions.includes("https://*/*"), true)
+  assert.equal(manifest.permissions.includes("activeTab"), false)
   assert.equal(manifest.permissions.includes("storage"), false)
   assert.equal(manifest.content_scripts, undefined)
 })
