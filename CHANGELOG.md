@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.16
+
+- Clarify that Firefox blocks add-ons from copying context on protected pages.
+
 ## 1.8.15
 
 - Explain protected-page limits directly in the Firefox notification.
