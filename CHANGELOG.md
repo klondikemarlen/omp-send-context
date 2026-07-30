@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.15
+
+- Explain protected-page limits directly in the Firefox notification.
+
 ## 1.8.14
 
 - Treat Firefox-restricted Mozilla domains as unsupported instead of attempting capture.
