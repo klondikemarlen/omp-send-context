@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.11
+
+- Broaden Firefox page access and add bounded diagnostics for capture permission failures.
+
 ## 1.8.10
 
 - Request generic HTTP(S) page access for the Firefox shortcut.
