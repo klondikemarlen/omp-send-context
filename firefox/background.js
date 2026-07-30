@@ -99,25 +99,50 @@ async function sendActiveContext() {
 
   try {
     await recordDebug("capture:requested")
-    const capture = await captureTabContext(tab.id)
+    const capture = await captureTabContext(tab.id, tab.url ?? "")
     await recordDebug("capture:received")
     const envelope = ompSendContext.createEnvelope(capture)
     await recordDebug("envelope:created")
     await deliver(envelope, tab.id)
   } catch (error) {
     await recordDebug("shortcut:failed")
+    await recordDebug(`shortcut:failure-detail:${nativeErrorDetail(error)}`)
     await notify(tab.id, errorMessage(error))
   }
 }
 
-async function captureTabContext(tabId) {
+async function captureTabContext(tabId, tabUrl) {
+  await recordDebug(`capture:host-access:${await hostAccessStatus(tabUrl)}`)
   try {
     return await browser.tabs.sendMessage(tabId, { type: "capture-context" })
-  } catch {
-    await browser.tabs.executeScript(tabId, { file: "content.js" })
+  } catch (error) {
+    await recordDebug(`capture:message-failed:${nativeErrorDetail(error)}`)
+    try {
+      await browser.tabs.executeScript(tabId, { file: "content.js" })
+    } catch (injectionError) {
+      await recordDebug(`capture:inject-failed:${nativeErrorDetail(injectionError)}`)
+      throw injectionError
+    }
     return browser.tabs.sendMessage(tabId, { type: "capture-context" })
   }
 }
+
+async function hostAccessStatus(tabUrl) {
+  if (!browser.permissions?.contains) {
+    return "unknown"
+  }
+  try {
+    const url = new URL(tabUrl)
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "unsupported"
+    }
+    const granted = await browser.permissions.contains({ origins: [`${url.origin}/*`] })
+    return granted ? "granted" : "missing"
+  } catch {
+    return "unknown"
+  }
+}
+
 
 async function deliver(envelope, tabId) {
   await recordDebug("native:starting")

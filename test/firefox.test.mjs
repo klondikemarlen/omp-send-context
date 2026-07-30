@@ -4,6 +4,7 @@ import fs from "node:fs/promises"
 import vm from "node:vm"
 
 const contextSource = await fs.readFile(new URL("../firefox/context.js", import.meta.url), "utf8")
+const backgroundSource = await fs.readFile(new URL("../firefox/background.js", import.meta.url), "utf8")
 const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json", import.meta.url), "utf8"))
 const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
@@ -16,11 +17,12 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
 })
 
-test("Firefox manifest requests generic HTTP(S) page access", () => {
-  assert.equal(manifest.permissions.includes("http://*/*"), true)
-  assert.equal(manifest.permissions.includes("https://*/*"), true)
+test("Firefox manifest requests broad page access with restricted-page eligibility", () => {
+  assert.equal(manifest.permissions.includes("<all_urls>"), true)
   assert.equal(manifest.permissions.includes("activeTab"), false)
   assert.equal(manifest.permissions.includes("storage"), false)
+  assert.match(backgroundSource, /capture:host-access:/)
+  assert.match(backgroundSource, /capture:inject-failed:/)
   assert.equal(manifest.content_scripts, undefined)
 })
 
