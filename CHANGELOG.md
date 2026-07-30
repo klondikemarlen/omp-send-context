@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.10
+
+- Request generic HTTP(S) page access for the Firefox shortcut.
+- Keep notification and popup status text within their available viewport.
+- Clarify that context is sent only after explicit shortcut or context-menu invocation.
+
 ## 1.8.9
 
 - Submit the refreshed Firefox toolbar artwork and compact popup controls for public AMO review.
