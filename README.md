@@ -97,7 +97,7 @@ The Firefox client is a separate WebExtension under `firefox/`. On ordinary `htt
 
 GitHub pull-request pages keep the richer behavior: the same menu action and shortcut preserve the GitHub title, selected-link/permalink metadata, and `## GitHub` prompt section. Generic pages use `## Web page` and always retain the page URL.
 
-For normal distribution, install the signed add-on from its AMO listing once published. The OMP plugin and the Firefox add-on are separate installs; installing the add-on does not install the native-messaging host.
+For normal distribution, install the signed add-on from its [AMO listing](https://addons.mozilla.org/en-CA/firefox/addon/omp-send-context/). Maintainers can manage submissions from the [AMO developer page](https://addons.mozilla.org/en-CA/developers/addon/omp-send-context/edit). The OMP plugin and the Firefox add-on are separate installs; installing the add-on does not install the native-messaging host.
 
 For local development, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts.
 
