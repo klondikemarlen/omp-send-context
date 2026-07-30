@@ -1,8 +1,8 @@
 {
   "name": "omp-send-context-firefox",
   "displayName": "OMP Send Context for Firefox",
-  "version": "1.8.9",
+  "version": "1.8.10",
   "private": true,
-  "description": "Send selected web-page context to Oh My Pi.",
+  "description": "Send selected web-page context to Oh My Pi when explicitly invoked; never send automatically.",
   "license": "MIT"
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "OMP Send Context",
-  "version": "1.8.9",
-  "description": "Send selected web-page context to Oh My Pi.",
+  "version": "1.8.10",
+  "description": "Send selected web-page context to Oh My Pi when explicitly invoked; never send automatically.",
   "homepage_url": "https://github.com/klondikemarlen/omp-send-context",
   "icons": {
     "48": "icons/icon-48.png",
@@ -19,7 +19,8 @@
     }
   },
   "permissions": [
-    "activeTab",
+    "http://*/*",
+    "https://*/*",
     "clipboardWrite",
     "menus",
     "nativeMessaging",
