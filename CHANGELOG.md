@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.2
+
+- Add opt-in VS Code diagnostics for agent handoff packets; diagnostics are disabled by default.
+
 ## 1.8.22
 
 - Keep original-only and modified-only GitHub diff selections on their selected side.

@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, formatAgentHandoffPacket, formatContextPrompt, resolveInsertMode, type EditorContext } from "../vscode/prompt"
+import { buildReference, collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveHandoffIncludeDiagnostics, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "../vscode/prompt"
 
 function editorContext(overrides: Partial<EditorContext>): EditorContext {
   return {
@@ -71,6 +71,48 @@ test("resolveInsertMode defaults to agent handoff unless editor context is selec
   assert.equal(resolveInsertMode("bogus"), "agentHandoff")
   assert.equal(resolveInsertMode("editorContext"), "editorContext")
   assert.equal(resolveInsertMode("agentHandoff"), "agentHandoff")
+})
+
+test("resolveHandoffIncludeDiagnostics defaults off and allows explicit opt-in", () => {
+  assert.equal(resolveHandoffIncludeDiagnostics(undefined), false)
+  assert.equal(resolveHandoffIncludeDiagnostics(false), false)
+  assert.equal(resolveHandoffIncludeDiagnostics(true), true)
+})
+
+test("collectHandoffDiagnostics gates collection and preserves enabled diagnostics", () => {
+  const diagnostic: HandoffDiagnostic = {
+    relativePath: "src/current.ts",
+    startLine: 4,
+    endLine: 4,
+    startCharacter: 7,
+    endCharacter: 14,
+    severity: "Error",
+    message: "Type error",
+    source: "ts",
+  }
+  let collectionCount = 0
+  const collect = () => {
+    collectionCount += 1
+    return [diagnostic]
+  }
+
+  const disabledDiagnostics = collectHandoffDiagnostics(false, collect)
+  assert.equal(collectionCount, 0)
+  assert.doesNotMatch(formatAgentHandoffPacket({
+    current: editorContext({}),
+    contentMode: "reference",
+    diagnostics: disabledDiagnostics,
+    maxBytes: 20_000,
+  }), /## Diagnostics/)
+
+  const enabledDiagnostics = collectHandoffDiagnostics(true, collect)
+  assert.equal(collectionCount, 1)
+  assert.match(formatAgentHandoffPacket({
+    current: editorContext({}),
+    contentMode: "reference",
+    diagnostics: enabledDiagnostics,
+    maxBytes: 20_000,
+  }), /## Diagnostics/)
 })
 
 test("formatAgentHandoffPacket omits empty optional sections", () => {

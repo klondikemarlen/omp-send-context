@@ -54,7 +54,7 @@ The `source` is currently `vscode` or `firefox`. Optional metadata may contain `
 
 - `inline`: default. Sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text, making ordinary selections stale-safe for active editing, unsaved buffers, and generated files. Handoff packets still cap total output with `ompContext.handoffMaxBytes`.
 - `reference`: sends only `@file#LxCy-LxCy `. Smaller prompt for saved workspace files because OMP can inspect the file directly.
-- Agent handoff packet: default normal shortcut mode, or the separate handoff command. It wraps the active editor context with only non-empty extras: workspace root and capped diagnostics. Empty optional sections are omitted.
+- Agent handoff packet: default normal shortcut mode, or the separate handoff command. It wraps the active editor context with only non-empty extras: workspace root and, when `ompContext.handoffIncludeDiagnostics` is enabled, capped diagnostics. Empty optional sections are omitted.
 
 Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback.
 
@@ -105,7 +105,7 @@ This extension chooses OpenCode's chord because the request named `Ctrl+Alt+K`, 
 ## Limits
 
 - This is not full automatic IDE context awareness. It sends context when a command is run.
-- Handoff packets include VS Code diagnostics only at command time and only when present; terminal output, live LSP state, visible editor tabs, and git diff summaries are not sent.
-- Handoff packets may include local paths and diagnostic text. The formatter redacts obvious secret-looking diagnostic values, but the user remains the privacy boundary before submitting the prompt.
+- Handoff packets include VS Code diagnostics only at command time, only when present, and only when `ompContext.handoffIncludeDiagnostics` is enabled; terminal output, live LSP state, visible editor tabs, and git diff summaries are not sent.
+- When enabled, handoff packets may include local paths and diagnostic text. The formatter redacts obvious secret-looking diagnostic values, but the user remains the privacy boundary before submitting the prompt.
 - The VS Code command requires editor focus because VS Code keybindings with `editorTextFocus` should not steal `Ctrl+Alt+K` from OMP or terminals.
 - Multiple running OMP sessions share one active state file. Use `/ide` when you need to target a specific terminal explicitly.
