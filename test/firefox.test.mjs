@@ -360,6 +360,7 @@ test("Firefox reports mixed original and modified selections explicitly", () => 
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
   const code = {
     classList: { contains: name => name === "blob-code-deletion" },
+    getAttribute: () => null,
     closest: selector => selector === "[data-tagsearch-path]"
       ? { getAttribute: () => "src/removed.ts" }
       : { querySelector: query => ({ getAttribute: name => name === "data-line-number" && query.includes("deletion") ? "42" : undefined }) },

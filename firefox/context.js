@@ -65,8 +65,8 @@
       const tr = row.closest?.("tr")
       const diffSide = getDiffSide(row)
       const splitSide = row.getAttribute?.("data-split-side")
-      const deleted = row.classList?.contains("blob-code-deletion") || row.classList?.contains("deletion") || splitSide === undefined && row.querySelector?.(".deletion")
-      const added = row.classList?.contains("blob-code-addition") || row.classList?.contains("addition") || splitSide === undefined && row.querySelector?.(".addition")
+      const deleted = row.classList?.contains("blob-code-deletion") || row.classList?.contains("deletion") || splitSide == null && row.querySelector?.(".deletion")
+      const added = row.classList?.contains("blob-code-addition") || row.classList?.contains("addition") || splitSide == null && row.querySelector?.(".addition")
       const version = diffSide === "left" || deleted ? "original" : diffSide === "right" || added ? "modified" : "both"
       const sideCell = diffSide === "left"
         ? tr?.querySelector?.(".blob-num:not(.js-blob-rnum)[data-line-number]")
