@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.2
+
+- Add opt-in VS Code diagnostics for agent handoff packets; diagnostics are disabled by default.
+
 ## 1.8.21
 
 - Add human-readable GitHub diff file, version, change, line, and head-commit context.
