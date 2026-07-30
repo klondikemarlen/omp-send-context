@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.8.9
+
+- Publish the refreshed Firefox toolbar artwork and compact popup controls to the public AMO listing.
+
 ## 1.8.8
 
-- Release the refreshed Firefox toolbar artwork and compact popup controls.
+- Prepare the refreshed Firefox toolbar artwork and compact popup controls as a signed unlisted AMO validation artifact.
 
 ## 1.8.7
 
