@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.14
+
+- Treat Firefox-restricted Mozilla domains as unsupported instead of attempting capture.
+
 ## 1.8.13
 
 - Show actionable reload guidance when an existing tab has no capture content listener.
