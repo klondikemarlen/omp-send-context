@@ -284,6 +284,6 @@ test("Firefox client rejects unsupported shortcut pages", async () => {
 
   assert.equal(result.injected, false)
   assert.equal(result.messages.some(message => message.type === "capture-context"), false)
-  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("Firefox protects this page")))
+  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("Firefox blocks add-ons on this page")))
   assert.ok(result.logs.some(entry => entry.includes("shortcut:unsupported-page")))
 })

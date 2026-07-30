@@ -93,7 +93,7 @@ async function sendActiveContext() {
   }
   if (!ompSendContext.isEligiblePageUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
-    await notify(tab.id, "Firefox protects this page from extensions. Open a regular webpage and try again.")
+    await notify(tab.id, "Firefox blocks add-ons on this page, so OMP Send Context can’t copy context here.")
     return
   }
 
