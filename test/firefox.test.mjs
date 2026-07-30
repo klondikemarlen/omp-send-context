@@ -17,12 +17,14 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
 })
 
-test("Firefox manifest requests broad page access and preloads capture content", () => {
-  assert.equal(manifest.permissions.includes("<all_urls>"), true)
+test("Firefox manifest requests HTTP(S) access without local-file access", () => {
+  assert.equal(manifest.permissions.includes("http://*/*"), true)
+  assert.equal(manifest.permissions.includes("https://*/*"), true)
+  assert.equal(manifest.permissions.includes("<all_urls>"), false)
   assert.equal(manifest.permissions.includes("activeTab"), false)
   assert.equal(manifest.permissions.includes("storage"), false)
   assert.deepEqual(manifest.content_scripts, [{
-    matches: ["<all_urls>"],
+    matches: ["http://*/*", "https://*/*"],
     js: ["content.js"],
     run_at: "document_idle",
   }])
