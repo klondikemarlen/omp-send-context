@@ -33,6 +33,9 @@ test("Firefox manifest requests broad page access and preloads capture content",
 test("Firefox client recognizes eligible web pages", () => {
   assert.equal(isEligiblePageUrl("https://example.com/article"), true)
   assert.equal(isEligiblePageUrl("http://localhost:3000/"), true)
+  assert.equal(isEligiblePageUrl("https://addons.mozilla.org/en-CA/firefox/addon/omp-send-context/"), false)
+  assert.equal(isEligiblePageUrl("https://subdomain.addons.mozilla.org/"), false)
+  assert.equal(isEligiblePageUrl("https://support.mozilla.org/en-US/"), false)
   assert.equal(isEligiblePageUrl("about:blank"), false)
   assert.equal(isEligiblePageUrl("file:///tmp/example.html"), false)
 })
