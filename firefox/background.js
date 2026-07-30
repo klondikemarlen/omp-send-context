@@ -93,7 +93,7 @@ async function sendActiveContext() {
   }
   if (!ompSendContext.isEligiblePageUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
-    await notify(tab.id, "This page does not support web context capture.")
+    await notify(tab.id, "Firefox protects this page from extensions. Open a regular webpage and try again.")
     return
   }
 
