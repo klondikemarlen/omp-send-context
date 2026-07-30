@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.18
+
+- Include GitHub PR diff file, line, and side context in handoffs.
+
 ## 1.8.17
 
 - Remove unnecessary local-file access while preserving HTTP(S) shortcut capture.
