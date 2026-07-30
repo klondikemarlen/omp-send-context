@@ -2,7 +2,7 @@
 
 ## 1.8.9
 
-- Publish the refreshed Firefox toolbar artwork and compact popup controls to the public AMO listing.
+- Submit the refreshed Firefox toolbar artwork and compact popup controls for public AMO review.
 
 ## 1.8.8
 
