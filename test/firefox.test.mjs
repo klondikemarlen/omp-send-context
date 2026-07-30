@@ -5,11 +5,12 @@ import vm from "node:vm"
 
 const contextSource = await fs.readFile(new URL("../firefox/context.js", import.meta.url), "utf8")
 const backgroundSource = await fs.readFile(new URL("../firefox/background.js", import.meta.url), "utf8")
+const contentSource = await fs.readFile(new URL("../firefox/content.js", import.meta.url), "utf8")
 const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json", import.meta.url), "utf8"))
 const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
 vm.runInNewContext(contextSource, context)
-const { createEnvelope, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl } = context.ompSendContext
+const { createEnvelope, extractGithubDiffLocation, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl } = context.ompSendContext
 
 test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://github.com/org/repo/pull/42/files"), true)
@@ -25,7 +26,7 @@ test("Firefox manifest requests HTTP(S) access without local-file access", () =>
   assert.equal(manifest.permissions.includes("storage"), false)
   assert.deepEqual(manifest.content_scripts, [{
     matches: ["http://*/*", "https://*/*"],
-    js: ["content.js"],
+    js: ["context.js", "content.js"],
     run_at: "document_idle",
   }])
   assert.match(backgroundSource, /capture:host-access:/)
@@ -60,6 +61,115 @@ test("Firefox manifest declares branded icons and supported desktop metadata", a
     const bytes = await fs.readFile(new URL(`../firefox/${iconPath}`, import.meta.url))
     assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
   }
+})
+
+test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
+  const makeRow = (line, side) => {
+    const code = {
+      classList: { contains: name => name === "blob-code-" + (side === "after" ? "addition" : "deletion") },
+      closest: selector => selector === "[data-tagsearch-path]" ? { getAttribute: () => "src/example.ts" } : tr,
+      selected: true,
+    }
+    const tr = {
+      querySelector: selector => ({
+        getAttribute: () => selector.includes("addition") ? String(line) : undefined,
+      }),
+    }
+    return code
+  }
+  const rows = [makeRow(124, "after"), makeRow(125, "after")]
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: selector => {
+      assert.equal(selector, ".blob-code.js-file-line")
+      return rows
+    },
+  }, {
+    rangeCount: 1,
+    getRangeAt: () => ({ intersectsNode: node => node.selected }),
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", after: "124-125", side: "after" })
+  assert.match(createEnvelope({
+    selectionText: "const value = 1",
+    pageUrl: "https://github.com/org/repo/pull/42/files",
+    diffLocation: location,
+  }).prompt, /- File: src\/example\.ts\n\n- Side: after\n\n- Lines: 124-125/)
+})
+
+test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
+  const code = {
+    classList: { contains: name => name === "blob-code-deletion" },
+    closest: selector => selector === "[data-tagsearch-path]"
+      ? { getAttribute: () => "src/removed.ts" }
+      : { querySelector: query => ({ getAttribute: () => query.includes("deletion") ? "42" : undefined }) },
+  }
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: selector => {
+      assert.equal(selector, ".blob-code.js-file-line")
+      return [code]
+    },
+  }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", before: "42", side: "before" })
+})
+
+test("Firefox omits non-contiguous GitHub line ranges", () => {
+  const makeRow = line => ({
+    classList: { contains: name => name === "blob-code-addition" },
+    closest: selector => selector === "[data-tagsearch-path]"
+      ? { getAttribute: () => "src/example.ts" }
+      : { querySelector: query => ({ getAttribute: () => query.includes("addition") ? String(line) : undefined }) },
+  })
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: () => [makeRow(124), makeRow(126)],
+  }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", side: "after" })
+})
+
+test("Firefox omits ambiguous cross-file GitHub diff locations", () => {
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: () => [{
+      classList: { contains: () => false },
+      closest: selector => selector === "[data-tagsearch-path]" ? { getAttribute: () => "a.ts" } : { querySelector: () => ({ getAttribute: () => "1" }) },
+    }, {
+      classList: { contains: () => false },
+      closest: selector => selector === "[data-tagsearch-path]" ? { getAttribute: () => "b.ts" } : { querySelector: () => ({ getAttribute: () => "2" }) },
+    }],
+  }, {
+    rangeCount: 1,
+    getRangeAt: () => ({ intersectsNode: () => true }),
+  })
+  assert.equal(location, undefined)
+})
+
+test("Firefox content capture returns diff location metadata", async () => {
+  let listener
+  const selection = {
+    anchorNode: null,
+    toString: () => "const value = 1",
+  }
+  vm.runInNewContext(contentSource, {
+    browser: {
+      runtime: {
+        onMessage: { addListener: callback => { listener = callback } },
+        sendMessage: async () => undefined,
+      },
+    },
+    window: {
+      getSelection: () => selection,
+      location: { href: "https://github.com/org/repo/pull/42/files" },
+    },
+    ompSendContext: {
+      extractGithubDiffLocation: () => ({ file: "src/example.ts", after: "124", side: "after" }),
+    },
+    document: { title: "Test pull request" },
+  })
+  const capture = await listener({ type: "capture-context" })
+  assert.equal(capture.pageUrl, "https://github.com/org/repo/pull/42/files")
+  assert.equal(capture.selectionText, "const value = 1")
+  assert.deepEqual(capture.diffLocation, { file: "src/example.ts", after: "124", side: "after" })
 })
 
 test("Firefox client creates a protocol v1 envelope with permalink metadata", () => {
