@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.12
+
+- Preload the capture content script so generic-page shortcuts do not depend on runtime injection.
+
 ## 1.8.11
 
 - Broaden Firefox page access and add bounded diagnostics for capture permission failures.
