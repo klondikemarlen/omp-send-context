@@ -2,6 +2,12 @@
 
 VS Code client plus OMP extension for sending source selections to OMP with `Ctrl+Alt+K`; a Firefox client is also available under `firefox/`. It sends context only when you explicitly invoke `Ctrl+Alt+K` or the **Send selection and link to OMP** context-menu command; it never sends page data automatically.
 
+## Repository layout
+
+- `vscode/` — VS Code extension source (`extension.ts`, `prompt.ts`).
+- `firefox/` — Firefox add-on, native host, and packaging manifest.
+- `omp/` — OMP bridge runtime and extension entry point.
+
 ## What it does
 
 Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.

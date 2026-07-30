@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveHandoffIncludeDiagnostics, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "../src/prompt"
+import { buildReference, collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveHandoffIncludeDiagnostics, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "../vscode/prompt"
 
 function editorContext(overrides: Partial<EditorContext>): EditorContext {
   return {

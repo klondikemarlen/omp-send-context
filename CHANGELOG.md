@@ -4,6 +4,12 @@
 
 - Add opt-in VS Code diagnostics for agent handoff packets; diagnostics are disabled by default.
 
+## 1.8.22
+
+- Keep original-only and modified-only GitHub diff selections on their selected side.
+- Read the pull request head SHA from GitHub's commit metadata when available.
+- Move VS Code implementation into the `vscode/` namespace.
+
 ## 1.8.21
 
 - Add human-readable GitHub diff file, version, change, line, and head-commit context.

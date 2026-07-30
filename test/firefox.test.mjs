@@ -81,7 +81,7 @@ test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
     querySelectorAll: selector => {
-      if (selector.includes("data-head-sha")) return []
+      if (selector.includes("data-head-sha") || selector.includes("data-commit")) return []
       assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
       return rows
     },
@@ -111,7 +111,7 @@ test("Firefox builds exact GitHub diff permalinks for both sides", () => {
     return extractGithubDiffLocation({
       location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
       querySelectorAll: selector => {
-        if (selector.includes("data-head-sha")) return []
+        if (selector.includes("data-head-sha") || selector.includes("data-commit")) return []
         assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
         return [code]
       },
@@ -166,7 +166,7 @@ test("Firefox extracts human-readable metadata from the current GitHub diff DOM"
   const document = {
     location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
     querySelectorAll: selector => selector.includes("data-head-sha")
-      ? [{ getAttribute: name => name === "data-head-sha" ? "0123456789abcdef0123456789abcdef01234567" : undefined }]
+      ? [{ getAttribute: name => name === "data-head-sha" ? "0123456789abcdef0123456789abcdef01234567" : name === "data-commit" ? "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" : undefined }]
       : rows,
   }
   const location = extractGithubDiffLocation(document, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
@@ -186,6 +186,138 @@ test("Firefox extracts human-readable metadata from the current GitHub diff DOM"
   }), /- File: web\/src\/components\/dashboards\/DashboardTitleRow\.vue\n\n- Version: modified\n\n- Change: context\n\n- Lines: 8-9\n\n- Head commit: 0123456789abcdef0123456789abcdef01234567/)
 })
 
+test("Firefox reads the PR head SHA from GitHub commit metadata", () => {
+  const row = {
+    classList: { contains: () => false },
+    getAttribute: name => ({
+      "data-diff-side": "right",
+      "data-line-number": "8",
+      "data-line-anchor": "diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R8",
+    }[name]),
+    closest: selector => selector === "table"
+      ? { getAttribute: name => name === "aria-label" ? "Diff for: web/src/components/dashboards/DashboardTitleRow.vue" : undefined }
+      : undefined,
+    querySelector: () => undefined,
+  }
+  const headCommit = "4d47355f3e1b797084b568725b809a6231e2fd2a"
+  const document = {
+    location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
+    querySelectorAll: selector => selector.includes("data-head-sha")
+      ? []
+      : selector.includes("data-commit")
+        ? [{ getAttribute: name => name === "data-commit" ? headCommit : undefined }]
+        : [row],
+  }
+  const location = extractGithubDiffLocation(document, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.equal(location.headCommit, headCommit)
+})
+
+test("Firefox keeps an original-only selection on the original side", () => {
+  const rows = [8, 9, 10, 11, 12, 13, 14, 15, 16].map(line => ["left", line]).concat([8, 9, 10, 11, 12, 13, 14, 15].map(line => ["right", line])).map(([side, line]) => ({
+    classList: { contains: () => false },
+    getAttribute: name => ({
+      "data-diff-side": side,
+      "data-line-number": String(line),
+      "data-line-anchor": `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1${side === "left" ? "L" : "R"}${line}`,
+    }[name]),
+    closest: selector => selector === "table"
+      ? { getAttribute: name => name === "aria-label" ? "Diff for: web/src/components/dashboards/DashboardTitleRow.vue" : undefined }
+      : undefined,
+    querySelector: () => undefined,
+  }))
+  const leftCell = { getAttribute: () => "left" }
+  const document = {
+    location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : rows,
+  }
+  const selection = {
+    rangeCount: 1,
+    anchorNode: { parentElement: { closest: () => leftCell } },
+    focusNode: { parentElement: { closest: () => leftCell } },
+    getRangeAt: () => ({ intersectsNode: () => true }),
+  }
+  const location = extractGithubDiffLocation(document, selection)
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), {
+    file: "web/src/components/dashboards/DashboardTitleRow.vue",
+    version: "original",
+    change: "context",
+    lines: "8-16",
+    permalink: "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1L8-L16",
+  })
+})
+
+test("Firefox extracts original-side metadata from GitHub split diff cells", () => {
+  const rows = [8, 9, 10, 11, 12, 13, 14, 15, 16].map(line => ["left", line]).concat([8, 9, 10, 11, 12, 13, 14, 15].map(line => ["right", line])).map(([side, line]) => {
+    const leftCell = { getAttribute: name => name === "data-line-number" ? String(line) : `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1L${line}` }
+    const rightCell = { getAttribute: name => name === "data-line-number" ? String(line) : `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R${line}` }
+    const row = {
+      getAttribute: name => name === "data-split-side" ? side : undefined,
+      classList: { contains: () => false },
+      closest: selector => selector === "tr"
+        ? { querySelector: query => query.includes(":not") ? leftCell : query.includes("js-blob-rnum") ? rightCell : undefined }
+        : selector === "[data-tagsearch-path]"
+          ? { getAttribute: () => "web/src/components/dashboards/DashboardTitleRow.vue" }
+          : undefined,
+      querySelector: () => undefined,
+    }
+    return row
+  })
+  const document = {
+    location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : rows,
+  }
+  const leftCell = { getAttribute: () => "left" }
+  const location = extractGithubDiffLocation(document, {
+    rangeCount: 1,
+    anchorNode: { parentElement: { closest: () => leftCell } },
+    focusNode: { parentElement: { closest: () => leftCell } },
+    getRangeAt: () => ({ intersectsNode: () => true }),
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), {
+    file: "web/src/components/dashboards/DashboardTitleRow.vue",
+    version: "original",
+    change: "context",
+    lines: "8-16",
+    permalink: "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1L8-L16",
+  })
+})
+
+test("Firefox classifies a split row from the selected side", () => {
+  const makeRow = (side, change) => {
+    const leftCell = { getAttribute: name => name === "data-line-number" ? "8" : "diff-fileL8" }
+    const rightCell = { getAttribute: name => name === "data-line-number" ? "8" : "diff-fileR8" }
+    return {
+      getAttribute: name => name === "data-split-side" ? side : undefined,
+      classList: { contains: name => name === `blob-code-${change}` },
+      closest: selector => selector === "tr"
+        ? { querySelector: query => query.includes(":not") ? leftCell : rightCell }
+        : selector === "[data-tagsearch-path]"
+          ? { getAttribute: () => "src/example.ts" }
+          : undefined,
+      querySelector: selector => selector === ".deletion" || selector === ".addition" ? {} : undefined,
+    }
+  }
+  const rows = [makeRow("left", "deletion"), makeRow("right", "addition")]
+  const document = {
+    location: { href: "https://github.com/org/repo/pull/42/files?diff=split" },
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : rows,
+  }
+  const leftCell = { getAttribute: () => "left" }
+  const location = extractGithubDiffLocation(document, {
+    rangeCount: 1,
+    anchorNode: { parentElement: { closest: () => leftCell } },
+    focusNode: { parentElement: { closest: () => leftCell } },
+    getRangeAt: () => ({ intersectsNode: () => true }),
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), {
+    file: "src/example.ts",
+    version: "original",
+    change: "removed",
+    lines: "8",
+    permalink: "https://github.com/org/repo/pull/42/files?diff=split#diff-fileL8",
+  })
+})
+
 test("Firefox reports mixed original and modified selections explicitly", () => {
   const makeRow = (side, change) => ({
     classList: { contains: () => false },
@@ -202,9 +334,16 @@ test("Firefox reports mixed original and modified selections explicitly", () => 
   const rows = [makeRow("left", "deletion"), makeRow("right", "addition")]
   const document = {
     location: { href: "https://github.com/org/repo/pull/42/files" },
-    querySelectorAll: selector => selector.includes("data-head-sha") ? [] : rows,
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : rows,
   }
-  const location = extractGithubDiffLocation(document, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  const leftCell = { getAttribute: () => "left" }
+  const rightCell = { getAttribute: () => "right" }
+  const location = extractGithubDiffLocation(document, {
+    rangeCount: 1,
+    anchorNode: { parentElement: { closest: () => leftCell } },
+    focusNode: { parentElement: { closest: () => rightCell } },
+    getRangeAt: () => ({ intersectsNode: () => true }),
+  })
   assert.deepEqual(JSON.parse(JSON.stringify(location)), {
     file: "src/example.ts",
     version: "original and modified",
@@ -221,6 +360,7 @@ test("Firefox reports mixed original and modified selections explicitly", () => 
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
   const code = {
     classList: { contains: name => name === "blob-code-deletion" },
+    getAttribute: () => null,
     closest: selector => selector === "[data-tagsearch-path]"
       ? { getAttribute: () => "src/removed.ts" }
       : { querySelector: query => ({ getAttribute: name => name === "data-line-number" && query.includes("deletion") ? "42" : undefined }) },
@@ -228,10 +368,27 @@ test("Firefox extracts deleted GitHub diff lines as before-side context", () => 
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
     querySelectorAll: selector => {
-      if (selector.includes("data-head-sha")) return []
+      if (selector.includes("data-head-sha") || selector.includes("data-commit")) return []
       assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
       return [code]
     },
+  }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", version: "original", change: "removed", lines: "42" })
+})
+
+test("Firefox preserves legacy nested markers without a split side", () => {
+  const cell = { getAttribute: name => name === "data-line-number" ? "42" : undefined }
+  const code = {
+    classList: { contains: () => false },
+    getAttribute: () => null,
+    closest: selector => selector === "[data-tagsearch-path]"
+      ? { getAttribute: () => "src/removed.ts" }
+      : { querySelector: query => query.includes("deletion") ? cell : undefined },
+    querySelector: selector => selector === ".deletion" ? {} : undefined,
+  }
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : [code],
   }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
   assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", version: "original", change: "removed", lines: "42" })
 })
