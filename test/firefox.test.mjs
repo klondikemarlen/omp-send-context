@@ -376,6 +376,23 @@ test("Firefox extracts deleted GitHub diff lines as before-side context", () => 
   assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", version: "original", change: "removed", lines: "42" })
 })
 
+test("Firefox preserves legacy nested markers without a split side", () => {
+  const cell = { getAttribute: name => name === "data-line-number" ? "42" : undefined }
+  const code = {
+    classList: { contains: () => false },
+    getAttribute: () => null,
+    closest: selector => selector === "[data-tagsearch-path]"
+      ? { getAttribute: () => "src/removed.ts" }
+      : { querySelector: query => query.includes("deletion") ? cell : undefined },
+    querySelector: selector => selector === ".deletion" ? {} : undefined,
+  }
+  const location = extractGithubDiffLocation({
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: selector => selector.includes("data-head-sha") || selector.includes("data-commit") ? [] : [code],
+  }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", version: "original", change: "removed", lines: "42" })
+})
+
 test("Firefox omits non-contiguous GitHub line ranges", () => {
   const makeRow = line => ({
     classList: { contains: name => name === "blob-code-addition" },
