@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.20
+
+- Publish the GitHub PR diff permalink context feature as a listed Firefox release.
+
 ## 1.8.19
 
 - Include exact GitHub PR diff permalinks in context handoffs.
