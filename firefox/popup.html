@@ -5,19 +5,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OMP Send Context</title>
   <style>
-    :root { color-scheme: light dark; }
-    body { width: 220px; margin: 0; padding: 14px; font: 13px system-ui, sans-serif; }
-    h1 { font-size: 14px; margin: 0 0 10px; }
-    button { width: 100%; margin-top: 8px; padding: 8px; border: 1px solid #8b949e; border-radius: 5px; background: ButtonFace; color: ButtonText; text-align: left; cursor: pointer; }
-    button:hover { background: Highlight; color: HighlightText; }
-    #status { min-height: 2.4em; margin-top: 10px; color: GrayText; }
+    :root {
+      color-scheme: dark;
+      font-family: Inter, system-ui, sans-serif;
+      background: #10141a;
+      color: #dfe2eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      width: 220px;
+      min-height: 350px;
+      height: 350px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #10141a;
+      color: #dfe2eb;
+      font-size: 14px;
+    }
+    header, footer {
+      display: flex;
+      align-items: center;
+      border-color: #45464d;
+      background: #181c22;
+    }
+    header {
+      min-height: 40px;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #45464d;
+    }
+    .brand-mark { width: 22px; height: 22px; flex: 0 0 auto; }
+    h1 {
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      color: #dfe2eb;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      line-height: 20px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 14px 4px;
+    }
+    section { display: flex; flex-direction: column; gap: 2px; }
+    .section-label {
+      margin: 0;
+      color: #c6c6cd;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      line-height: 14px;
+      text-transform: uppercase;
+    }
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 6px;
+      border: 1px solid #45464d;
+      border-radius: 6px;
+      background: #1c2026;
+    }
+    .context-card { align-items: flex-start; }
+    .steps { display: grid; gap: 4px; }
+    .step {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      gap: 4px;
+      color: #dfe2eb;
+      font-size: 11px;
+      line-height: 16px;
+    }
+    .step-number {
+      color: #67df70;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-weight: 600;
+    }
+    .fallback-note {
+      margin: 4px 0 0;
+      color: #909097;
+      font: 11px/14px Inter, system-ui, sans-serif;
+    }
+    .context-icon {
+      flex: 0 0 auto;
+      margin-top: 1px;
+      color: #909097;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 16px;
+      line-height: 18px;
+    }
+    .card-title {
+      color: #dfe2eb;
+      font-weight: 600;
+      line-height: 18px;
+    }
+    .card-detail {
+      margin-top: 2px;
+      color: #c6c6cd;
+      font-size: 11px;
+      line-height: 14px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 5px;
+      border: 1px solid rgb(63 185 80 / 30%);
+      border-radius: 999px;
+      color: #67df70;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      line-height: 14px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #67df70;
+    }
+    .actions {
+      display: grid;
+      gap: 6px;
+    }
+    button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border: 1px solid #45464d;
+      border-radius: 6px;
+      background: transparent;
+      color: #dfe2eb;
+      font: 400 13px/18px Inter, system-ui, sans-serif;
+      text-align: left;
+      cursor: pointer;
+    }
+    button:hover { background: #31353c; }
+    button:focus-visible {
+      outline: 2px solid #58a6ff;
+      outline-offset: 2px;
+    }
+    button[aria-pressed="true"] {
+      border-color: #8b949e;
+      background: #21262d;
+    }
+    button[aria-pressed="true"]:hover { background: #30363d; }
+    .button-icon {
+      width: 14px;
+      color: #67df70;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      text-align: center;
+    }
+    #status {
+      min-height: 14px;
+      margin-top: 2px;
+      overflow: hidden;
+      color: #909097;
+      font: 10px/14px "JetBrains Mono", ui-monospace, monospace;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    footer {
+      min-height: 32px;
+      justify-content: space-between;
+      padding: 6px 12px;
+      font-size: 10px;
+      border-top: 1px solid #45464d;
+      color: #909097;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    footer nav { display: flex; gap: 12px; }
+    footer a { color: #c6c6cd; text-decoration: none; }
+    footer a:hover, footer a:focus-visible { color: #67df70; }
+    footer a:focus-visible { outline: 2px solid #58a6ff; outline-offset: 2px; }
   </style>
 </head>
 <body>
-  <h1>OMP Send Context</h1>
-  <button id="debug" type="button"></button>
-  <button id="copy" type="button">Copy debug log</button>
-  <div id="status" role="status" aria-live="polite"></div>
+  <header>
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="4" width="15" height="15" rx="2.5" fill="#131b2e" stroke="#67df70" stroke-width="1.5"/>
+      <path d="m8 9 2.5 2L8 13" fill="none" stroke="#67df70" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
+      <path d="M13 15h4" stroke="#67df70" stroke-linecap="round" stroke-width="1.5"/>
+      <path d="M2 15c3-4 6.5-5.5 11-3.5l-1.5-1.5m1.5 1.5-2 1.5" fill="none" stroke="#22d3ee" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+    </svg>
+    <h1>OMP Send Context</h1>
+  </header>
+  <main>
+    <section aria-labelledby="quick-start-label">
+      <h2 id="quick-start-label" class="section-label">Quick start</h2>
+      <div class="card context-card">
+        <div class="steps">
+          <div class="step"><span class="step-number">1</span><span>Select text on a web page</span></div>
+          <div class="step"><span class="step-number">2</span><span>Press Ctrl+Alt+K</span></div>
+          <div class="step"><span class="step-number">3</span><span>OMP receives the page and selection context</span></div>
+          <p class="fallback-note">If direct delivery is unavailable, context is copied to your clipboard.</p>
+        </div>
+      </div>
+    </section>
+    <section class="actions" aria-label="Debug actions">
+      <button id="debug" type="button">
+        <span class="button-icon" aria-hidden="true">!</span>
+        <span>Enable debug logging</span>
+      </button>
+      <button id="copy" class="secondary" type="button">
+        <span class="button-icon" aria-hidden="true">⧉</span>
+        <span>Copy debug log</span>
+      </button>
+      <div id="status" role="status" aria-live="polite">&gt; Debug logging is disabled.</div>
+    </section>
+  </main>
+  <footer>
+    <span id="version">v—</span>
+    <nav aria-label="Extension links">
+      <a href="https://github.com/klondikemarlen/omp-send-context" target="_blank" rel="noreferrer">Docs</a>
+    </nav>
+  </footer>
   <script src="popup.js"></script>
 </body>
 </html>
