@@ -17,6 +17,7 @@ function captureContext() {
     linkUrl: anchor?.href,
     pageUrl: window.location.href,
     title: document.title,
+    diffLocation: ompSendContext.extractGithubDiffLocation(document, selection),
   }
 }
 

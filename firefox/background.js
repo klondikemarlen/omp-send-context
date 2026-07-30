@@ -118,6 +118,7 @@ async function captureTabContext(tabId, tabUrl) {
   } catch (error) {
     await recordDebug(`capture:message-failed:${nativeErrorDetail(error)}`)
     try {
+      await browser.tabs.executeScript(tabId, { file: "context.js" })
       await browser.tabs.executeScript(tabId, { file: "content.js" })
     } catch (injectionError) {
       await recordDebug(`capture:inject-failed:${nativeErrorDetail(injectionError)}`)
