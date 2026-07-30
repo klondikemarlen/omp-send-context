@@ -17,7 +17,7 @@ function event() {
   }
 }
 
-async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/pull/42/files", clipboardApi = true, clipboardExec = true } = {}) {
+async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/pull/42/files", clipboardApi = true, clipboardExec = true, contentReady: initialContentReady = true, injectionAllowed = true } = {}) {
   const events = {
     installed: event(),
     menuClicked: event(),
@@ -32,7 +32,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   let clipboardText = ""
   let textarea
   const delivered = []
-  let contentReady = false
+  let contentReady = initialContentReady
   let injected = false
   const browser = {
     runtime: {
@@ -90,6 +90,9 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
         return undefined
       },
       async executeScript() {
+        if (!injectionAllowed) {
+          throw new Error("Missing host permission for the tab")
+        }
         injected = true
         contentReady = true
       },
@@ -232,14 +235,24 @@ test("Firefox debug export reports clipboard failure accurately", async () => {
   assert.equal(copied.message, "Debug log could not be copied.")
 })
 
-test("Firefox client captures generic web pages through activeTab injection", async () => {
+test("Firefox client captures generic web pages through preloaded content", async () => {
   const result = await runFlow({ ok: true }, {
     pageUrl: "https://example.com/article",
   })
 
-  assert.equal(result.injected, true)
+  assert.equal(result.injected, false)
   assert.ok(result.messages.some(message => message.type === "capture-context"))
   assert.ok(result.logs.some(entry => entry.includes("native:succeeded")))
+})
+test("Firefox client asks to reload when capture content is unavailable", async () => {
+  const result = await runFlow({ ok: true }, {
+    pageUrl: "https://example.com/article",
+    contentReady: false,
+    injectionAllowed: false,
+  })
+
+  assert.ok(result.notifications.some(notification => notification.message.includes("reload the page")))
+  assert.ok(result.logs.some(entry => entry.includes("capture:inject-failed")))
 })
 
 test("Firefox client sends generic selected text from the context menu", async () => {
@@ -271,6 +284,6 @@ test("Firefox client rejects unsupported shortcut pages", async () => {
 
   assert.equal(result.injected, false)
   assert.equal(result.messages.some(message => message.type === "capture-context"), false)
-  assert.ok(result.notifications.some(notification => notification.message.includes("does not support web context")))
+  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("Firefox blocks add-ons on this page")))
   assert.ok(result.logs.some(entry => entry.includes("shortcut:unsupported-page")))
 })

@@ -5,6 +5,7 @@ import vm from "node:vm"
 
 const popupHtml = await fs.readFile(new URL("../firefox/popup.html", import.meta.url), "utf8")
 const popupSource = await fs.readFile(new URL("../firefox/popup.js", import.meta.url), "utf8")
+const contentSource = await fs.readFile(new URL("../firefox/content.js", import.meta.url), "utf8")
 
 test("Firefox popup keeps the branded compact dark surface", () => {
   assert.match(popupHtml, /width: 220px/)
@@ -17,6 +18,10 @@ test("Firefox popup keeps the branded compact dark surface", () => {
   assert.doesNotMatch(popupHtml, /margin-top:\s*auto/)
   assert.match(popupHtml, /button\[aria-pressed="true"\]/)
   assert.doesNotMatch(popupHtml, /cdn\.tailwindcss|fonts\.googleapis/)
+  assert.match(popupHtml, /min-height: 0/)
+  assert.match(popupHtml, /overflow-y: auto/)
+  assert.match(contentSource, /max-width:calc\(100vw - 32px\)/)
+  assert.match(contentSource, /overflow-wrap:anywhere/)
 })
 
 test("Firefox popup exposes debug state and packaged version", async () => {

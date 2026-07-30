@@ -4,6 +4,7 @@ import fs from "node:fs/promises"
 import vm from "node:vm"
 
 const contextSource = await fs.readFile(new URL("../firefox/context.js", import.meta.url), "utf8")
+const backgroundSource = await fs.readFile(new URL("../firefox/background.js", import.meta.url), "utf8")
 const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json", import.meta.url), "utf8"))
 const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
@@ -16,16 +17,25 @@ test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
 })
 
-test("Firefox manifest keeps generic capture on click-time activeTab access", () => {
-  assert.ok(manifest.permissions.includes("activeTab"))
-  assert.equal(manifest.permissions.some(permission => permission.includes("*://")), false)
+test("Firefox manifest requests broad page access and preloads capture content", () => {
+  assert.equal(manifest.permissions.includes("<all_urls>"), true)
+  assert.equal(manifest.permissions.includes("activeTab"), false)
   assert.equal(manifest.permissions.includes("storage"), false)
-  assert.equal(manifest.content_scripts, undefined)
+  assert.deepEqual(manifest.content_scripts, [{
+    matches: ["<all_urls>"],
+    js: ["content.js"],
+    run_at: "document_idle",
+  }])
+  assert.match(backgroundSource, /capture:host-access:/)
+  assert.match(backgroundSource, /capture:inject-failed:/)
 })
 
 test("Firefox client recognizes eligible web pages", () => {
   assert.equal(isEligiblePageUrl("https://example.com/article"), true)
   assert.equal(isEligiblePageUrl("http://localhost:3000/"), true)
+  assert.equal(isEligiblePageUrl("https://addons.mozilla.org/en-CA/firefox/addon/omp-send-context/"), false)
+  assert.equal(isEligiblePageUrl("https://subdomain.addons.mozilla.org/"), false)
+  assert.equal(isEligiblePageUrl("https://support.mozilla.org/en-US/"), false)
   assert.equal(isEligiblePageUrl("about:blank"), false)
   assert.equal(isEligiblePageUrl("file:///tmp/example.html"), false)
 })

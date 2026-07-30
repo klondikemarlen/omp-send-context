@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.8.16
+
+- Clarify that Firefox blocks add-ons from copying context on protected pages.
+
+## 1.8.15
+
+- Explain protected-page limits directly in the Firefox notification.
+
+## 1.8.14
+
+- Treat Firefox-restricted Mozilla domains as unsupported instead of attempting capture.
+
+## 1.8.13
+
+- Show actionable reload guidance when an existing tab has no capture content listener.
+
+## 1.8.12
+
+- Preload the capture content script so generic-page shortcuts do not depend on runtime injection.
+
+## 1.8.11
+
+- Broaden Firefox page access and add bounded diagnostics for capture permission failures.
+
+## 1.8.10
+
+- Request generic HTTP(S) page access for the Firefox shortcut.
+- Keep notification and popup status text within their available viewport.
+- Clarify that context is sent only after explicit shortcut or context-menu invocation.
+
 ## 1.8.9
 
 - Submit the refreshed Firefox toolbar artwork and compact popup controls for public AMO review.

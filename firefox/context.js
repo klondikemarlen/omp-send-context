@@ -5,6 +5,20 @@
     root.ompSendContext = factory()
   }
 })(typeof globalThis === "object" ? globalThis : this, function () {
+  const FIREFOX_RESTRICTED_HOSTS = new Set([
+    "accounts-static.cdn.mozilla.net",
+    "accounts.firefox.com",
+    "addons.cdn.mozilla.net",
+    "addons.mozilla.org",
+    "api.accounts.firefox.com",
+    "content.cdn.mozilla.net",
+    "discovery.addons.mozilla.org",
+    "install.mozilla.org",
+    "oauth.accounts.firefox.com",
+    "profile.accounts.firefox.com",
+    "support.mozilla.org",
+    "sync.services.mozilla.com",
+  ])
   function isSupportedGithubUrl(value) {
     try {
       const url = new URL(value)
@@ -15,7 +29,15 @@
   }
 
   function isEligiblePageUrl(value) {
-    return isHttpUrl(value)
+    if (!isHttpUrl(value)) {
+      return false
+    }
+    try {
+      const hostname = new URL(value).hostname
+      return ![...FIREFOX_RESTRICTED_HOSTS].some(host => hostname === host || hostname.endsWith(`.${host}`))
+    } catch {
+      return false
+    }
   }
 
   function createEnvelope({ selectionText, linkUrl, pageUrl, title }) {

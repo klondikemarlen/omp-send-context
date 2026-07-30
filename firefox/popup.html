@@ -54,6 +54,8 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
       padding: 10px 14px 4px;
     }
     section { display: flex; flex-direction: column; gap: 2px; }
@@ -179,11 +181,9 @@
     #status {
       min-height: 14px;
       margin-top: 2px;
-      overflow: hidden;
       color: #909097;
       font: 10px/14px "JetBrains Mono", ui-monospace, monospace;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     }
     footer {
       min-height: 32px;
