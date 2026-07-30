@@ -6,7 +6,7 @@ VS Code client plus OMP extension for sending source selections to OMP with `Ctr
 
 Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.
 
-By default, OMP receives a bounded agent handoff packet with the active editor context, workspace root, and diagnostics when present:
+By default, OMP receives a bounded agent handoff packet with the active editor context and workspace root. VS Code diagnostics are omitted by default; enable `ompContext.handoffIncludeDiagnostics` when you want them included:
 
 ````text
 # OMP Agent Handoff
@@ -187,12 +187,13 @@ When using a terminal multiplexer, configure it to forward xterm focus reports t
 - `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
 - Advanced settings:
   - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
+  - `ompContext.handoffIncludeDiagnostics`: include VS Code diagnostics in handoff packets. Default: `false`.
   - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
-  - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included in the handoff packet. Default: `20`.
+  - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included when `ompContext.handoffIncludeDiagnostics` is enabled. Default: `20`.
 
 Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback. The separate handoff command remains available as a one-off override.
 
-Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, and diagnostics when those sections are non-empty. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
+Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, and diagnostics when `ompContext.handoffIncludeDiagnostics` is enabled. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
 
 ## Feature workflow
 

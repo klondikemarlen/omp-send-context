@@ -52,6 +52,16 @@ export const DEFAULT_INSERT_MODE: InsertMode = "agentHandoff"
 export function resolveInsertMode(value: string | undefined): InsertMode {
   return value === "editorContext" || value === "agentHandoff" ? value : DEFAULT_INSERT_MODE
 }
+export function resolveHandoffIncludeDiagnostics(value: boolean | undefined) {
+  return value === true
+}
+
+export function collectHandoffDiagnostics(
+  includeDiagnostics: boolean,
+  collect: () => readonly HandoffDiagnostic[],
+) {
+  return includeDiagnostics ? collect() : []
+}
 
 
 export function resolveContentMode(value: string | undefined): ContentMode {
