@@ -121,6 +121,16 @@
           ],
           "description": "Advanced handoff-only maximum bytes inserted when ompContext.insertMode is agentHandoff or the explicit handoff command is used."
         },
+        "ompContext.handoffIncludeDiagnostics": {
+          "type": "boolean",
+          "default": false,
+          "order": 105,
+          "tags": [
+            "advanced"
+          ],
+          "description": "Include VS Code diagnostics in handoff packets. Disabled by default to avoid diagnostic noise."
+        },
+
         "ompContext.handoffMaxDiagnostics": {
           "type": "number",
           "default": 20,

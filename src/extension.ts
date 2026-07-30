@@ -4,7 +4,7 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveInsertMode, type ContextEnvelope, type EditorContext, type HandoffDiagnostic } from "./prompt"
+import { collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveHandoffIncludeDiagnostics, resolveInsertMode, type ContextEnvelope, type EditorContext, type HandoffDiagnostic } from "./prompt"
 
 
 interface BridgeState {
@@ -62,7 +62,7 @@ function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
   const current = getEditorContext(activeEditor)
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
     ?? vscode.workspace.workspaceFolders?.[0]
-  const diagnostics = getHandoffDiagnostics()
+  const diagnostics = collectHandoffDiagnostics(settings.includeDiagnostics, getHandoffDiagnostics)
 
   return formatAgentHandoffPacket({
     current,
@@ -166,6 +166,7 @@ function getHandoffSettings() {
   const configuration = vscode.workspace.getConfiguration("ompContext")
 
   return {
+    includeDiagnostics: resolveHandoffIncludeDiagnostics(configuration.get<boolean>("handoffIncludeDiagnostics")),
     maxBytes: Math.max(1_000, configuration.get<number>("handoffMaxBytes", DEFAULT_HANDOFF_MAX_BYTES)),
     maxDiagnostics: Math.max(0, Math.floor(configuration.get<number>("handoffMaxDiagnostics", DEFAULT_HANDOFF_MAX_DIAGNOSTICS))),
   }
