@@ -81,19 +81,20 @@ test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
     querySelectorAll: selector => {
-      assert.equal(selector, ".blob-code.js-file-line")
+      if (selector.includes("data-head-sha")) return []
+      assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
       return rows
     },
   }, {
     rangeCount: 1,
     getRangeAt: () => ({ intersectsNode: node => node.selected }),
   })
-  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", after: "124-125", side: "after" })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", version: "modified", change: "added", lines: "124-125" })
   assert.match(createEnvelope({
     selectionText: "const value = 1",
     pageUrl: "https://github.com/org/repo/pull/42/files",
     diffLocation: location,
-  }).prompt, /- File: src\/example\.ts\n\n- Side: after\n\n- Lines: 124-125/)
+  }).prompt, /- File: src\/example\.ts\n\n- Version: modified\n\n- Change: added\n\n- Lines: 124-125/)
 })
 
 test("Firefox builds exact GitHub diff permalinks for both sides", () => {
@@ -110,7 +111,8 @@ test("Firefox builds exact GitHub diff permalinks for both sides", () => {
     return extractGithubDiffLocation({
       location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
       querySelectorAll: selector => {
-        assert.equal(selector, ".blob-code.js-file-line")
+        if (selector.includes("data-head-sha")) return []
+        assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
         return [code]
       },
     }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
@@ -148,6 +150,74 @@ test("Firefox builds a GitHub diff range permalink for contiguous same-side sele
   assert.equal(location.permalink, "https://github.com/org/repo/pull/42/files#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R8-R9")
 })
 
+test("Firefox extracts human-readable metadata from the current GitHub diff DOM", () => {
+  const rows = [8, 9].map(line => ({
+    classList: { contains: () => false },
+    getAttribute: name => ({
+      "data-diff-side": "right",
+      "data-line-number": String(line),
+      "data-line-anchor": `diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R${line}`,
+    }[name]),
+    closest: selector => selector === "table"
+      ? { getAttribute: name => name === "aria-label" ? "Diff for: web/src/components/dashboards/DashboardTitleRow.vue" : undefined }
+      : undefined,
+    querySelector: () => undefined,
+  }))
+  const document = {
+    location: { href: "https://github.com/icefoganalytics/wrap/pull/490/changes" },
+    querySelectorAll: selector => selector.includes("data-head-sha")
+      ? [{ getAttribute: name => name === "data-head-sha" ? "0123456789abcdef0123456789abcdef01234567" : undefined }]
+      : rows,
+  }
+  const location = extractGithubDiffLocation(document, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), {
+    file: "web/src/components/dashboards/DashboardTitleRow.vue",
+    version: "modified",
+    change: "context",
+    lines: "8-9",
+    permalink: "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1R8-R9",
+    headCommit: "0123456789abcdef0123456789abcdef01234567",
+  })
+  assert.match(formatPrompt({
+    selectionText: "selected code",
+    url: location.permalink,
+    title: "WRAPX-270",
+    diffLocation: location,
+  }), /- File: web\/src\/components\/dashboards\/DashboardTitleRow\.vue\n\n- Version: modified\n\n- Change: context\n\n- Lines: 8-9\n\n- Head commit: 0123456789abcdef0123456789abcdef01234567/)
+})
+
+test("Firefox reports mixed original and modified selections explicitly", () => {
+  const makeRow = (side, change) => ({
+    classList: { contains: () => false },
+    getAttribute: name => ({
+      "data-diff-side": side,
+      "data-line-number": "8",
+      "data-line-anchor": `diff-c4ff09aa8daf1${side === "left" ? "L" : "R"}8`,
+    }[name]),
+    closest: selector => selector === "table"
+      ? { getAttribute: name => name === "aria-label" ? "Diff for: src/example.ts" : undefined }
+      : undefined,
+    querySelector: selector => selector === `.${change}` ? {} : undefined,
+  })
+  const rows = [makeRow("left", "deletion"), makeRow("right", "addition")]
+  const document = {
+    location: { href: "https://github.com/org/repo/pull/42/files" },
+    querySelectorAll: selector => selector.includes("data-head-sha") ? [] : rows,
+  }
+  const location = extractGithubDiffLocation(document, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), {
+    file: "src/example.ts",
+    version: "original and modified",
+    change: "mixed",
+    lines: "original 8; modified 8",
+  })
+  assert.match(formatPrompt({
+    selectionText: "old and new code",
+    url: "https://github.com/org/repo/pull/42/files",
+    diffLocation: location,
+  }), /- Version: original and modified\n\n- Change: mixed\n\n- Lines: original 8; modified 8/)
+})
+
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
   const code = {
     classList: { contains: name => name === "blob-code-deletion" },
@@ -158,11 +228,12 @@ test("Firefox extracts deleted GitHub diff lines as before-side context", () => 
   const location = extractGithubDiffLocation({
     location: { href: "https://github.com/org/repo/pull/42/files" },
     querySelectorAll: selector => {
-      assert.equal(selector, ".blob-code.js-file-line")
+      if (selector.includes("data-head-sha")) return []
+      assert.equal(selector, ".blob-code.js-file-line, [data-line-anchor][data-line-number]")
       return [code]
     },
   }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
-  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", before: "42", side: "before" })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/removed.ts", version: "original", change: "removed", lines: "42" })
 })
 
 test("Firefox omits non-contiguous GitHub line ranges", () => {
@@ -176,7 +247,7 @@ test("Firefox omits non-contiguous GitHub line ranges", () => {
     location: { href: "https://github.com/org/repo/pull/42/files" },
     querySelectorAll: () => [makeRow(124), makeRow(126)],
   }, { rangeCount: 1, getRangeAt: () => ({ intersectsNode: () => true }) })
-  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", side: "after" })
+  assert.deepEqual(JSON.parse(JSON.stringify(location)), { file: "src/example.ts", version: "modified", change: "added" })
 })
 
 test("Firefox omits ambiguous cross-file GitHub diff locations", () => {
@@ -214,14 +285,14 @@ test("Firefox content capture returns diff location metadata", async () => {
       location: { href: "https://github.com/org/repo/pull/42/files" },
     },
     ompSendContext: {
-      extractGithubDiffLocation: () => ({ file: "src/example.ts", after: "124", side: "after" }),
+      extractGithubDiffLocation: () => ({ file: "src/example.ts", version: "modified", change: "added", lines: "124" }),
     },
     document: { title: "Test pull request" },
   })
   const capture = await listener({ type: "capture-context" })
   assert.equal(capture.pageUrl, "https://github.com/org/repo/pull/42/files")
   assert.equal(capture.selectionText, "const value = 1")
-  assert.deepEqual(capture.diffLocation, { file: "src/example.ts", after: "124", side: "after" })
+  assert.deepEqual(capture.diffLocation, { file: "src/example.ts", version: "modified", change: "added", lines: "124" })
 })
 
 test("Firefox client creates a protocol v1 envelope with permalink metadata", () => {

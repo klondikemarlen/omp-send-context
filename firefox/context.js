@@ -45,7 +45,7 @@
       return undefined
     }
     const range = selection.getRangeAt(0)
-    const rows = [...(document.querySelectorAll?.(".blob-code.js-file-line") ?? [])].filter(node => {
+    const rows = [...(document.querySelectorAll?.(".blob-code.js-file-line, [data-line-anchor][data-line-number]") ?? [])].filter(node => {
       try {
         return range.intersectsNode(node)
       } catch {
@@ -53,16 +53,27 @@
       }
     })
     const locations = rows.map(row => {
-      const file = row.closest?.("[data-tagsearch-path]")?.getAttribute("data-tagsearch-path")
       const tr = row.closest?.("tr")
+      const deleted = row.classList?.contains("blob-code-deletion") || row.classList?.contains("deletion") || row.querySelector?.(".deletion")
+      const added = row.classList?.contains("blob-code-addition") || row.classList?.contains("addition") || row.querySelector?.(".addition")
+      const diffSide = row.getAttribute?.("data-diff-side")
+      const version = diffSide === "left" || deleted ? "original" : diffSide === "right" || added ? "modified" : "both"
       const beforeCell = tr?.querySelector?.(".blob-num-deletion[data-line-number]")
       const afterCell = tr?.querySelector?.(".blob-num-addition[data-line-number]")
-      const before = beforeCell?.getAttribute("data-line-number")
-      const after = afterCell?.getAttribute("data-line-number")
-      const side = row.classList?.contains("blob-code-deletion") ? "before" : row.classList?.contains("blob-code-addition") ? "after" : undefined
-      const anchor = side === "before" ? beforeCell?.getAttribute("id") : side === "after" ? afterCell?.getAttribute("id") : undefined
-      return { file, before, after, side, anchor }
-    }).filter(location => typeof location.file === "string" && (location.before || location.after))
+      const line = row.getAttribute?.("data-line-number")
+        ?? (version === "original" ? beforeCell?.getAttribute("data-line-number") : afterCell?.getAttribute("data-line-number"))
+        ?? beforeCell?.getAttribute("data-line-number")
+        ?? afterCell?.getAttribute("data-line-number")
+      const anchor = row.getAttribute?.("data-line-anchor")
+        ?? (version === "original" ? beforeCell?.getAttribute("id") : afterCell?.getAttribute("id"))
+      return {
+        file: diffFileFromRow(row),
+        version,
+        change: deleted && added ? "mixed" : deleted ? "removed" : added ? "added" : "context",
+        line,
+        anchor,
+      }
+    }).filter(location => typeof location.file === "string" && location.file.length > 0 && Number.isInteger(Number(location.line)))
     if (locations.length === 0) {
       return undefined
     }
@@ -70,19 +81,35 @@
     if (files.length !== 1) {
       return undefined
     }
-    const before = locations.filter(location => location.side === "before" || (!location.side && location.before)).map(location => location.before).filter(Boolean)
-    const after = locations.filter(location => location.side === "after" || (!location.side && location.after)).map(location => location.after).filter(Boolean)
-    const beforeRange = lineRange(before)
-    const afterRange = lineRange(after)
+    const versions = [...new Set(locations.map(location => location.version))]
+    const changes = [...new Set(locations.map(location => location.change))]
+    const lines = versions.length === 1
+      ? lineRange(locations.map(location => location.line))
+      : versions.map(version => `${version} ${lineRange(locations.filter(location => location.version === version).map(location => location.line))}`).join("; ")
     const permalink = buildDiffPermalink(document, locations)
+    const headCommit = extractGithubCommit(document)
     return {
-      file: files[0],
-      ...(beforeRange ? { before: beforeRange } : {}),
-      ...(afterRange ? { after: afterRange } : {}),
-      ...(locations.every(location => location.side === "before") ? { side: "before" } : {}),
-      ...(locations.every(location => location.side === "after") ? { side: "after" } : {}),
+      version: versions.length === 1 && versions[0] === "both" ? "original and modified" : versions.length === 1 ? versions[0] : "original and modified",
+      change: changes.length === 1 ? changes[0] : "mixed",
+      ...(lines ? { lines } : {}),
       ...(permalink ? { permalink } : {}),
+      ...(headCommit ? { headCommit } : {}),
     }
+  }
+
+  function diffFileFromRow(row) {
+    const legacyPath = row.closest?.("[data-tagsearch-path]")?.getAttribute("data-tagsearch-path")
+    if (legacyPath) {
+      return legacyPath
+    }
+    const label = row.closest?.("table")?.getAttribute?.("aria-label")
+    return typeof label === "string" && label.startsWith("Diff for: ") ? label.slice("Diff for: ".length) : undefined
+  }
+
+  function extractGithubCommit(document) {
+    return [...(document.querySelectorAll?.("[data-head-sha], [data-head-commit-sha], [data-pull-request-head-sha]") ?? [])]
+      .map(node => node.getAttribute?.("data-head-sha") ?? node.getAttribute?.("data-head-commit-sha") ?? node.getAttribute?.("data-pull-request-head-sha"))
+      .find(value => /^[0-9a-f]{7,40}$/i.test(value ?? ""))
   }
 
   function lineRange(lines) {
@@ -144,23 +171,22 @@
     if (typeof title === "string" && title.length > 0) {
       sections.push(`- Title: ${title}`)
     }
-    sections.push(`- Location: ${url}`)
     if (github && diffLocation?.file) {
       sections.push(`- File: ${diffLocation.file}`)
-      if (diffLocation.side) {
-        sections.push(`- Side: ${diffLocation.side}`)
-        if (diffLocation[diffLocation.side]) {
-          sections.push(`- Lines: ${diffLocation[diffLocation.side]}`)
-        }
-      } else if (diffLocation.before || diffLocation.after) {
-        const lines = [
-          diffLocation.before ? `before ${diffLocation.before}` : "",
-          diffLocation.after ? `after ${diffLocation.after}` : "",
-        ].filter(Boolean).join("; ")
-        sections.push(`- Lines: ${lines}`)
+      if (diffLocation.version) {
+        sections.push(`- Version: ${diffLocation.version}`)
+      }
+      if (diffLocation.change) {
+        sections.push(`- Change: ${diffLocation.change}`)
+      }
+      if (diffLocation.lines) {
+        sections.push(`- Lines: ${diffLocation.lines}`)
+      }
+      if (diffLocation.headCommit) {
+        sections.push(`- Head commit: ${diffLocation.headCommit}`)
       }
     }
-
+    sections.push(`- Location: ${url}`)
     const fence = codeFence(selectionText)
     sections.push("## Selected text", `${fence}\n${selectionText}\n${fence}`)
     return `${sections.join("\n\n")}\n\n`
