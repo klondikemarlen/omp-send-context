@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.17
+
+- Remove unnecessary local-file access while preserving HTTP(S) shortcut capture.
+
 ## 1.8.16
 
 - Clarify that Firefox blocks add-ons from copying context on protected pages.
