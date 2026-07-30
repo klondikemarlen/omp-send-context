@@ -121,7 +121,7 @@ async function captureTabContext(tabId, tabUrl) {
       await browser.tabs.executeScript(tabId, { file: "content.js" })
     } catch (injectionError) {
       await recordDebug(`capture:inject-failed:${nativeErrorDetail(injectionError)}`)
-      throw injectionError
+      throw new Error("Page capture is not ready; reload the page and try again.")
     }
     return browser.tabs.sendMessage(tabId, { type: "capture-context" })
   }
