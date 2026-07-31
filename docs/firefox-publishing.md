@@ -50,7 +50,11 @@ The command cleans `dist/firefox`, builds one unsigned ZIP, and prints its path 
 
 ## Signed pre-release validation
 
-To avoid `about:debugging` without exposing an untested add-on to normal users, submit the same artifact through AMO as **unlisted** first. Install the signed XPI in a fresh Firefox profile and run the manual QA flow. This signs the add-on for normal Firefox installation but does not create a public listing.
+AMO version numbers are unique across listed and unlisted channels. Do not submit a version as unlisted and then re-submit that same version as listed; AMO rejects the second submission after the first version is consumed.
+
+For a normal listed release, run the manual QA flow in a fresh profile from the checkout with `web-ext run` or a temporary add-on, then submit that version through the listed channel. This is source-equivalent QA at the listed version; it does not validate AMO signing or the final downloaded XPI.
+
+If signed-XPI QA is required before a listed submission, use a unique pre-release version for the unlisted submission, install its signed XPI in a fresh profile, and run the manual QA flow. Bump the version for the listed release, rebuild it, and repeat the focused fresh-profile install check; never attempt to reuse the unlisted version for the listed channel.
 
 With AMO API credentials configured locally:
 
@@ -61,7 +65,7 @@ npx web-ext sign \
   --channel unlisted
 ```
 
-Do not submit the listed release until the signed XPI passes manual QA.
+Do not submit the listed release until the selected QA path passes. Record whether the listed artifact was QA-tested directly or followed a distinct signed unlisted pre-release.
 
 
 ## Submit through AMO
