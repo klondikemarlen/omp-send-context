@@ -221,7 +221,7 @@
       }
       if (diffLocation.lines) {
         const readableLines = diffLocation.version === "original and modified"
-          ? diffLocation.lines.replace(/(original|modified) ([^;]+)(?=;|$)/g, "$2 in the $1 file")
+          ? diffLocation.lines.replace(/(original|modified) ([^;]+)(?=;|$)/g, "$1 file $2")
           : diffLocation.version === "original" || diffLocation.version === "modified"
             ? `${diffLocation.lines} in the ${diffLocation.version} file`
             : diffLocation.lines
