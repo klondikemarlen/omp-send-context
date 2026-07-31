@@ -125,9 +125,6 @@
           "type": "boolean",
           "default": false,
           "order": 105,
-          "tags": [
-            "advanced"
-          ],
           "description": "Include VS Code diagnostics in handoff packets. Disabled by default to avoid diagnostic noise."
         },
         "ompContext.handoffMaxDiagnostics": {
