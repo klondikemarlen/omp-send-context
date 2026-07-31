@@ -8,6 +8,10 @@
 
 - Add opt-in VS Code diagnostics for agent handoff packets; diagnostics are disabled by default.
 
+## 1.8.24
+
+- Put the original or modified file label before each mixed GitHub diff range.
+
 ## 1.8.23
 
 - Make GitHub diff line ranges explicitly identify the original or modified file.
