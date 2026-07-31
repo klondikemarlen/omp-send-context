@@ -94,7 +94,7 @@ test("Firefox extracts GitHub diff file, side, and contiguous lines", () => {
     selectionText: "const value = 1",
     pageUrl: "https://github.com/org/repo/pull/42/files",
     diffLocation: location,
-  }).prompt, /- File: src\/example\.ts\n\n- Version: modified\n\n- Change: added\n\n- Lines: 124-125/)
+  }).prompt, /- File: src\/example\.ts\n\n- Version: modified\n\n- Change: added\n\n- Lines: 124-125 in the modified file/)
 })
 
 test("Firefox builds exact GitHub diff permalinks for both sides", () => {
@@ -183,7 +183,7 @@ test("Firefox extracts human-readable metadata from the current GitHub diff DOM"
     url: location.permalink,
     title: "WRAPX-270",
     diffLocation: location,
-  }), /- File: web\/src\/components\/dashboards\/DashboardTitleRow\.vue\n\n- Version: modified\n\n- Change: context\n\n- Lines: 8-9\n\n- Head commit: 0123456789abcdef0123456789abcdef01234567/)
+  }), /- File: web\/src\/components\/dashboards\/DashboardTitleRow\.vue\n\n- Version: modified\n\n- Change: context\n\n- Lines: 8-9 in the modified file\n\n- Head commit: 0123456789abcdef0123456789abcdef01234567/)
 })
 
 test("Firefox reads the PR head SHA from GitHub commit metadata", () => {
@@ -244,6 +244,12 @@ test("Firefox keeps an original-only selection on the original side", () => {
     lines: "8-16",
     permalink: "https://github.com/icefoganalytics/wrap/pull/490/changes#diff-c4ff09aa6de01afd7b040b9c957c2c1de47a029f70e3bade00120be8caa8daf1L8-L16",
   })
+  assert.match(formatPrompt({
+    selectionText: "original code",
+    url: location.permalink,
+    title: "WRAPX-270",
+    diffLocation: location,
+  }), /- Version: original\n\n- Change: context\n\n- Lines: 8-16 in the original file/)
 })
 
 test("Firefox extracts original-side metadata from GitHub split diff cells", () => {
@@ -354,7 +360,7 @@ test("Firefox reports mixed original and modified selections explicitly", () => 
     selectionText: "old and new code",
     url: "https://github.com/org/repo/pull/42/files",
     diffLocation: location,
-  }), /- Version: original and modified\n\n- Change: mixed\n\n- Lines: original 8; modified 8/)
+  }), /- Version: original and modified\n\n- Change: mixed\n\n- Lines: 8 in the original file; 8 in the modified file/)
 })
 
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
