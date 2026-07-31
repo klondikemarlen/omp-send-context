@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+if [ "${1:-}" = "--sandboxed" ]; then
+  if [ ! -f /usr/share/dbus-1/services/org.freedesktop.NativeMessagingProxy.service ] && [ ! -f /usr/lib/systemd/user/xdg-native-messaging-proxy.service ]; then
+    printf '%s\n' "Snap or Flatpak Firefox requires xdg-native-messaging-proxy. Install it first: sudo apt install xdg-native-messaging-proxy" >&2
+    exit 1
+  fi
+  shift
+fi
+
+if [ "$#" -ne 0 ]; then
+  printf 'Usage: %s [--sandboxed]\n' "$0" >&2
+  exit 2
+fi
+
+manifest_directory="${HOME:?}/.mozilla/native-messaging-hosts"
+manifest_path="$manifest_directory/omp_send_context.json"
+
+install -d -m 0755 "$manifest_directory"
+cat >"$manifest_path" <<'EOF'
+{
+  "name": "omp_send_context",
+  "description": "OMP Send Context Firefox native messaging host",
+  "path": "/usr/bin/omp-send-context-native-host",
+  "type": "stdio",
+  "allowed_extensions": ["omp-send-context@klondikemarlen.github.io"]
+}
+EOF
+chmod 0644 "$manifest_path"
+printf 'Installed Firefox native host manifest: %s\n' "$manifest_path"

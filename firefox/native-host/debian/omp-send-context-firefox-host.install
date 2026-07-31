@@ -1,0 +1,4 @@
+omp-send-context-host.mjs usr/lib/omp-send-context-firefox-host
+omp-send-context-native-host usr/bin
+omp-send-context-install-firefox-host usr/bin
+omp_send_context.json usr/lib/mozilla/native-messaging-hosts
