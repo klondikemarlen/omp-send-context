@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3
+
+- Show the diagnostics opt-in directly in VS Code extension settings.
+
 ## 2.0.2
 
 - Add opt-in VS Code diagnostics for agent handoff packets; diagnostics are disabled by default.
