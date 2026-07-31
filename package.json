@@ -147,11 +147,11 @@
     "compile": "npm run check-types && node esbuild.js",
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package",
-    "package:firefox": "node scripts/package-firefox.mjs",
-    "install:firefox-host": "node scripts/install-firefox-host.mjs",
-    "sign:firefox": "node scripts/sign-firefox.mjs",
+    "package:firefox": "node firefox/scripts/package-firefox.mjs",
+    "install:firefox-host": "node firefox/scripts/install-firefox-host.mjs",
+    "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
-    "test": "npm run check-types && node --import tsx --test test/*.test.ts test/*.test.mjs"
+    "test": "npm run check-types && node --import tsx --test test/run.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
