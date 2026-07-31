@@ -54,6 +54,8 @@ Start a fresh OMP process after the native host is installed. Keep its prompt vi
 
 To capture diagnostics for this release, click the add-on toolbar button to enable session-only debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens. Debug entries disappear when Firefox restarts.
 
+The copied log includes `Extension version`, `Source commit`, and bounded debug entries. `Source commit` is the full SHA for a clean release build, `uncommitted` for a dirty development tree, or `unknown` when Git provenance cannot be resolved; it never includes selected text, URLs, prompts, bridge state, or bearer tokens.
+
 
 ## Test cases
 
