@@ -1,0 +1,6 @@
+omp-send-context-firefox-host (1.7.3~ppa1) resolute; urgency=medium
+
+  * Package the Firefox native messaging host with a system manifest.
+  * Add per-user registration for sandboxed Firefox installations.
+
+ -- Marlen Brunner <klondikemarlen@gmail.com>  Fri, 31 Jul 2026 13:36:37 -0700

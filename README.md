@@ -117,29 +117,33 @@ The client first tries the native-messaging host. If the host is unavailable or 
 
 ### Firefox native messaging host (Linux setup)
 
-The Firefox native messaging host is a separately installed local process. It reads the OMP bridge state from `~/.omp/agent/editor-context-bridge.json`, validates the envelope, and forwards it to the authenticated loopback bridge. Firefox only receives a success or failure response.
+The Firefox native messaging host is a separately installed local process. Native delivery is optional: when the host is unavailable, the add-on copies the exact context packet to the clipboard.
 
-Install the host after installing the add-on. Choose the setup that matches how Firefox is installed:
+For Ubuntu 26.04 (Resolute), the recommended install is the native host PPA:
 
-- **System Firefox:**
+```bash
+sudo add-apt-repository ppa:klondikemarlen/omp-send-context
+sudo apt update
+sudo apt install omp-send-context-firefox-host
+```
 
-  ```bash
-  npm run install:firefox-host
-  ```
+The package installs the host and system Firefox manifest. If Firefox is installed through Snap or Flatpak, also install the sandbox proxy:
 
-- **Snap or Flatpak Firefox (required sandbox proxy):**
+```bash
+sudo apt install xdg-native-messaging-proxy
+omp-send-context-install-firefox-host --sandboxed
+```
 
-  On Ubuntu 26.04 (Resolute):
+Run the registration command as your normal desktop user, not with `sudo`. It writes the per-user manifest used by sandboxed Firefox. On other distributions, install the equivalent `xdg-native-messaging-proxy` package when needed.
 
-  ```bash
-  sudo apt install xdg-native-messaging-proxy
-  npm run install:firefox-host -- --sandboxed
-  ```
+For source development or distributions without the PPA, install from a checkout:
 
-  On other distributions, install the equivalent package and confirm that it provides the `org.freedesktop.NativeMessagingProxy` user D-Bus service. The installer fails clearly if the service is missing. The proxy exposes host native-messaging services to sandboxed callers; upstream warns that this can be **insecure**, so install it only when you trust the host manifests available on your machine ([upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme)).
+- **System Firefox:** `npm run install:firefox-host`
+- **Snap or Flatpak Firefox:** `npm run install:firefox-host -- --sandboxed` after installing `xdg-native-messaging-proxy`
 
-The installer makes the host executable, writes an executable launcher at `~/.local/share/omp-send-context/omp_send_context-host`, and writes `~/.mozilla/native-messaging-hosts/omp_send_context.json` pointing to that launcher. The launcher uses the Node runtime that ran the installer and invokes the checkout host script. The manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`. Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory because the proxy discovers the normal host-manifest location.
-After installation, start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; if it does not, reload the add-on or fully restart Firefox. When developing with a temporary add-on, reload it from `about:debugging` instead. Invoke `Ctrl+Alt+K` on any eligible HTTP(S) page, including GitHub pull requests, and enable debug logging if needed: native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
+The checkout installer writes an executable launcher at `~/.local/share/omp-send-context/omp_send_context-host` and a per-user manifest at `~/.mozilla/native-messaging-hosts/omp_send_context.json`. The manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`. Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory because the proxy discovers the normal host-manifest location. Review the [proxy security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme) before enabling it.
+
+After installation, start a fresh OMP process and restart Firefox. Invoke `Ctrl+Alt+K` on any eligible HTTP(S) page, including GitHub pull requests. With debug logging enabled, native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
 
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.

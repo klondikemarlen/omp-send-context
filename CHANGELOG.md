@@ -4,6 +4,10 @@
 
 - Add an optional Ko-fi maintenance-support link to the repository and published package.
 
+## 1.8.27
+
+- Document and package the optional Linux Firefox native-messaging host.
+
 ## 1.8.26
 
 - Include the full source commit in Firefox debug logs for signed builds.
