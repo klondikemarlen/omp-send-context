@@ -3,11 +3,11 @@ import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import vm from "node:vm"
 
-const contextSource = await fs.readFile(new URL("../firefox/context.js", import.meta.url), "utf8")
-const backgroundSource = await fs.readFile(new URL("../firefox/background.js", import.meta.url), "utf8")
-const contentSource = await fs.readFile(new URL("../firefox/content.js", import.meta.url), "utf8")
-const manifest = JSON.parse(await fs.readFile(new URL("../firefox/manifest.json", import.meta.url), "utf8"))
-const firefoxPackage = JSON.parse(await fs.readFile(new URL("../firefox/package.json", import.meta.url), "utf8"))
+const contextSource = await fs.readFile(new URL("../../firefox/context.js", import.meta.url), "utf8")
+const backgroundSource = await fs.readFile(new URL("../../firefox/background.js", import.meta.url), "utf8")
+const contentSource = await fs.readFile(new URL("../../firefox/content.js", import.meta.url), "utf8")
+const manifest = JSON.parse(await fs.readFile(new URL("../../firefox/manifest.json", import.meta.url), "utf8"))
+const firefoxPackage = JSON.parse(await fs.readFile(new URL("../../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
 vm.runInNewContext(contextSource, context)
 const { createEnvelope, extractGithubDiffLocation, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl } = context.ompSendContext
@@ -53,12 +53,12 @@ test("Firefox manifest declares branded icons and supported desktop metadata", a
   assert.deepEqual(manifest.browser_action.default_icon, manifest.icons)
   assert.equal(manifest.browser_action.default_popup, "popup.html")
   for (const iconSize of ["48", "96", "128"]) {
-    const bytes = await fs.readFile(new URL(`../firefox/icons/icon-debug-${iconSize}.png`, import.meta.url))
+    const bytes = await fs.readFile(new URL(`../../firefox/icons/icon-debug-${iconSize}.png`, import.meta.url))
     assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
   }
   assert.equal(firefoxPackage.version, manifest.version)
   for (const iconPath of Object.values(manifest.icons)) {
-    const bytes = await fs.readFile(new URL(`../firefox/${iconPath}`, import.meta.url))
+    const bytes = await fs.readFile(new URL(`../../firefox/${iconPath}`, import.meta.url))
     assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
   }
 })

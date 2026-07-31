@@ -258,8 +258,8 @@ function sendJson(response, statusCode, body) {
   response.end(JSON.stringify(body))
 }
 
-function isContextEnvelope(value) {
-  if (typeof value !== "object" || value === null) {
+export function isContextEnvelope(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false
   }
 

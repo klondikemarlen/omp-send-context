@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import { homedir } from "node:os"
 import { spawnSync } from "node:child_process"
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const HOST_PATH = resolve(REPO_ROOT, "firefox/native-host/omp-send-context-host.mjs")
 const HOST_NAME = "omp_send_context"
 const EXTENSION_ID = "omp-send-context@klondikemarlen.github.io"

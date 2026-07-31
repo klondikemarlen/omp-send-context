@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createHostLauncher, createHostManifest, installFirefoxHost, isNativeMessagingProxyInstalled } from "../scripts/install-firefox-host.mjs"
+import { createHostLauncher, createHostManifest, installFirefoxHost, isNativeMessagingProxyInstalled } from "../../firefox/scripts/install-firefox-host.mjs"
 
 test("Firefox host installer creates the registered native-messaging manifest", () => {
   const manifest = createHostManifest("/checkout/firefox/native-host/omp-send-context-host.mjs")

@@ -3,9 +3,9 @@ import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import vm from "node:vm"
 
-const popupHtml = await fs.readFile(new URL("../firefox/popup.html", import.meta.url), "utf8")
-const popupSource = await fs.readFile(new URL("../firefox/popup.js", import.meta.url), "utf8")
-const contentSource = await fs.readFile(new URL("../firefox/content.js", import.meta.url), "utf8")
+const popupHtml = await fs.readFile(new URL("../../firefox/popup.html", import.meta.url), "utf8")
+const popupSource = await fs.readFile(new URL("../../firefox/popup.js", import.meta.url), "utf8")
+const contentSource = await fs.readFile(new URL("../../firefox/content.js", import.meta.url), "utf8")
 
 test("Firefox popup keeps the branded compact dark surface", () => {
   assert.match(popupHtml, /width: 220px/)

@@ -27,7 +27,7 @@ Official references:
    ```bash
    npm install
    npm test
-   npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/'
+   npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
    ```
 
 4. Install the Linux native-messaging host before interactive QA. For system Firefox run `npm run install:firefox-host`. For Snap or Flatpak Firefox, first run `sudo apt install xdg-native-messaging-proxy`, then run `npm run install:firefox-host -- --sandboxed`. The sandboxed command must pass. Verify that `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script.
@@ -59,10 +59,11 @@ If signed-XPI QA is required before a listed submission, use a unique pre-releas
 With AMO API credentials configured locally:
 
 ```bash
-npx web-ext sign \
-  --source-dir firefox \
-  --artifacts-dir dist/firefox \
-  --channel unlisted
+ npx web-ext sign \
+   --source-dir firefox \
+   --artifacts-dir dist/firefox \
+   --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/' \
+   --channel unlisted
 ```
 
 Do not submit the listed release until the selected QA path passes. Record whether the listed artifact was QA-tested directly or followed a distinct signed unlisted pre-release.

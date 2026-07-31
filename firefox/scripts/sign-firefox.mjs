@@ -16,7 +16,7 @@ const args = [
   "sign",
   "--source-dir", "firefox",
   "--artifacts-dir", "dist/firefox",
-  "--ignore-files", "native-host/**", "native-host/",
+  "--ignore-files", "native-host/**", "native-host/", "scripts/**", "scripts/",
   "--amo-metadata", "docs/firefox-amo-metadata.json",
   "--approval-timeout", "0",
   "--channel", channel,

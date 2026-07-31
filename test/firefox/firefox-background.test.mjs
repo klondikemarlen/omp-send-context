@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import vm from "node:vm"
 
-const backgroundSource = await fs.readFile(new URL("../firefox/background.js", import.meta.url), "utf8")
+const backgroundSource = await fs.readFile(new URL("../../firefox/background.js", import.meta.url), "utf8")
 
 function event() {
   const listeners = []

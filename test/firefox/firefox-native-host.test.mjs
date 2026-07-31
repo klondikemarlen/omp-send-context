@@ -6,7 +6,7 @@ import path from "node:path"
 import { spawn } from "node:child_process"
 import { createServer } from "node:http"
 
-import { assertEnvelope, deliverEnvelope, encodeMessage } from "../firefox/native-host/omp-send-context-host.mjs"
+import { assertEnvelope, deliverEnvelope, encodeMessage } from "../../firefox/native-host/omp-send-context-host.mjs"
 
 async function availableServer(handler) {
   const server = createServer(handler)

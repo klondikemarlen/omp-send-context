@@ -21,7 +21,7 @@ Confirm `omp-send-context@2.0.0` or newer is listed.
   ```bash
   npm install
   npm test
-  npx web-ext lint --source-dir firefox
+  npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
   ```
 
 - **Snap or Flatpak Firefox prerequisite:** install the host-side `xdg-native-messaging-proxy` before native-messaging QA. On Ubuntu 26.04 (Resolute), run `sudo apt install xdg-native-messaging-proxy`; use the equivalent package elsewhere. Then, from the checkout, run `npm run install:firefox-host -- --sandboxed`. This command must pass; it fails when the proxy D-Bus service is unavailable. Review the [upstream security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme) before enabling the proxy.

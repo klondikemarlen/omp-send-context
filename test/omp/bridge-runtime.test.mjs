@@ -5,7 +5,7 @@ import os from "node:os"
 import path from "node:path"
 import { createServer } from "node:http"
 
-import { createBridgeRuntime } from "../omp/bridge-runtime.js"
+import { createBridgeRuntime } from "../../omp/bridge-runtime.js"
 
 async function availablePort() {
   const server = createServer()

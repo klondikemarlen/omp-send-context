@@ -5,8 +5,10 @@ VS Code client plus OMP extension for sending source selections to OMP with `Ctr
 ## Repository layout
 
 - `vscode/` — VS Code extension source (`extension.ts`, `prompt.ts`).
-- `firefox/` — Firefox add-on, native host, and packaging manifest.
+- `firefox/` — Firefox add-on, native host, and Firefox-only build/sign/install scripts.
 - `omp/` — OMP bridge runtime and extension entry point.
+- `protocol/` — versioned context-envelope schema and example fixtures shared by clients and runtimes.
+- `test/<integration>/` — tests grouped by integration (`vscode`, `firefox`, `omp`, and `protocol`).
 
 ## What it does
 

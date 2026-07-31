@@ -10,18 +10,19 @@
 - **Source facts come from clients:** VS Code, Firefox, and future clients capture their own selection and source metadata.
 - **Prompt mutation happens in OMP:** OMP owns the live prompt editor, so prompt insertion uses an OMP runtime extension.
 - **Local bridge, not public API:** The HTTP server binds to `127.0.0.1` and requires the token written by the running OMP extension.
-- **Clients format prompts:** The OMP side validates and transports a versioned envelope but does not parse editor- or browser-specific context.
+- **One envelope contract:** `protocol/context-envelope.schema.json` defines the source-agnostic wire shape; each client and runtime validates it at its own boundary.
 
 ## Problem shape
 
 Claude Code and OpenCode feel integrated because the IDE extension knows the editor selection and the agent UI knows how to append to its prompt. OMP has the agent-side extension API, but VS Code still needs a separate extension to read selected text.
 
-This repo currently ships the VS Code client and the OMP `omp-send-context` runtime in one package:
+This repo currently ships the VS Code client, Firefox client, and OMP `omp-send-context` runtime in one package:
 
-1. Context client: captures source-specific selection and formats the prompt.
-2. OMP extension: starts a loopback bridge and inserts received prompt text into the OMP prompt.
+1. Context clients: capture source-specific selection and format the prompt.
+2. Protocol contract: keeps client payloads compatible without importing one integration into another.
+3. OMP extension: starts a loopback bridge and inserts received prompt text into the OMP prompt.
 
-Firefox is a planned separate client using the same OMP transport contract.
+Each integration owns its source code and tooling under a top-level directory. Shared runtime code stays under `omp/`; shared wire fixtures stay under `protocol/`; tests are grouped under `test/<integration>/`.
 ## Runtime flow
 
 ```mermaid
