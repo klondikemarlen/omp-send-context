@@ -1,5 +1,6 @@
 const NATIVE_HOST_NAME = "omp_send_context"
 const WEB_URL_PATTERNS = ["http://*/*", "https://*/*"]
+const SOURCE_COMMIT = "uncommitted"
 const MENU_ID = "omp-send-context"
 const DEBUG_MENU_ID = "omp-send-context-debug"
 const DEFAULT_ICON_PATHS = {
@@ -250,6 +251,7 @@ async function copyDebugLog(tabId) {
   const report = [
     "OMP Send Context debug log",
     `Extension version: ${browser.runtime.getManifest().version}`,
+    `Source commit: ${SOURCE_COMMIT}`,
     `Debug logging: ${await readDebugEnabled() ? "enabled" : "disabled"}`,
     ...debugEntries,
   ].join("\n")

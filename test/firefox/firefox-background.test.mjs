@@ -152,7 +152,7 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     error = caught
   }
   await new Promise(resolve => setTimeout(resolve, 10))
-  return { messages, logs, notifications, indicator, events, clipboardText, error, injected, delivered }
+  return { messages, logs, notifications, indicator, events, clipboardText, getClipboardText: () => clipboardText, error, injected, delivered }
 }
 
 test("Firefox client falls back when the native host rejects delivery", async () => {
@@ -222,6 +222,7 @@ test("Firefox toolbar controls expose debug state and copy action", async () => 
 
   const copied = (await result.events.messages.emit({ type: "copy-debug-log" }))[0]
   assert.equal(copied.ok, true)
+  assert.match(result.getClipboardText(), /Source commit: uncommitted/)
 })
 
 test("Firefox debug export reports clipboard failure accurately", async () => {
