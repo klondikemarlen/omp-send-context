@@ -59,12 +59,10 @@ If signed-XPI QA is required before a listed submission, use a unique pre-releas
 With AMO API credentials configured locally:
 
 ```bash
- npx web-ext sign \
-   --source-dir firefox \
-   --artifacts-dir dist/firefox \
-   --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/' \
-   --channel unlisted
+ AMO_CHANNEL=unlisted npm run sign:firefox
 ```
+
+The signing script requires a clean Git worktree; it stages a temporary Firefox source tree and injects the full source commit into the exported debug log.
 
 Do not submit the listed release until the selected QA path passes. Record whether the listed artifact was QA-tested directly or followed a distinct signed unlisted pre-release.
 

@@ -158,6 +158,7 @@
     "@types/vscode": "^1.94.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.25.3",
+    "jszip": "^3.10.1",
     "selenium-webdriver": "^4.46.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
