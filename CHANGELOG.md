@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.4
+
+- Add an optional Ko-fi maintenance-support link to the repository and published package.
+
 ## 2.0.3
 
 - Show the diagnostics opt-in directly in VS Code extension settings.
