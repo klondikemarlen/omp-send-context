@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "source": "vscode",
+  "prompt": "@src/example.ts#L7C17-L9C20 ",
+  "metadata": {
+    "url": "file:///workspace/src/example.ts",
+    "title": "example.ts"
+  }
+}
