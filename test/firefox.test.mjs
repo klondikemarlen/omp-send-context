@@ -360,7 +360,7 @@ test("Firefox reports mixed original and modified selections explicitly", () => 
     selectionText: "old and new code",
     url: "https://github.com/org/repo/pull/42/files",
     diffLocation: location,
-  }), /- Version: original and modified\n\n- Change: mixed\n\n- Lines: 8 in the original file; 8 in the modified file/)
+  }), /- Version: original and modified\n\n- Change: mixed\n\n- Lines: original file 8; modified file 8/)
 })
 
 test("Firefox extracts deleted GitHub diff lines as before-side context", () => {
