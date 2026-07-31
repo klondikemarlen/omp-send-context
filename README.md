@@ -68,6 +68,8 @@ Links:
 - Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen
 - GitHub: https://github.com/klondikemarlen/omp-send-context
 
+If this project helps you, you can optionally support maintenance with a [Ko-fi tip](https://ko-fi.com/klondikemarlen).
+
 ### OMP plugin
 
 Install the companion OMP extension from GitHub:
