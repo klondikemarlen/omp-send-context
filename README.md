@@ -191,9 +191,9 @@ When using a terminal multiplexer, configure it to forward xterm focus reports t
 
 - `ompContext.insertMode`: primary shortcut mode. `agentHandoff` (default) sends the bounded handoff packet; `editorContext` keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt.
 - `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
+- `ompContext.handoffIncludeDiagnostics`: include VS Code diagnostics in handoff packets. Default: `false`.
 - Advanced settings:
   - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
-  - `ompContext.handoffIncludeDiagnostics`: include VS Code diagnostics in handoff packets. Default: `false`.
   - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
   - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included when `ompContext.handoffIncludeDiagnostics` is enabled. Default: `20`.
 
