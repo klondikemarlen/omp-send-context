@@ -4,7 +4,7 @@
 
 override_dh_auto_build:
 	mkdir -p debian/build
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o debian/build/omp-send-context-native-host .
+	CGO_ENABLED=0 GOCACHE=$(CURDIR)/debian/build/cache go build -trimpath -ldflags="-s -w" -o debian/build/omp-send-context-native-host .
 
 override_dh_auto_install:
 	install -D -m 0755 debian/build/omp-send-context-native-host debian/omp-send-context-firefox-host/usr/bin/omp-send-context-native-host
