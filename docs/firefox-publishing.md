@@ -27,7 +27,7 @@ Official references:
    ```bash
    npm install
    npm test
-   (cd firefox/native-host && go test ./...)
+   npm run test:firefox-native-host
    npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
    ```
 
