@@ -1,9 +1,10 @@
-omp-send-context-firefox-host (1.7.4~ppa1) resolute; urgency=medium
+omp-send-context-firefox-host (1.7.4~ppa2) resolute; urgency=medium
 
   * Replace the Node.js host with a self-contained Go native host.
   * Remove the Node.js runtime dependency from the package.
+  * Set a writable Go build cache for isolated Launchpad builders.
 
- -- Marlen Brunner <klondikemarlen@gmail.com>  Fri, 31 Jul 2026 15:00:00 -0700
+ -- Marlen Brunner <klondikemarlen@gmail.com>  Fri, 31 Jul 2026 15:30:00 -0700
 
 omp-send-context-firefox-host (1.7.3~ppa1) resolute; urgency=medium
 
