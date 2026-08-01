@@ -2,14 +2,14 @@ Source: omp-send-context-firefox-host
 Section: net
 Priority: optional
 Maintainer: Marlen Brunner <klondikemarlen@gmail.com>
-Build-Depends: debhelper-compat (= 13)
+Build-Depends: debhelper-compat (= 13), golang-go
 Standards-Version: 4.7.0
 Homepage: https://github.com/klondikemarlen/omp-send-context
 Rules-Requires-Root: no
 
 Package: omp-send-context-firefox-host
-Architecture: all
-Depends: nodejs (>= 18.0.0), ${misc:Depends}
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Firefox native messaging host for OMP Send Context
  Installs the Linux native messaging host used by the OMP Send Context
  Firefox add-on. System Firefox uses the packaged manifest; Snap and

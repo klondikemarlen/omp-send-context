@@ -62,7 +62,6 @@ test("packaged Firefox host registration keeps package paths and stable allowlis
   const directory = await mkdtemp(join(tmpdir(), "omp-send-context-package-home-"))
   const packageDirectory = join(process.cwd(), "firefox", "native-host")
   const registrationCommand = join(packageDirectory, "omp-send-context-install-firefox-host")
-  const launcherPath = join(packageDirectory, "omp-send-context-native-host")
 
   try {
     const { stdout } = await execFileAsync(registrationCommand, [], { env: { ...process.env, HOME: directory } })
@@ -73,8 +72,7 @@ test("packaged Firefox host registration keeps package paths and stable allowlis
       JSON.parse(await readFile(manifestPath, "utf8")),
       JSON.parse(await readFile(join(packageDirectory, "omp_send_context.json"), "utf8")),
     )
-    assert.equal(await readFile(launcherPath, "utf8"), '#!/bin/sh\nexec /usr/bin/node /usr/lib/omp-send-context-firefox-host/omp-send-context-host.mjs "$@"\n')
-    assert.equal((await stat(launcherPath)).mode & 0o111, 0o111)
+    assert.equal(JSON.parse(await readFile(manifestPath, "utf8")).path, "/usr/bin/omp-send-context-native-host")
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

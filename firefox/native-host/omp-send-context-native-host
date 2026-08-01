@@ -1,2 +1,0 @@
-#!/bin/sh
-exec /usr/bin/node /usr/lib/omp-send-context-firefox-host/omp-send-context-host.mjs "$@"

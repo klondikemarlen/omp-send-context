@@ -1,3 +1,16 @@
 #!/usr/bin/make -f
 %:
 	dh $@
+
+override_dh_auto_build:
+	mkdir -p debian/build
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o debian/build/omp-send-context-native-host .
+
+override_dh_auto_install:
+	install -D -m 0755 debian/build/omp-send-context-native-host debian/omp-send-context-firefox-host/usr/bin/omp-send-context-native-host
+	install -D -m 0755 omp-send-context-install-firefox-host debian/omp-send-context-firefox-host/usr/bin/omp-send-context-install-firefox-host
+	install -D -m 0644 omp_send_context.json debian/omp-send-context-firefox-host/usr/lib/mozilla/native-messaging-hosts/omp_send_context.json
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf debian/build
