@@ -149,6 +149,7 @@
     "package:vsix": "vsce package",
     "package:firefox": "node firefox/scripts/package-firefox.mjs",
     "install:firefox-host": "node firefox/scripts/install-firefox-host.mjs",
+    "test:firefox-native-host": "cd firefox/native-host && go test ./...",
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
     "test": "npm run check-types && node --import tsx --test test/run.mjs"
