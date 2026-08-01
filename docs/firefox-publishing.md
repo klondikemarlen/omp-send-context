@@ -16,7 +16,7 @@ Official references:
 - `package.json` and `package-lock.json` carry the VS Code/OMP package version.
 - `firefox/manifest.json` contains the stable extension ID `omp-send-context@klondikemarlen.github.io`.
 - The Linux Firefox native messaging host manifest must allowlist that exact extension ID. Never change the ID casually; an ID change requires a coordinated host manifest update and a new AMO installation path.
-- The Linux native messaging host is not uploaded to AMO. Ubuntu 26.04 (Resolute) users can install the packaged host from `ppa:klondikemarlen/omp-send-context`; source-checkout installation remains available for other distributions and development.
+- The Linux native messaging host is not uploaded to AMO. Ubuntu 26.04 (Resolute) users can install the packaged, statically linked Go host from `ppa:klondikemarlen/omp-send-context`; the package does not depend on Node.js. Source-checkout installation remains available for other distributions and development.
 
 ## Before publishing
 
@@ -27,6 +27,7 @@ Official references:
    ```bash
    npm install
    npm test
+   (cd firefox/native-host && go test ./...)
    npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
    ```
 

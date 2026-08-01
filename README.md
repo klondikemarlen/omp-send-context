@@ -117,7 +117,7 @@ The client first tries the native-messaging host. If the host is unavailable or 
 
 ### Firefox native messaging host (Linux setup)
 
-The Firefox native messaging host is a separately installed local process. Native delivery is optional: when the host is unavailable, the add-on copies the exact context packet to the clipboard.
+The Firefox native messaging host is a separately installed local process. Native delivery is optional: when the host is unavailable, the add-on copies the exact context packet to the clipboard. The published PPA package contains a statically linked Go host and does not install the Node.js runtime.
 
 For Ubuntu 26.04 (Resolute), the recommended install is the native host PPA:
 
@@ -136,7 +136,7 @@ omp-send-context-install-firefox-host --sandboxed
 
 Run the registration command as your normal desktop user, not with `sudo`. It writes the per-user manifest used by sandboxed Firefox. On other distributions, install the equivalent `xdg-native-messaging-proxy` package when needed.
 
-For source development or distributions without the PPA, install from a checkout:
+For source development or distributions without the PPA, install from a checkout. This development path uses the existing Node.js host and therefore requires the documented Node.js prerequisite:
 
 - **System Firefox:** `npm run install:firefox-host`
 - **Snap or Flatpak Firefox:** `npm run install:firefox-host -- --sandboxed` after installing `xdg-native-messaging-proxy`

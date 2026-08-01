@@ -1,3 +1,10 @@
+omp-send-context-firefox-host (1.7.4~ppa1) resolute; urgency=medium
+
+  * Replace the Node.js host with a self-contained Go native host.
+  * Remove the Node.js runtime dependency from the package.
+
+ -- Marlen Brunner <klondikemarlen@gmail.com>  Fri, 31 Jul 2026 15:00:00 -0700
+
 omp-send-context-firefox-host (1.7.3~ppa1) resolute; urgency=medium
 
   * Package the Firefox native messaging host with a system manifest.
