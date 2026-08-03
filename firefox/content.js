@@ -13,7 +13,7 @@ function captureContext() {
   const anchor = selection?.anchorNode?.parentElement?.closest?.("a[href]")
   reportDebug(selection?.toString().trim().length > 0 ? "capture:selection-present" : "capture:selection-empty")
   return {
-    selectionText: selection?.toString() ?? "",
+    selectionText: ompSendContext.normalizeSelectionText(selection?.toString() ?? ""),
     linkUrl: anchor?.href,
     pageUrl: window.location.href,
     title: document.title,

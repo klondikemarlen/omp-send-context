@@ -245,6 +245,24 @@
     return fence
   }
 
+  function normalizeSelectionText(text) {
+    const lines = text.split(/\r\n?|\n/)
+    const leadingBlank = lines[0]?.trim() === ""
+    const trailingBlank = lines.at(-1)?.trim() === ""
+    const start = leadingBlank ? 1 : 0
+    const end = trailingBlank ? lines.length - 1 : lines.length
+    const content = lines.slice(start, end)
+    if (content.length < 3 || content.length % 2 === 0) {
+      return text
+    }
+    for (let index = 0; index < content.length; index += 1) {
+      if (index % 2 === 0 ? content[index].trim() === "" : content[index].trim() !== "") {
+        return text
+      }
+    }
+    return [...(leadingBlank ? [""] : []), ...content.filter((_, index) => index % 2 === 0), ...(trailingBlank ? [""] : [])].join("\n")
+  }
+
   function isHttpUrl(value) {
     try {
       const url = new URL(value)
@@ -257,6 +275,7 @@
   return {
     createEnvelope,
     formatPrompt,
+    normalizeSelectionText,
     isEligiblePageUrl,
     isSupportedGithubUrl,
     extractGithubDiffLocation,

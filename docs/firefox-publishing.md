@@ -1,6 +1,6 @@
 # Publishing the Firefox Client
 
-This guide covers publishing `firefox/` as a signed Firefox add-on through Mozilla Add-ons (AMO). The OMP plugin, VS Code extension, and native host are separate artifacts and follow their own release paths.
+This guide covers publishing `firefox/` as a signed Firefox add-on through Mozilla Add-ons (AMO). The AMO add-on, VS Code/OMP package, and Firefox native-host Debian package are separate artifacts and follow their own release paths.
 
 Official references:
 
@@ -16,7 +16,7 @@ Official references:
 - `package.json` and `package-lock.json` carry the VS Code/OMP package version.
 - `firefox/manifest.json` contains the stable extension ID `omp-send-context@klondikemarlen.github.io`.
 - The Linux Firefox native messaging host manifest must allowlist that exact extension ID. Never change the ID casually; an ID change requires a coordinated host manifest update and a new AMO installation path.
-- The Linux native messaging host is not uploaded to AMO. It is installed through the operating system and documented separately.
+- The Linux native messaging host is not uploaded to AMO. Ubuntu 26.04 (Resolute) users can install the packaged, statically linked Go host from `ppa:klondikemarlen/omp-send-context`; the package does not depend on Node.js. Source-checkout installation remains available for other distributions and development.
 
 ## Before publishing
 
@@ -27,15 +27,28 @@ Official references:
    ```bash
    npm install
    npm test
+   npm run test:firefox-native-host
    npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
    ```
 
-4. Install the Linux native-messaging host before interactive QA. For system Firefox run `npm run install:firefox-host`. For Snap or Flatpak Firefox, first run `sudo apt install xdg-native-messaging-proxy`, then run `npm run install:firefox-host -- --sandboxed`. The sandboxed command must pass. Verify that `~/.mozilla/native-messaging-hosts/omp_send_context.json` points to the launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script.
+4. Install the Linux native-messaging host before interactive QA. For Ubuntu 26.04 (Resolute), add `ppa:klondikemarlen/omp-send-context`, run `sudo apt update && sudo apt install omp-send-context-firefox-host`, and use the package's system manifest for system Firefox. For Snap or Flatpak Firefox, first run `sudo apt install xdg-native-messaging-proxy`, then run `omp-send-context-install-firefox-host --sandboxed` as the normal desktop user. The sandboxed command must pass. Source-checkout installation remains `npm run install:firefox-host` or `npm run install:firefox-host -- --sandboxed`.
 5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run the [Firefox Manual QA](firefox-manual-qa.md) flow in a fresh Firefox profile. Test cases 1–4 must be **PASS** with `native:succeeded`; test case 5 must be **PASS** with the expected clipboard fallback evidence.
 6. Review the packaged source. Do not include credentials, local bridge state, test fixtures, or the native host in the Firefox add-on artifact.
 7. Confirm the manifest's `browser_specific_settings.gecko.id`, minimum Firefox version, permissions, host scope, and `data_collection_permissions` are intentional.
 8. Merge the implementation pull request only after review, automated checks, native-host registration, and interactive QA are complete.
 
+
+## Publish the native-host PPA package
+
+The native host package is built from `firefox/native-host/` as a Debian native source package. Create `ppa:klondikemarlen/omp-send-context` in Launchpad before the first upload, then build and sign from the release checkout:
+
+```bash
+cd firefox/native-host
+dpkg-buildpackage -S -d -kYOUR_UPLOAD_KEY
+dput ppa:klondikemarlen/omp-send-context ../omp-send-context-firefox-host_*.changes
+```
+
+Wait for Launchpad to build and publish `omp-send-context-firefox-host` for Ubuntu 26.04 (Resolute)/amd64 before publishing the matching AMO version. Verify the package's `InRelease` and package index are public, then test installation with `sudo apt install omp-send-context-firefox-host`.
 
 ## Build the AMO upload artifact
 
@@ -98,7 +111,7 @@ Do not paste credentials into issue, pull-request, or release notes. If AMO requ
 1. Poll the AMO listing until the new version is visible.
 2. In a fresh Firefox profile, install the published AMO add-on rather than the temporary checkout.
 3. Confirm **about:addons** shows the expected extension name and version.
-4. Install the matching Linux native-messaging host. For Snap or Flatpak Firefox, install `xdg-native-messaging-proxy` with `sudo apt install xdg-native-messaging-proxy`, rerun `npm run install:firefox-host -- --sandboxed`, and require that command to pass. Verify the manifest points to the launcher at `~/.local/share/omp-send-context/omp_send_context-host`, which invokes the checkout host script, and allowlists the stable extension ID.
+4. Install the matching Linux native-messaging host. For Ubuntu 26.04 (Resolute), install `omp-send-context-firefox-host` from `ppa:klondikemarlen/omp-send-context`; system Firefox uses the packaged system manifest. For Snap or Flatpak Firefox, install `xdg-native-messaging-proxy` with `sudo apt install xdg-native-messaging-proxy`, then run `omp-send-context-install-firefox-host --sandboxed` as the normal desktop user. Source-checkout installation remains available with `npm run install:firefox-host -- --sandboxed`. Require native delivery to report `native:succeeded`.
 5. Start a fresh OMP process. Firefox may pick up the manifest and proxy registration live; reload the add-on or fully restart Firefox if needed. Run Firefox Manual QA test cases 1–4. Require `native:succeeded` for native-delivery cases.
 6. Confirm test case 5 separately by temporarily making the Linux Firefox native messaging host unavailable and verifying the exact clipboard fallback.
 7. Record the AMO URL, visible version, Firefox version, OMP version, Linux native-host version, host-install command result, and PASS/FAIL/BLOCKED results.

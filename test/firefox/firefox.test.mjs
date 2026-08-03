@@ -10,12 +10,17 @@ const manifest = JSON.parse(await fs.readFile(new URL("../../firefox/manifest.js
 const firefoxPackage = JSON.parse(await fs.readFile(new URL("../../firefox/package.json", import.meta.url), "utf8"))
 const context = { URL }
 vm.runInNewContext(contextSource, context)
-const { createEnvelope, extractGithubDiffLocation, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl } = context.ompSendContext
+const { createEnvelope, extractGithubDiffLocation, formatPrompt, isEligiblePageUrl, isSupportedGithubUrl, normalizeSelectionText } = context.ompSendContext
 
 test("Firefox client recognizes GitHub pull-request pages", () => {
   assert.equal(isSupportedGithubUrl("https://github.com/org/repo/pull/42/files"), true)
   assert.equal(isSupportedGithubUrl("https://github.com/org/repo/issues/42"), false)
   assert.equal(isSupportedGithubUrl("https://evil.example/github.com/org/repo/pull/42"), false)
+})
+
+test("Firefox collapses alternating blank selection lines", () => {
+  assert.equal(normalizeSelectionText("one\n\n two\n\nthree"), "one\n two\nthree")
+  assert.equal(normalizeSelectionText("one\n\ntwo\nthree"), "one\n\ntwo\nthree")
 })
 
 test("Firefox manifest requests HTTP(S) access without local-file access", () => {
@@ -449,6 +454,7 @@ test("Firefox content capture returns diff location metadata", async () => {
     },
     ompSendContext: {
       extractGithubDiffLocation: () => ({ file: "src/example.ts", version: "modified", change: "added", lines: "124" }),
+      normalizeSelectionText: text => text,
     },
     document: { title: "Test pull request" },
   })

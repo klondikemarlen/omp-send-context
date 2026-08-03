@@ -3,3 +3,7 @@ dist/
 *.vsix
 .DS_Store
 firefox/.amo-upload-uuid
+firefox/native-host/debian/files
+firefox/native-host/debian/*.substvars
+firefox/native-host/debian/tmp/
+firefox/native-host/debian/build/
