@@ -4,6 +4,10 @@
 
 - Add an optional Ko-fi maintenance-support link to the repository and published package.
 
+## 1.8.28
+
+- Remove support and maintenance claims from Firefox listing copy.
+
 ## 1.8.27
 
 - Document and package the optional Linux Firefox native-messaging host.

@@ -101,7 +101,7 @@ This plugin is installed from the GitHub repo because it ships an OMP runtime ex
 
 ### Firefox client
 
-The Firefox client is a supported WebExtension with opt-in, session-only diagnostic logging. Debug output is limited to bounded stage and error codes to help diagnose delivery failures.
+The Firefox client is a WebExtension with opt-in, session-only diagnostic logging. Debug output is limited to bounded stage and error codes to help diagnose delivery failures.
 
 The Firefox client is a separate WebExtension under `firefox/`. On ordinary `http://` and `https://` pages, its **Send selection and link to OMP** context-menu action and configurable `Ctrl+Alt+K` shortcut send the current selected text, page URL, and document title. The add-on requests persistent access only to ordinary HTTP(S) pages so the shortcut works without a prior toolbar click; it does not request access to local files. Firefox-protected pages, including AMO, Firefox internal pages, `file:` pages, empty selections, and other unsupported inputs are rejected without delivery.
 
