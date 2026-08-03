@@ -148,6 +148,26 @@ After installation, start a fresh OMP process and restart Firefox. Invoke `Ctrl+
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
 
+### GNOME Shell companion for Ptyxis
+
+Ptyxis does not currently expose a supported plugin ABI. The repository therefore ships a GNOME Shell companion extension that reads the focused Ptyxis window's PRIMARY selection and sends it through the active OMP bridge; it does not patch or inject into Ptyxis.
+
+On GNOME Shell 50, build and install the extension from a checkout:
+
+```bash
+npm run package:gnome
+gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
+```
+
+Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and press the default `Ctrl+Alt+Shift+K`. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The default differs from Firefox and VS Code's `Ctrl+Alt+K` because GNOME Shell's supported keybinding API consumes global accelerators and cannot pass the same key through to those applications. To choose the same key for desktop capture, set the extension's `desktop-shortcut` GSettings key, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
+
+```bash
+gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
+```
+
+This companion is separate from the Firefox integration and does not change Firefox behavior.
+
 Maintenance guides:
 
 - [Firefox manual QA](docs/firefox-manual-qa.md)

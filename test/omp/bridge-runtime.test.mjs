@@ -81,6 +81,25 @@ test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
     assert.equal(firefoxContext.status, 200)
     assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection"])
 
+    const ptyxisContext = await fetch(`${runtime.endpoint}/context`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.token}`,
+      },
+      body: JSON.stringify({
+        version: 1,
+        source: "ptyxis",
+        prompt: "terminal selection",
+        metadata: {
+          application: "org.gnome.Ptyxis",
+          title: "Terminal",
+        },
+      }),
+    })
+    assert.equal(ptyxisContext.status, 200)
+    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection", "terminal selection"])
+
     for (const body of [
       { prompt: "legacy" },
       { version: 2, source: "vscode", prompt: "unsupported" },
@@ -97,7 +116,7 @@ test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
       })
       assert.equal(invalid.status, 400)
     }
-    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection"])
+    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection", "terminal selection"])
 
     await runtime.close()
     await assert.rejects(fs.stat(stateFile))

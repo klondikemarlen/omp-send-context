@@ -1,0 +1,8 @@
+{
+  "uuid": "omp-send-context-gnome@klondikemarlen.github.io",
+  "name": "OMP Send Context",
+  "description": "Send focused desktop selections to OMP",
+  "version": 1,
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.omp-send-context"
+}

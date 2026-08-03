@@ -41,6 +41,7 @@
   "files": [
     "dist/extension.cjs",
     "omp",
+    "gnome-shell",
     "README.md",
     "CONCEPTS.md",
     "CHANGELOG.md",
@@ -147,6 +148,7 @@
     "compile": "npm run check-types && node esbuild.js",
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package",
+    "package:gnome": "mkdir -p dist/gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=context.js --out-dir=../dist/gnome --force",
     "package:firefox": "node firefox/scripts/package-firefox.mjs",
     "install:firefox-host": "node firefox/scripts/install-firefox-host.mjs",
     "test:firefox-native-host": "cd firefox/native-host && go test ./...",

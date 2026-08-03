@@ -138,7 +138,7 @@ func deliverEnvelope(payload []byte) error {
 }
 
 func validateEnvelope(envelope contextEnvelope) error {
-	if envelope.Version != 1 || (envelope.Source != "vscode" && envelope.Source != "firefox") || envelope.Prompt == "" {
+	if envelope.Version != 1 || (envelope.Source != "vscode" && envelope.Source != "firefox" && envelope.Source != "ptyxis") || envelope.Prompt == "" {
 		return fmt.Errorf("expected a version 1 context envelope")
 	}
 	if len(envelope.Metadata) == 0 {
