@@ -160,8 +160,7 @@ gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarle
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and press the default `Ctrl+Alt+Shift+K`. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The default differs from Firefox and VS Code's `Ctrl+Alt+K` because GNOME Shell's supported keybinding API consumes global accelerators and cannot pass the same key through to those applications. To choose the same key for desktop capture, set the extension's `desktop-shortcut` GSettings key, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
-
+Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and press the default `Ctrl+Super+Alt+K`. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The separate shortcut avoids consuming Firefox and VS Code's `Ctrl+Alt+K`. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To choose `Ctrl+Alt+K` for desktop capture anyway, set the extension's `desktop-shortcut` GSettings key, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
 ```bash
 gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
 ```
