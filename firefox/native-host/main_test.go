@@ -43,6 +43,7 @@ func TestDeliverEnvelopeUsesAuthenticatedLoopbackBridge(t *testing.T) {
 		t.Fatalf("bridge body = %s, want %s", received, payload)
 	}
 }
+
 func TestValidateEnvelopeRejectsInvalidMetadata(t *testing.T) {
 	for _, metadata := range []string{`null`, `42`, `[]`, `{"url":42}`} {
 		t.Run(metadata, func(t *testing.T) {
