@@ -7,6 +7,7 @@
 ## 1.8.27
 
 - Document and package the optional Linux Firefox native-messaging host.
+- Normalize alternating blank lines introduced by browser DOM selection.
 
 ## 1.8.26
 
