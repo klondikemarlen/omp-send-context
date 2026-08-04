@@ -199,14 +199,13 @@ sudo apt install libsecret-tools
 npm run setup:gnome-secrets
 ```
 
-The script asks for your GNOME Extensions login, then `secret-tool` asks for its password. Copy the password from your password manager into that prompt; it stays in the desktop keyring, not `.envrc` or Git.
+The setup script asks for your GNOME Extensions login, then `secret-tool` asks for its password. `npm run upload:gnome` asks for the same login when `--account` is omitted. Copy the password from your password manager into the `secret-tool` prompt; it stays in the desktop keyring, not `.envrc` or Git.
 
 ```bash
 npm test
 npm run package:gnome
 npm run upload:gnome -- \
   --zip dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
-  --account "your-gnome-login" \
   --accept-license \
   --accept-terms
 ```
@@ -224,7 +223,7 @@ Install Node from that repository's `.tool-versions` and `libsecret-tools`, then
 
 ```bash
 npm run setup:gnome-secrets -- --project "other-project"
-npm run upload:gnome -- --zip dist/gnome/other-extension.zip --account "your-gnome-login" --project "other-project" --accept-license --accept-terms
+npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-project" --accept-license --accept-terms
 ```
 
 This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. GNOME Extensions' upload endpoint uses a session cookie, not a PAT or API token.
