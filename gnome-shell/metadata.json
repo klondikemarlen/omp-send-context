@@ -1,8 +1,7 @@
 {
   "uuid": "omp-send-context-gnome@klondikemarlen.github.io",
   "name": "OMP Send Context",
-  "description": "Send focused desktop selections to OMP",
-  "version": 1,
+  "description": "Send focused Ptyxis PRIMARY clipboard selections to OMP",
   "shell-version": ["50"],
   "settings-schema": "org.gnome.shell.extensions.omp-send-context",
   "url": "https://github.com/klondikemarlen/omp-send-context"

@@ -17,7 +17,7 @@ const loadExtension = Function(
   `${source.replace(/^import .*$/gm, "").replace("export default class", "class")}\nreturn OmpSendContextExtension`,
 )
 
-test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelope", () => {
+test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelope", async () => {
   const notifications = []
   const messages = []
   let shortcut
@@ -29,8 +29,9 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
   global.display = { focus_window: window }
 
   const Gio = {
+    _promisify: () => {},
     File: {
-      new_for_path: () => ({ load_contents: () => [true, new TextEncoder().encode(state)] }),
+      new_for_path: () => ({ load_contents_async: async () => [new TextEncoder().encode(state), null] }),
     },
   }
   const GLib = {
@@ -51,10 +52,8 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
       }),
     },
     Session: class {
-      send_and_read_async(message, _priority, _cancellable, callback) {
-        callback(this, message)
-      }
-      send_and_read_finish() {}
+      async send_and_read_async() {}
+      abort() {}
     },
   }
   const St = {
@@ -91,6 +90,7 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
   const extension = new ExtensionClass()
   extension.enable()
   shortcut()
+  await new Promise((resolve) => setImmediate(resolve))
 
   assert.equal(messages.length, 1)
   assert.equal(messages[0].uri, "http://127.0.0.1:47687/context")
