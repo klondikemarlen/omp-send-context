@@ -7,6 +7,7 @@ VS Code client plus OMP extension for sending source selections to OMP with `Ctr
 - `vscode/` — VS Code extension source (`extension.ts`, `prompt.ts`).
 - `firefox/` — Firefox add-on, native host, and Firefox-only build/sign/install scripts.
 - `omp/` — OMP bridge runtime and extension entry point.
+- `gnome-shell/` — GNOME Shell companion extension for focused Ptyxis selections.
 - `protocol/` — versioned context-envelope schema and example fixtures shared by clients and runtimes.
 - `test/<integration>/` — tests grouped by integration (`vscode`, `firefox`, `omp`, and `protocol`).
 
@@ -166,6 +167,42 @@ gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<C
 ```
 
 This companion is separate from the Firefox integration and does not change Firefox behavior.
+
+#### GNOME companion maintenance and review
+
+The companion is packaged separately from the VS Code, OMP, and Firefox artifacts:
+
+```bash
+npm test
+npm run package:gnome
+unzip -l dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+```
+
+For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
+
+```bash
+gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
+gnome-extensions list | grep omp-send-context
+```
+
+To remove a checkout install:
+
+```bash
+gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
+```
+
+The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). New or corrected ZIPs are submitted through the [GNOME review form](https://extensions.gnome.org/review/73711); the upload is manual and publication remains pending until GNOME review accepts it. Do not describe a ZIP as published until the listing shows the accepted version.
+
+The extension currently targets GNOME Shell 50. The default shortcut is `Ctrl+Super+Alt+K`; changing `desktop-shortcut` to `Ctrl+Alt+K` makes the global GNOME binding take precedence over the Firefox and VS Code shortcuts. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
+
+For extension errors after a fresh session, inspect the Shell journal:
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell
+```
+
+The companion requires an active OMP bridge. Start a fresh OMP process after installation and confirm that `~/.omp/agent/editor-context-bridge.json` exists before testing a selected Ptyxis terminal.
 
 Maintenance guides:
 
