@@ -51,6 +51,29 @@ test("GNOME secret setup prompts for and stores the account", async () => {
   }])
 })
 
+test("GNOME uploader prompts for an omitted account", async () => {
+  await withZip(async zipPath => {
+    let requests = 0
+    await uploadGnomeExtension({
+      zipPath,
+      acceptLicense: true,
+      acceptTerms: true,
+      prompt: async () => "maintainer@example.com",
+      lookupSecret: async ({ account }) => {
+        assert.equal(account, "maintainer@example.com")
+        return "keyring password"
+      },
+      fetchImpl: async (_url, options) => {
+        if (requests++ === 0) {
+          assert.deepEqual([...options.body], [["login", "maintainer@example.com"], ["password", "keyring password"]])
+          return new Response(null, { status: 200, headers: { "Set-Cookie": "sessionid=opaque-session; HttpOnly" } })
+        }
+        return new Response(null, { status: 201 })
+      },
+    })
+  })
+})
+
 test("GNOME uploader logs in from Secret Service and submits the required ZIP fields", async () => {
   await withZip(async zipPath => {
     const calls = []

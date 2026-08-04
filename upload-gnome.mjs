@@ -17,18 +17,22 @@ export async function uploadGnomeExtension({
   acceptTerms = false,
   fetchImpl = fetch,
   lookupSecret = secretToolLookup,
+  prompt = promptAccount,
 }) {
-  if (!zipPath || !account) {
-    throw new Error("Both --zip and --account are required.")
+  if (!zipPath) {
+    throw new Error("--zip is required.")
+  }
+  const loginAccount = (account ?? await prompt()).trim()
+  if (!loginAccount) {
+    throw new Error("A GNOME Extensions login is required.")
   }
   if (!acceptLicense || !acceptTerms) {
     throw new Error("Pass --accept-license and --accept-terms after reviewing GNOME Extensions' upload agreements.")
   }
-
   const password = await lookupSecret({
     service: SECRET_SERVICE,
     project,
-    account,
+    account: loginAccount,
     purpose: SECRET_PURPOSE,
   })
   if (!password) {
@@ -37,7 +41,7 @@ export async function uploadGnomeExtension({
 
   const login = await fetchImpl(`${API_BASE}/accounts/login/`, {
     method: "POST",
-    body: new URLSearchParams({ login: account, password }),
+    body: new URLSearchParams({ login: loginAccount, password }),
   })
   if (login.status !== 200) {
     throw new Error(`GNOME Extensions login failed (${login.status}).`)
@@ -163,7 +167,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     const options = parseArguments(process.argv.slice(2))
     if (options.help) {
-      console.log("Usage: npm run upload:gnome -- --zip <extension.zip> --account <GNOME login> [--project <secret project>] --accept-license --accept-terms\n       npm run setup:gnome-secrets [-- --account <GNOME login> --project <secret project>]")
+      console.log("Usage: npm run upload:gnome -- --zip <extension.zip> [--account <GNOME login>] [--project <secret project>] --accept-license --accept-terms\n       npm run setup:gnome-secrets [-- --account <GNOME login> --project <secret project>]")
     } else if (options.setup) {
       await configureGnomeUpload(options)
       console.log("GNOME Extensions upload password stored in the desktop keyring.")
