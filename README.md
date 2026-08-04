@@ -161,7 +161,7 @@ gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarle
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and press the default `Ctrl+Super+Alt+K`. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The separate shortcut avoids consuming Firefox and VS Code's `Ctrl+Alt+K`. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To choose `Ctrl+Alt+K` for desktop capture anyway, set the extension's `desktop-shortcut` GSettings key, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
+Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To configure the original `Ctrl+Alt+K` shortcut, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
 ```bash
 gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
 ```
@@ -177,6 +177,16 @@ npm test
 npm run package:gnome
 unzip -l dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
 ```
+
+Run the GNOME static analyzer from the repository's asdf Python:
+
+```bash
+python -m pip install -U shexli
+shexli "$PWD/gnome-shell"
+shexli "$PWD/dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
+```
+
+The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
 
 For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
 
@@ -194,7 +204,7 @@ gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 
 The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). New or corrected ZIPs are submitted through the [GNOME review form](https://extensions.gnome.org/review/73711); the upload is manual and publication remains pending until GNOME review accepts it. Do not describe a ZIP as published until the listing shows the accepted version.
 
-The extension currently targets GNOME Shell 50. The default shortcut is `Ctrl+Super+Alt+K`; changing `desktop-shortcut` to `Ctrl+Alt+K` makes the global GNOME binding take precedence over the Firefox and VS Code shortcuts. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
+The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Super+Alt+K` preserves Firefox and VS Code's `Ctrl+Alt+K`, while `Ctrl+Alt+K` gives the GNOME companion precedence. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
 For extension errors after a fresh session, inspect the Shell journal:
 
