@@ -21,6 +21,7 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
   const notifications = []
   const messages = []
   let shortcut
+  let clipboardCallback
   const state = JSON.stringify({ endpoint: "http://127.0.0.1:47687", token: "test-token" })
   const window = {
     get_gtk_application_id: () => "org.gnome.Ptyxis",
@@ -60,7 +61,10 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
     ClipboardType: { PRIMARY: "primary" },
     Clipboard: {
       get_default: () => ({
-        get_text: (_type, callback) => callback(null, "selected terminal text"),
+        get_text: (_type, callback) => {
+          clipboardCallback = callback
+          callback(null, "selected terminal text")
+        },
       }),
     },
   }
@@ -100,5 +104,10 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
     prompt: "# OMP Agent Handoff\n\n## Ptyxis terminal\n\n- Application: org.gnome.Ptyxis\n\n- Window: Project terminal\n\n## Selected text\n\n```\nselected terminal text\n```\n\n",
     metadata: { application: "org.gnome.Ptyxis", title: "Project terminal" },
   })
+  assert.deepEqual(notifications, ["Context sent to OMP."])
+  extension.disable()
+  clipboardCallback(null, "late selection")
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(messages.length, 1)
   assert.deepEqual(notifications, ["Context sent to OMP."])
 })
