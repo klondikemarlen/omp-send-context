@@ -196,17 +196,10 @@ One-time desktop setup:
 
 ```bash
 sudo apt install libsecret-tools
-secret-tool store \
-  --label="GNOME Extensions upload password" \
-  service "extensions.gnome.org" \
-  project "omp-send-context" \
-  account "your-gnome-login" \
-  purpose "upload"
+npm run setup:gnome-secrets
 ```
 
-`secret-tool` prompts for the password. Copy it from your password manager into that prompt; do not add it to a project file. The non-secret `account` attribute and default `project` name identify this entry. The desktop keyring must be unlocked before upload.
-
-For every upload, first build and inspect the ZIP, then explicitly accept the two GNOME upload agreements:
+The script asks for your GNOME Extensions login, then `secret-tool` asks for its password. Copy the password from your password manager into that prompt; it stays in the desktop keyring, not `.envrc` or Git.
 
 ```bash
 npm test
@@ -223,18 +216,14 @@ The command reports success only after the API returns HTTP `201`. That means th
 For another project, copy `upload-gnome.mjs` and add this package script:
 
 ```json
+"setup:gnome-secrets": "node upload-gnome.mjs --setup",
 "upload:gnome": "node upload-gnome.mjs"
 ```
 
-Install Node from that repository's `.tool-versions` and `libsecret-tools`, then create a distinct keyring entry using that project's name. Pass the same value as `--project` when uploading:
+Install Node from that repository's `.tool-versions` and `libsecret-tools`, then run the copied setup script with that project's name. It prompts for the login and password:
 
 ```bash
-secret-tool store \
-  --label="GNOME Extensions upload password" \
-  service "extensions.gnome.org" \
-  project "other-project" \
-  account "your-gnome-login" \
-  purpose "upload"
+npm run setup:gnome-secrets -- --project "other-project"
 npm run upload:gnome -- --zip dist/gnome/other-extension.zip --account "your-gnome-login" --project "other-project" --accept-license --accept-terms
 ```
 
