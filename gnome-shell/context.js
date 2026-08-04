@@ -41,11 +41,8 @@ export function formatPrompt({ selectionText, application, windowTitle }) {
 }
 
 function codeFence(text) {
-  let fence = "```"
-  while (text.includes(fence)) {
-    fence += "`"
-  }
-  return fence
+  const longestRun = (text.match(/`+/g) ?? []).reduce((length, run) => Math.max(length, run.length), 0)
+  return "`".repeat(Math.max(3, longestRun + 1))
 }
 
 function safeMetadata(value, fallback) {

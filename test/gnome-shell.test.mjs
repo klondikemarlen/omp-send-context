@@ -26,4 +26,9 @@ test("Ptyxis context rejects empty selection and lengthens fences", () => {
   assert.throws(() => createEnvelope({ selectionText: " \n", application: "terminal", windowTitle: "Terminal" }), /Select text/)
   const prompt = formatPrompt({ selectionText: "contains ```", application: "terminal", windowTitle: "Terminal" })
   assert.match(prompt, /````\ncontains ```\n````/)
+  assert.match(formatPrompt({
+    selectionText: "`".repeat(4096),
+    application: "terminal",
+    windowTitle: "Terminal",
+  }), /`{4097}/)
 })

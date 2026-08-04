@@ -2,7 +2,10 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { createEnvelope, isPtyxisApplication } from "../gnome-shell/context.js"
-const source = await readFile(new URL("../gnome-shell/extension.js", import.meta.url), "utf8")
+const [bridgeSource, extensionSource] = await Promise.all([
+  readFile(new URL("../gnome-shell/bridge.js", import.meta.url), "utf8"),
+  readFile(new URL("../gnome-shell/extension.js", import.meta.url), "utf8"),
+])
 const loadExtension = Function(
   "Gio",
   "GLib",
@@ -14,7 +17,7 @@ const loadExtension = Function(
   "Extension",
   "createEnvelope",
   "isPtyxisApplication",
-  `${source.replace(/^import .*$/gm, "").replace("export default class", "class")}\nreturn OmpSendContextExtension`,
+  `${`${bridgeSource}\n${extensionSource}`.replace(/^import .*$/gm, "").replace("export class", "class").replace("export default class", "class")}\nreturn OmpSendContextExtension`,
 )
 
 test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelope", async () => {
