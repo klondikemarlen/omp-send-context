@@ -188,6 +188,58 @@ shexli "$PWD/dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-ex
 
 The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
 
+#### Headless GNOME Extensions upload
+
+`npm run upload:gnome` logs into the documented GNOME Extensions API, uploads one ZIP, and keeps the returned session cookie in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
+
+One-time desktop setup:
+
+```bash
+sudo apt install libsecret-tools
+secret-tool store \
+  --label="GNOME Extensions upload password" \
+  service "extensions.gnome.org" \
+  project "omp-send-context" \
+  account "your-gnome-login" \
+  purpose "upload"
+```
+
+`secret-tool` prompts for the password. Copy it from your password manager into that prompt; do not add it to a project file. The non-secret `account` attribute and default `project` name identify this entry. The desktop keyring must be unlocked before upload.
+
+For every upload, first build and inspect the ZIP, then explicitly accept the two GNOME upload agreements:
+
+```bash
+npm test
+npm run package:gnome
+npm run upload:gnome -- \
+  --zip dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
+  --account "your-gnome-login" \
+  --accept-license \
+  --accept-terms
+```
+
+The command reports success only after the API returns HTTP `201`. That means the upload was accepted for review; it is not publication or reviewer approval.
+
+For another project, copy `upload-gnome.mjs` and add this package script:
+
+```json
+"upload:gnome": "node upload-gnome.mjs"
+```
+
+Install Node from that repository's `.tool-versions` and `libsecret-tools`, then create a distinct keyring entry using that project's name. Pass the same value as `--project` when uploading:
+
+```bash
+secret-tool store \
+  --label="GNOME Extensions upload password" \
+  service "extensions.gnome.org" \
+  project "other-project" \
+  account "your-gnome-login" \
+  purpose "upload"
+npm run upload:gnome -- --zip dist/gnome/other-extension.zip --account "your-gnome-login" --project "other-project" --accept-license --accept-terms
+```
+
+This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. GNOME Extensions' upload endpoint uses a session cookie, not a PAT or API token.
+
 For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
 
 ```bash
