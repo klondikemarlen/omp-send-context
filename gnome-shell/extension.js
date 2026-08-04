@@ -14,18 +14,17 @@ const HOST = "127.0.0.1"
 
 export default class OmpSendContextExtension extends Extension {
   enable() {
-    this.settings = this.getSettings()
+    this._settings = this.getSettings()
     Gio._promisify(Gio.File.prototype, "load_contents_async")
     Gio._promisify(Soup.Session.prototype, "send_and_read_async", "send_and_read_finish")
     this._generation = (this._generation ?? 0) + 1
     this._session = new Soup.Session()
-    this._onShortcut = () => this._captureSelection()
     Main.wm.addKeybinding(
       "desktop-shortcut",
-      this.settings,
+      this._settings,
       Meta.KeyBindingFlags.NONE,
       Shell.ActionMode.ALL,
-      this._onShortcut,
+      () => this._captureSelection(),
     )
   }
 
@@ -34,8 +33,7 @@ export default class OmpSendContextExtension extends Extension {
     Main.wm.removeKeybinding("desktop-shortcut")
     this._session.abort()
     this._session = null
-    this._onShortcut = null
-    this.settings = null
+    this._settings = null
   }
 
   _captureSelection() {

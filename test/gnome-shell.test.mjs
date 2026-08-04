@@ -21,6 +21,7 @@ test("Ptyxis context recognizes only Ptyxis windows", () => {
   assert.equal(isPtyxisApplication("org.gnome.Ptyxis"), true)
   assert.equal(isPtyxisApplication("org.gnome.Terminal"), false)
 })
+
 test("Ptyxis context rejects empty selection and lengthens fences", () => {
   assert.throws(() => createEnvelope({ selectionText: " \n", application: "terminal", windowTitle: "Terminal" }), /Select text/)
   const prompt = formatPrompt({ selectionText: "contains ```", application: "terminal", windowTitle: "Terminal" })
