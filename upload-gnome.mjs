@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { spawn } from "node:child_process"
+import { createInterface } from "node:readline/promises"
 import { basename } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -59,6 +60,25 @@ export async function uploadGnomeExtension({
   }
 }
 
+export async function configureGnomeUpload({
+  account,
+  project = DEFAULT_PROJECT,
+  prompt = promptAccount,
+  storeSecret = secretToolStore,
+}) {
+  const login = (account ?? await prompt()).trim()
+  if (!login) {
+    throw new Error("A GNOME Extensions login is required.")
+  }
+  await storeSecret({
+    label: "GNOME Extensions upload password",
+    service: SECRET_SERVICE,
+    project,
+    account: login,
+    purpose: SECRET_PURPOSE,
+  })
+}
+
 function sessionCookie(headers) {
   const cookies = headers.getSetCookie().map(value => value.split(";", 1)[0])
   const session = cookies.find(value => value.startsWith("sessionid="))
@@ -87,6 +107,26 @@ function secretToolLookup(attributes) {
   })
 }
 
+function promptAccount() {
+  const terminal = createInterface({ input: process.stdin, output: process.stdout })
+  return terminal.question("GNOME Extensions login: ").finally(() => terminal.close())
+}
+
+function secretToolStore({ label, ...attributes }) {
+  const args = ["store", `--label=${label}`, ...Object.entries(attributes).flatMap(([name, value]) => [name, value])]
+  return new Promise((resolve, reject) => {
+    const child = spawn("secret-tool", args, { stdio: "inherit" })
+    child.on("error", () => reject(new Error("secret-tool is unavailable. Install libsecret-tools and unlock your desktop keyring.")))
+    child.on("close", code => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error("secret-tool could not store the GNOME Extensions password."))
+      }
+    })
+  })
+}
+
 function parseArguments(args) {
   const options = { project: DEFAULT_PROJECT, acceptLicense: false, acceptTerms: false }
   for (let index = 0; index < args.length; index += 1) {
@@ -106,6 +146,9 @@ function parseArguments(args) {
       case "--accept-terms":
         options.acceptTerms = true
         break
+      case "--setup":
+        options.setup = true
+        break
       case "--help":
         options.help = true
         break
@@ -120,7 +163,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     const options = parseArguments(process.argv.slice(2))
     if (options.help) {
-      console.log("Usage: npm run upload:gnome -- --zip <extension.zip> --account <GNOME login> [--project <secret project>] --accept-license --accept-terms")
+      console.log("Usage: npm run upload:gnome -- --zip <extension.zip> --account <GNOME login> [--project <secret project>] --accept-license --accept-terms\n       npm run setup:gnome-secrets [-- --account <GNOME login> --project <secret project>]")
+    } else if (options.setup) {
+      await configureGnomeUpload(options)
+      console.log("GNOME Extensions upload password stored in the desktop keyring.")
     } else {
       await uploadGnomeExtension(options)
       console.log("GNOME Extensions upload accepted for review.")

@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { uploadGnomeExtension } from "../upload-gnome.mjs"
+import { configureGnomeUpload, uploadGnomeExtension } from "../upload-gnome.mjs"
 
 async function withZip(run) {
   const directory = await mkdtemp(join(tmpdir(), "omp-gnome-upload-"))
@@ -35,6 +35,21 @@ function uploadOptions(zipPath, fetchImpl) {
     },
   }
 }
+
+test("GNOME secret setup prompts for and stores the account", async () => {
+  const stored = []
+  await configureGnomeUpload({
+    prompt: async () => "maintainer@example.com",
+    storeSecret: async attributes => stored.push(attributes),
+  })
+  assert.deepEqual(stored, [{
+    label: "GNOME Extensions upload password",
+    service: "extensions.gnome.org",
+    project: "omp-send-context",
+    account: "maintainer@example.com",
+    purpose: "upload",
+  }])
+})
 
 test("GNOME uploader logs in from Secret Service and submits the required ZIP fields", async () => {
   await withZip(async zipPath => {
