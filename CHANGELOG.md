@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2.4.0
+
+- Document Devin Desktop as the project's VS Code-compatible Marketplace client and its install/version commands.
+
 ## 2.3.0
 
 - Document the extension-local GSettings schema path required to configure the local GNOME Shell shortcut.
