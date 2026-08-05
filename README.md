@@ -244,7 +244,7 @@ To remove a checkout install:
 gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). New or corrected ZIPs are submitted through the [GNOME review form](https://extensions.gnome.org/review/73711); the upload is manual and publication remains pending until GNOME review accepts it. Do not describe a ZIP as published until the listing shows the accepted version.
+The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). Submit new or corrected ZIPs with `npm run upload:gnome`; GNOME review and public listing acceptance remain external. Do not describe a ZIP as published until the listing shows the accepted version.
 
 The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Super+Alt+K` preserves Firefox and VS Code's `Ctrl+Alt+K`, while `Ctrl+Alt+K` gives the GNOME companion precedence. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
