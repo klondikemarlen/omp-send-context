@@ -47,21 +47,22 @@ You need both pieces:
 1. The VS Code extension captures editor state.
 2. The OMP extension receives the context and inserts it into the OMP prompt.
 
-### VS Code Marketplace
+### VS Code-Compatible Marketplace Clients
 
-Install or update from Marketplace:
+Install or update from Marketplace. This project uses **Devin Desktop**, a VS Code-based desktop client; it supports the same Marketplace extension format and its own `devin-desktop` CLI:
+
+```bash
+devin-desktop --install-extension klondikemarlen.omp-send-context --force
+devin-desktop --list-extensions --show-versions | grep '^klondikemarlen.omp-send-context@'
+```
+
+Plain VS Code uses:
 
 ```bash
 code --install-extension klondikemarlen.omp-send-context --force
 ```
 
-If the VS Code CLI is not installed but Devin Desktop is available:
-
-```bash
-devin-desktop --install-extension klondikemarlen.omp-send-context --force
-```
-
-Or use VS Code's Extensions view and search for **Oh My Pi Send Context**. Marketplace installs normally auto-update with VS Code unless extension auto-update is disabled.
+Or use the client's Extensions view and search for **Oh My Pi Send Context**. Marketplace installs normally auto-update unless extension auto-update is disabled.
 
 Links:
 
