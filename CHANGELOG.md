@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0
+
+- Refine GNOME Shell capture-session lifecycle handling and stale callback coverage.
+- Format the repository with the shared Prettier configuration and write VSIX packages to `/tmp`.
+
 ## 2.4.0
 
 - Document Devin Desktop as the project's VS Code-compatible Marketplace client and its install/version commands.
