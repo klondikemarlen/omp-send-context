@@ -11,7 +11,11 @@ browser.runtime.onMessage.addListener((message) => {
 function captureContext() {
   const selection = window.getSelection()
   const anchor = selection?.anchorNode?.parentElement?.closest?.("a[href]")
-  reportDebug(selection?.toString().trim().length > 0 ? "capture:selection-present" : "capture:selection-empty")
+  reportDebug(
+    selection?.toString().trim().length > 0
+      ? "capture:selection-present"
+      : "capture:selection-empty"
+  )
   return {
     selectionText: ompSendContext.normalizeSelectionText(selection?.toString() ?? ""),
     linkUrl: anchor?.href,
@@ -28,7 +32,8 @@ function reportDebug(event) {
 function showNotification(message) {
   const notification = document.createElement("div")
   notification.textContent = message
-  notification.style.cssText = "box-sizing:border-box;position:fixed;z-index:2147483647;right:16px;bottom:16px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:auto;overflow-wrap:anywhere;padding:10px 14px;border-radius:6px;background:#24292f;color:#fff;font:13px system-ui,sans-serif;box-shadow:0 2px 8px #0006"
+  notification.style.cssText =
+    "box-sizing:border-box;position:fixed;z-index:2147483647;right:16px;bottom:16px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:auto;overflow-wrap:anywhere;padding:10px 14px;border-radius:6px;background:#24292f;color:#fff;font:13px system-ui,sans-serif;box-shadow:0 2px 8px #0006"
   document.body.append(notification)
   setTimeout(() => notification.remove(), 3500)
 }

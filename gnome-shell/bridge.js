@@ -21,7 +21,7 @@ export class OmpBridgeClient {
     const path = GLib.build_filenamev([GLib.get_home_dir(), ...STATE_FILE])
     let contents
     try {
-      [contents] = await Gio.File.new_for_path(path).load_contents_async(null)
+      ;[contents] = await Gio.File.new_for_path(path).load_contents_async(null)
     } catch {
       throw new Error("No active OMP session was found.")
     }
@@ -51,7 +51,13 @@ function parseBridgeState(contents) {
   try {
     const state = JSON.parse(new TextDecoder().decode(contents))
     const endpoint = new URL(state.endpoint)
-    if (endpoint.protocol !== "http:" || endpoint.hostname !== HOST || !endpoint.port || typeof state.token !== "string" || !state.token) {
+    if (
+      endpoint.protocol !== "http:" ||
+      endpoint.hostname !== HOST ||
+      !endpoint.port ||
+      typeof state.token !== "string" ||
+      !state.token
+    ) {
       throw new Error("The active OMP session state is invalid.")
     }
     return { endpoint: endpoint.origin, token: state.token }

@@ -50,10 +50,10 @@ browser.runtime.onMessage.addListener((message) => {
     return
   }
   if (message?.type === "get-debug-state") {
-    return readDebugEnabled().then(enabled => ({ enabled }))
+    return readDebugEnabled().then((enabled) => ({ enabled }))
   }
   if (message?.type === "toggle-debug") {
-    return toggleDebugLogging().then(enabled => ({ enabled }))
+    return toggleDebugLogging().then((enabled) => ({ enabled }))
   }
   if (message?.type === "copy-debug-log") {
     return copyDebugLogActiveTab()
@@ -94,7 +94,10 @@ async function sendActiveContext() {
   }
   if (!ompSendContext.isEligiblePageUrl(tab.url ?? "")) {
     await recordDebug("shortcut:unsupported-page")
-    await notify(tab.id, "Firefox blocks add-ons on this page, so OMP Send Context can’t copy context here.")
+    await notify(
+      tab.id,
+      "Firefox blocks add-ons on this page, so OMP Send Context can’t copy context here."
+    )
     return
   }
 
@@ -144,7 +147,6 @@ async function hostAccessStatus(tabUrl) {
     return "unknown"
   }
 }
-
 
 async function deliver(envelope, tabId) {
   await recordDebug("native:starting")
@@ -200,7 +202,11 @@ async function copyTextToClipboard(text) {
 
 function nativeErrorCode(error) {
   const message = String(error?.message ?? "").toLowerCase()
-  if (message.includes("no such native application") || message.includes("not found") || message.includes("native host")) {
+  if (
+    message.includes("no such native application") ||
+    message.includes("not found") ||
+    message.includes("native host")
+  ) {
     return "host-unavailable"
   }
   if (message.includes("permission") || message.includes("access")) {
@@ -213,10 +219,17 @@ function nativeErrorCode(error) {
 }
 
 function nativeErrorDetail(error) {
-  const name = String(error?.name ?? "Error").replace(/\s+/g, " ").trim()
-  const message = String(error?.message ?? "").replace(/\s+/g, " ").trim()
+  const name = String(error?.name ?? "Error")
+    .replace(/\s+/g, " ")
+    .trim()
+  const message = String(error?.message ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
   const safe = `${name}: ${message}`
-    .replace(/\b(?:authorization\s*[:=]\s*(?:bearer\s+)?|bearer\s+|(?:token|secret|password)\s*[:=]\s*)\S+/gi, "[redacted]")
+    .replace(
+      /\b(?:authorization\s*[:=]\s*(?:bearer\s+)?|bearer\s+|(?:token|secret|password)\s*[:=]\s*)\S+/gi,
+      "[redacted]"
+    )
     .replace(/(?:https?|file):\/\/\S+/gi, "[url]")
     .replace(/(?:[A-Za-z]:)?\/[^\s]+/g, "[path]")
   return safe.slice(0, 160) || "no-message"
@@ -224,15 +237,21 @@ function nativeErrorDetail(error) {
 
 async function updateDebugIndicator(enabled) {
   const revision = ++debugIndicatorRevision
-  const currentEnabled = enabled ?? await readDebugEnabled()
+  const currentEnabled = enabled ?? (await readDebugEnabled())
   if (revision !== debugIndicatorRevision) {
     return
   }
-  await browser.browserAction.setIcon({ path: currentEnabled ? DEBUG_ICON_PATHS : DEFAULT_ICON_PATHS })
+  await browser.browserAction.setIcon({
+    path: currentEnabled ? DEBUG_ICON_PATHS : DEFAULT_ICON_PATHS,
+  })
   await browser.browserAction.setBadgeText({ text: currentEnabled ? "!" : "" })
-  await browser.browserAction.setBadgeBackgroundColor({ color: currentEnabled ? "#d1242f" : "#57606a" })
+  await browser.browserAction.setBadgeBackgroundColor({
+    color: currentEnabled ? "#d1242f" : "#57606a",
+  })
   await browser.browserAction.setTitle({
-    title: currentEnabled ? "OMP Send Context; debug logging is ON" : "OMP Send Context; debug logging is OFF",
+    title: currentEnabled
+      ? "OMP Send Context; debug logging is ON"
+      : "OMP Send Context; debug logging is OFF",
   })
 }
 
@@ -252,7 +271,7 @@ async function copyDebugLog(tabId) {
     "OMP Send Context debug log",
     `Extension version: ${browser.runtime.getManifest().version}`,
     `Source commit: ${SOURCE_COMMIT}`,
-    `Debug logging: ${await readDebugEnabled() ? "enabled" : "disabled"}`,
+    `Debug logging: ${(await readDebugEnabled()) ? "enabled" : "disabled"}`,
     ...debugEntries,
   ].join("\n")
   try {
@@ -303,7 +322,7 @@ async function readDebugEnabled() {
 }
 
 async function recordDebug(event) {
-  if (!await readDebugEnabled()) {
+  if (!(await readDebugEnabled())) {
     return
   }
   const entry = `${new Date().toISOString()} ${event}`

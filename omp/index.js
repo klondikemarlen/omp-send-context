@@ -31,7 +31,10 @@ export default function ompSendContextExtension(pi) {
       activeContext = ctx
       await ensureServer()
       if (args[0] === "status") {
-        ctx.ui.notify(`Send Context to OMP ${bridge.version} is listening on ${bridge.endpoint}.`, "info")
+        ctx.ui.notify(
+          `Send Context to OMP ${bridge.version} is listening on ${bridge.endpoint}.`,
+          "info"
+        )
         return
       }
       if (await claimActiveBridge({ force: true })) {
@@ -87,7 +90,11 @@ async function readFocusClaimingSetting() {
 }
 
 function watchFocusSettings(pi) {
-  if (process.platform !== "linux" || pi.getFlag("claim-ide-context-on-focus") === true || focusSettingsWatcher !== undefined) {
+  if (
+    process.platform !== "linux" ||
+    pi.getFlag("claim-ide-context-on-focus") === true ||
+    focusSettingsWatcher !== undefined
+  ) {
     return
   }
 
@@ -99,12 +106,16 @@ function watchFocusSettings(pi) {
   }
 
   try {
-    focusSettingsWatcher = watch(dirname(PLUGINS_LOCK_FILE), { persistent: false }, (_event, filename) => {
-      if (filename !== null && basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
-        return
+    focusSettingsWatcher = watch(
+      dirname(PLUGINS_LOCK_FILE),
+      { persistent: false },
+      (_event, filename) => {
+        if (filename !== null && basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
+          return
+        }
+        refresh()
       }
-      refresh()
-    })
+    )
   } catch {
     watchFile(PLUGINS_LOCK_FILE, { persistent: false, interval: 100 }, refresh)
     focusSettingsWatcher = {

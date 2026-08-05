@@ -8,7 +8,9 @@ async function send(message) {
 }
 
 function render(enabled) {
-  debugButton.querySelector("span:last-child").textContent = enabled ? "Disable debug logging" : "Enable debug logging"
+  debugButton.querySelector("span:last-child").textContent = enabled
+    ? "Disable debug logging"
+    : "Enable debug logging"
   debugButton.setAttribute("aria-pressed", String(enabled))
   status.textContent = enabled ? "> Debug logging is enabled." : "> Debug logging is disabled."
 }
@@ -20,10 +22,14 @@ debugButton.addEventListener("click", async () => {
 
 copyButton.addEventListener("click", async () => {
   const result = await send({ type: "copy-debug-log" })
-  status.textContent = result.ok ? "> Debug log copied." : `> ${result.message ?? "Debug log could not be copied."}`
+  status.textContent = result.ok
+    ? "> Debug log copied."
+    : `> ${result.message ?? "Debug log could not be copied."}`
 })
 
 version.textContent = `v${browser.runtime.getManifest().version}`
-send({ type: "get-debug-state" }).then(result => render(result.enabled)).catch(() => {
-  status.textContent = "> Unable to read debug state."
-})
+send({ type: "get-debug-state" })
+  .then((result) => render(result.enabled))
+  .catch(() => {
+    status.textContent = "> Unable to read debug state."
+  })
