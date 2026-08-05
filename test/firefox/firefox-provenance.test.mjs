@@ -14,6 +14,8 @@ import {
 
 const execFileAsync = promisify(execFile)
 
+const firefoxArtifactsDirectory = join(tmpdir(), "omp-send-context-firefox")
+
 async function git(cwd, ...args) {
   await execFileAsync("git", ["-C", cwd, ...args])
 }
@@ -105,10 +107,12 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
     cwd: process.cwd(),
     env: { ...process.env, PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter) },
   })
-  const artifacts = (await readdir("dist/firefox")).filter((name) => name.endsWith(".zip"))
+  const artifacts = (await readdir(firefoxArtifactsDirectory)).filter((name) =>
+    name.endsWith(".zip")
+  )
   assert.equal(artifacts.length, 1)
 
-  const zip = await JSZip.loadAsync(await readFile(join("dist/firefox", artifacts[0])))
+  const zip = await JSZip.loadAsync(await readFile(join(firefoxArtifactsDirectory, artifacts[0])))
   const background = await zip.file("background.js").async("string")
   assert.match(background, new RegExp(`const SOURCE_COMMIT = "${expectedCommit}"`))
   assert.match(background, /Source commit:/)
