@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process"
+import { tmpdir } from "node:os"
 
 import { createFirefoxBuildSource } from "./source-provenance.mjs"
 
@@ -21,7 +21,7 @@ try {
     "--source-dir",
     buildSource.sourceDirectory,
     "--artifacts-dir",
-    "dist/firefox",
+    join(tmpdir(), "omp-send-context-firefox"),
     "--ignore-files",
     "native-host/**",
     "native-host/",

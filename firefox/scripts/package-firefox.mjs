@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto"
 import { mkdir, readdir, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { spawn } from "node:child_process"
 
 import { createFirefoxBuildSource } from "./source-provenance.mjs"
 
-const artifactsDirectory = "dist/firefox"
+const artifactsDirectory = join(tmpdir(), "omp-send-context-firefox")
 const buildSource = await createFirefoxBuildSource()
 
 try {
