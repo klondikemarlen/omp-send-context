@@ -42,8 +42,9 @@ export async function uploadGnomeExtension({
   const login = await fetchImpl(`${API_BASE}/accounts/login/`, {
     method: "POST",
     body: new URLSearchParams({ login: loginAccount, password }),
+    redirect: "manual",
   })
-  if (login.status !== 200) {
+  if (login.status < 200 || login.status >= 400) {
     throw new Error(`GNOME Extensions login failed (${login.status}).`)
   }
 

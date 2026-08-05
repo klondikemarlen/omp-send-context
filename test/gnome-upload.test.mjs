@@ -82,9 +82,10 @@ test("GNOME uploader logs in from Secret Service and submits the required ZIP fi
       if (calls.length === 1) {
         assert.equal(url, "https://extensions.gnome.org/api/v1/accounts/login/")
         assert.equal(options.method, "POST")
+        assert.equal(options.redirect, "manual")
         assert.deepEqual([...options.body], [["login", "maintainer@example.com"], ["password", "keyring password"]])
         return new Response(null, {
-          status: 200,
+          status: 302,
           headers: [
             ["Set-Cookie", "sessionid=opaque-session; HttpOnly; Path=/"],
             ["Set-Cookie", "csrftoken=opaque-csrf; Path=/"],
