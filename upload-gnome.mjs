@@ -5,6 +5,8 @@ import { basename } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const API_BASE = "https://extensions.gnome.org/api/v1"
+const LOGIN_URL = "https://extensions.gnome.org/accounts/login/"
+const UPLOAD_PAGE_URL = "https://extensions.gnome.org/upload/"
 const SECRET_SERVICE = "extensions.gnome.org"
 const DEFAULT_PROJECT = "omp-send-context"
 const SECRET_PURPOSE = "upload"
@@ -39,16 +41,7 @@ export async function uploadGnomeExtension({
     throw new Error("No GNOME Extensions password was found in the desktop Secret Service.")
   }
 
-  const login = await fetchImpl(`${API_BASE}/accounts/login/`, {
-    method: "POST",
-    body: new URLSearchParams({ login: loginAccount, password }),
-    redirect: "manual",
-  })
-  if (login.status < 200 || login.status >= 400) {
-    throw new Error(`GNOME Extensions login failed (${login.status}).`)
-  }
-
-  const headers = await loginHeaders(login)
+  const headers = await loginGnomeExtension(fetchImpl, loginAccount, password)
   const source = new File([await readFile(zipPath)], basename(zipPath), { type: "application/zip" })
   const body = new FormData()
   body.set("source", source)
@@ -80,22 +73,48 @@ export async function configureGnomeUpload({
   })
 }
 
-async function loginHeaders(login) {
-  const cookies = login.headers.getSetCookie().map(value => value.split(";", 1)[0])
-  const session = cookies.find(value => value.startsWith("sessionid="))
-  if (session) {
-    const csrf = cookies.find(value => value.startsWith("csrftoken="))
-    return {
-      Cookie: cookies.join("; "),
-      ...(csrf ? { "X-CSRFToken": csrf.slice("csrftoken=".length) } : {}),
-    }
+async function loginGnomeExtension(fetchImpl, account, password) {
+  const loginPage = await fetchImpl(LOGIN_URL)
+  if (loginPage.status < 200 || loginPage.status >= 300) {
+    throw new Error(`GNOME Extensions login page failed (${loginPage.status}).`)
+  }
+  const initialCookies = cookiePairs(loginPage.headers)
+  const csrfToken = (await loginPage.text()).match(/name="csrfmiddlewaretoken" value="([^"]+)"/)?.[1]
+  if (!csrfToken) {
+    throw new Error("GNOME Extensions login page did not provide a CSRF token.")
   }
 
-  const body = await login.json().catch(() => null)
-  if (typeof body?.token === "string" && body.token) {
-    return { Authorization: `Token ${body.token}` }
+  const login = await fetchImpl(LOGIN_URL, {
+    method: "POST",
+    body: new URLSearchParams({ username: account, password, csrfmiddlewaretoken: csrfToken }),
+    headers: { Cookie: initialCookies.join("; "), Referer: LOGIN_URL },
+    redirect: "manual",
+  })
+  if (login.status < 300 || login.status >= 400) {
+    throw new Error(`GNOME Extensions login failed (${login.status}).`)
   }
-  throw new Error("GNOME Extensions login returned neither a session cookie nor an authorization token.")
+  const cookies = mergeCookies(initialCookies, cookiePairs(login.headers))
+  if (!cookies.some(cookie => cookie.startsWith("sessionid="))) {
+    throw new Error("GNOME Extensions login did not return a session cookie.")
+  }
+  const csrf = cookies.find(cookie => cookie.startsWith("csrftoken="))
+  if (!csrf) {
+    throw new Error("GNOME Extensions login did not retain a CSRF cookie.")
+  }
+  return {
+    Cookie: cookies.join("; "),
+    "X-CSRFToken": csrf.slice("csrftoken=".length),
+    Origin: new URL(LOGIN_URL).origin,
+    Referer: UPLOAD_PAGE_URL,
+  }
+}
+
+function cookiePairs(headers) {
+  return headers.getSetCookie().map(value => value.split(";", 1)[0])
+}
+
+function mergeCookies(...groups) {
+  return [...new Map(groups.flat().map(cookie => [cookie.split("=", 1)[0], cookie])).values()]
 }
 
 function secretToolLookup(attributes) {

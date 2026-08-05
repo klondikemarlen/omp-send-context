@@ -36,6 +36,13 @@ function uploadOptions(zipPath, fetchImpl) {
   }
 }
 
+function loginPage() {
+  return new Response('<input name="csrfmiddlewaretoken" value="initial-csrf">', {
+    status: 200,
+    headers: { "Set-Cookie": "csrftoken=initial-csrf; Path=/" },
+  })
+}
+
 test("GNOME secret setup prompts for and stores the account", async () => {
   const stored = []
   await configureGnomeUpload({
@@ -64,9 +71,14 @@ test("GNOME uploader prompts for an omitted account", async () => {
         return "keyring password"
       },
       fetchImpl: async (_url, options) => {
-        if (requests++ === 0) {
-          assert.deepEqual([...options.body], [["login", "maintainer@example.com"], ["password", "keyring password"]])
-          return new Response(null, { status: 200, headers: { "Set-Cookie": "sessionid=opaque-session; HttpOnly" } })
+        if (requests++ === 0) return loginPage()
+        if (requests === 2) {
+          assert.deepEqual([...options.body], [
+            ["username", "maintainer@example.com"],
+            ["password", "keyring password"],
+            ["csrfmiddlewaretoken", "initial-csrf"],
+          ])
+          return new Response(null, { status: 302, headers: { "Set-Cookie": "sessionid=opaque-session; HttpOnly" } })
         }
         return new Response(null, { status: 201 })
       },
@@ -74,29 +86,38 @@ test("GNOME uploader prompts for an omitted account", async () => {
   })
 })
 
-test("GNOME uploader logs in from Secret Service and submits the required ZIP fields", async () => {
+test("GNOME uploader logs in through the web form and submits the required ZIP fields", async () => {
   await withZip(async zipPath => {
     const calls = []
     await uploadGnomeExtension(uploadOptions(zipPath, async (url, options) => {
       calls.push({ url, options })
       if (calls.length === 1) {
-        assert.equal(url, "https://extensions.gnome.org/api/v1/accounts/login/")
+        assert.equal(url, "https://extensions.gnome.org/accounts/login/")
+        return loginPage()
+      }
+      if (calls.length === 2) {
+        assert.equal(url, "https://extensions.gnome.org/accounts/login/")
         assert.equal(options.method, "POST")
         assert.equal(options.redirect, "manual")
-        assert.deepEqual([...options.body], [["login", "maintainer@example.com"], ["password", "keyring password"]])
+        assert.equal(options.headers.Cookie, "csrftoken=initial-csrf")
+        assert.equal(options.headers.Referer, "https://extensions.gnome.org/accounts/login/")
+        assert.deepEqual([...options.body], [
+          ["username", "maintainer@example.com"],
+          ["password", "keyring password"],
+          ["csrfmiddlewaretoken", "initial-csrf"],
+        ])
         return new Response(null, {
           status: 302,
-          headers: [
-            ["Set-Cookie", "sessionid=opaque-session; HttpOnly; Path=/"],
-            ["Set-Cookie", "csrftoken=opaque-csrf; Path=/"],
-          ],
+          headers: { "Set-Cookie": "sessionid=opaque-session; HttpOnly; Path=/" },
         })
       }
 
       assert.equal(url, "https://extensions.gnome.org/api/v1/extensions")
       assert.equal(options.method, "POST")
-      assert.equal(options.headers.Cookie, "sessionid=opaque-session; csrftoken=opaque-csrf")
-      assert.equal(options.headers["X-CSRFToken"], "opaque-csrf")
+      assert.equal(options.headers.Cookie, "csrftoken=initial-csrf; sessionid=opaque-session")
+      assert.equal(options.headers["X-CSRFToken"], "initial-csrf")
+      assert.equal(options.headers.Origin, "https://extensions.gnome.org")
+      assert.equal(options.headers.Referer, "https://extensions.gnome.org/upload/")
       assert.equal(options.body.get("shell_license_compliant"), "true")
       assert.equal(options.body.get("tos_compliant"), "true")
       const source = options.body.get("source")
@@ -104,32 +125,11 @@ test("GNOME uploader logs in from Secret Service and submits the required ZIP fi
       assert.equal(await source.text(), "zip payload")
       return new Response("{}", { status: 201 })
     }))
-    assert.equal(calls.length, 2)
+    assert.equal(calls.length, 3)
   })
 })
 
-test("GNOME uploader uses the login token when no session cookie is returned", async () => {
-  await withZip(async zipPath => {
-    let requests = 0
-    await uploadGnomeExtension({
-      zipPath,
-      account: "maintainer@example.com",
-      acceptLicense: true,
-      acceptTerms: true,
-      lookupSecret: async () => "keyring password",
-      fetchImpl: async (_url, options) => {
-        if (requests++ === 0) {
-          return new Response(JSON.stringify({ token: "opaque-token" }), { status: 200 })
-        }
-        assert.equal(options.headers.Authorization, "Token opaque-token")
-        assert.equal(options.body.get("shell_license_compliant"), "true")
-        return new Response(null, { status: 201 })
-      },
-    })
-  })
-})
-
-test("GNOME uploader rejects unacknowledged agreements, missing sessions, and failed uploads", async () => {
+test("GNOME uploader rejects unacknowledged agreements, failed login, and failed uploads", async () => {
   await assert.rejects(
     uploadGnomeExtension({ zipPath: "extension.zip", account: "maintainer@example.com" }),
     /--accept-license and --accept-terms/,
@@ -137,14 +137,16 @@ test("GNOME uploader rejects unacknowledged agreements, missing sessions, and fa
 
   await withZip(async zipPath => {
     await assert.rejects(
-      uploadGnomeExtension(uploadOptions(zipPath, async () => new Response(null, { status: 200 }))),
-      /neither a session cookie nor an authorization token/,
+      uploadGnomeExtension(uploadOptions(zipPath, async (_url, options) => options?.method ? new Response(null, { status: 302 }) : loginPage())),
+      /did not return a session cookie/,
     )
 
+    let requests = 0
     await assert.rejects(
-      uploadGnomeExtension(uploadOptions(zipPath, async url => {
-        if (url.endsWith("/login/")) {
-          return new Response(null, { status: 200, headers: { "Set-Cookie": "sessionid=opaque-session; HttpOnly" } })
+      uploadGnomeExtension(uploadOptions(zipPath, async (_url, options) => {
+        if (requests++ === 0) return loginPage()
+        if (options?.method === "POST" && requests === 2) {
+          return new Response(null, { status: 302, headers: { "Set-Cookie": "sessionid=opaque-session" } })
         }
         return new Response(null, { status: 400 })
       })),
