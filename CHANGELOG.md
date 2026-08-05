@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2.3.0
+
+- Document the extension-local GSettings schema path required to configure the local GNOME Shell shortcut.
+
 ## 2.2.0
 
 - Correct GNOME Extensions upload guidance to name the automated project command while preserving the external-review boundary.
