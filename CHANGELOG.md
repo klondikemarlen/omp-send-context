@@ -1,5 +1,11 @@
 # Changelog
 
+
+## 2.1.0
+
+- Add the GNOME Shell companion for explicit selected Ptyxis terminal context handoffs.
+- Add Secret Service-backed GNOME Extensions ZIP submission with in-memory web-form CSRF/session authentication.
+
 ## 2.0.4
 
 - Add an optional Ko-fi maintenance-support link to the repository and published package.
