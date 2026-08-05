@@ -23,12 +23,14 @@ const loadExtension = Function(
     .replace("export default class", "class")}\nreturn OmpSendContextExtension`
 )
 
-test("GNOME extension sends selected Ptyxis text and ignores stale callbacks", async () => {
+test("GNOME extension ignores stale selection and bridge-state completions", async () => {
   const notifications = []
   const messages = []
   let shortcut
   let clipboardCallback
   let replyToClipboard = true
+  let waitForBridgeStateRead = false
+  let completeBridgeStateRead
   const state = JSON.stringify({ endpoint: "http://127.0.0.1:47687", token: "test-token" })
   const window = {
     get_gtk_application_id: () => "org.gnome.Ptyxis",
@@ -40,7 +42,15 @@ test("GNOME extension sends selected Ptyxis text and ignores stale callbacks", a
     _promisify: () => {},
     File: {
       new_for_path: () => ({
-        load_contents_async: async () => [new TextEncoder().encode(state), null],
+        load_contents_async: () => {
+          if (!waitForBridgeStateRead) {
+            return Promise.resolve([new TextEncoder().encode(state), null])
+          }
+
+          return new Promise((resolve) => {
+            completeBridgeStateRead = () => resolve([new TextEncoder().encode(state), null])
+          })
+        },
       }),
     },
   }
@@ -132,4 +142,16 @@ test("GNOME extension sends selected Ptyxis text and ignores stale callbacks", a
   await new Promise((resolve) => setImmediate(resolve))
   assert.equal(messages.length, 1)
   assert.deepEqual(notifications, ["Context sent to OMP."])
+
+  replyToClipboard = true
+  waitForBridgeStateRead = true
+  shortcut()
+  await new Promise((resolve) => setImmediate(resolve))
+  extension.disable()
+  extension.enable()
+  completeBridgeStateRead()
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(messages.length, 1)
+  assert.deepEqual(notifications, ["Context sent to OMP."])
+  extension.disable()
 })
