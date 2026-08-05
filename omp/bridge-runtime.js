@@ -60,7 +60,7 @@ export function createBridgeRuntime({
       if (endpoint === undefined || port === undefined) {
         return false
       }
-      if (!force && await hasLiveBridgeOwner()) {
+      if (!force && (await hasLiveBridgeOwner())) {
         return false
       }
       await writeStateFile()
@@ -80,7 +80,7 @@ export function createBridgeRuntime({
       instanceId = undefined
       token = undefined
 
-      await new Promise(resolve => closingServer.close(resolve))
+      await new Promise((resolve) => closingServer.close(resolve))
       await removeStateFile(closingInstanceId)
     },
 
@@ -111,11 +111,15 @@ export function createBridgeRuntime({
     try {
       body = await readJsonBody(request)
     } catch (error) {
-      sendJson(response, 400, { error: error instanceof Error ? error.message : "Invalid request body" })
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : "Invalid request body",
+      })
       return
     }
     if (!isContextEnvelope(body)) {
-      sendJson(response, 400, { error: "Expected a version 1 context envelope with source and prompt" })
+      sendJson(response, 400, {
+        error: "Expected a version 1 context envelope with source and prompt",
+      })
       return
     }
 
@@ -123,7 +127,9 @@ export function createBridgeRuntime({
       await deliverPrompt(body.prompt)
       sendJson(response, 200, { ok: true })
     } catch (error) {
-      sendJson(response, 500, { error: error instanceof Error ? error.message : "Failed to deliver context" })
+      sendJson(response, 500, {
+        error: error instanceof Error ? error.message : "Failed to deliver context",
+      })
     }
   }
 
@@ -212,7 +218,7 @@ function readJsonBody(request) {
   return new Promise((resolve, reject) => {
     let size = 0
     const chunks = []
-    request.on("data", chunk => {
+    request.on("data", (chunk) => {
       size += chunk.length
       if (size > MAX_BODY_BYTES) {
         reject(new Error("Request body is too large"))
@@ -265,10 +271,12 @@ export function isContextEnvelope(value) {
 
   const candidate = value
   if (
-    candidate.version !== 1
-    || (candidate.source !== "vscode" && candidate.source !== "firefox" && candidate.source !== "ptyxis")
-    || typeof candidate.prompt !== "string"
-    || candidate.prompt.length === 0
+    candidate.version !== 1 ||
+    (candidate.source !== "vscode" &&
+      candidate.source !== "firefox" &&
+      candidate.source !== "ptyxis") ||
+    typeof candidate.prompt !== "string" ||
+    candidate.prompt.length === 0
   ) {
     return false
   }
@@ -276,13 +284,17 @@ export function isContextEnvelope(value) {
   if (candidate.metadata === undefined) {
     return true
   }
-  if (typeof candidate.metadata !== "object" || candidate.metadata === null || Array.isArray(candidate.metadata)) {
+  if (
+    typeof candidate.metadata !== "object" ||
+    candidate.metadata === null ||
+    Array.isArray(candidate.metadata)
+  ) {
     return false
   }
 
   return (
-    (candidate.metadata.url === undefined || typeof candidate.metadata.url === "string")
-    && (candidate.metadata.title === undefined || typeof candidate.metadata.title === "string")
+    (candidate.metadata.url === undefined || typeof candidate.metadata.url === "string") &&
+    (candidate.metadata.title === undefined || typeof candidate.metadata.title === "string")
   )
 }
 

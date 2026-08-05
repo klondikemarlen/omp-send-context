@@ -4,14 +4,22 @@ import path from "node:path"
 
 import * as vscode from "vscode"
 
-import { collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveContentMode, resolveHandoffIncludeDiagnostics, resolveInsertMode, type ContextEnvelope, type EditorContext, type HandoffDiagnostic } from "./prompt"
-
+import {
+  collectHandoffDiagnostics,
+  formatAgentHandoffPacket,
+  formatContextPrompt,
+  resolveContentMode,
+  resolveHandoffIncludeDiagnostics,
+  resolveInsertMode,
+  type ContextEnvelope,
+  type EditorContext,
+  type HandoffDiagnostic,
+} from "./prompt"
 
 interface BridgeState {
   readonly endpoint: string
   readonly token?: string
 }
-
 
 const DEFAULT_ENDPOINT = "http://127.0.0.1:47687"
 const STATE_FILE = path.join(os.homedir(), ".omp", "agent", "editor-context-bridge.json")
@@ -22,11 +30,11 @@ const DEFAULT_HANDOFF_MAX_DIAGNOSTICS = 20
 export function activate(context: vscode.ExtensionContext) {
   const insertDisposable = vscode.commands.registerCommand(
     "ompContext.insertEditorContext",
-    insertEditorContext,
+    insertEditorContext
   )
   const handoffDisposable = vscode.commands.registerCommand(
     "ompContext.insertAgentHandoff",
-    insertAgentHandoffContext,
+    insertAgentHandoffContext
   )
 
   context.subscriptions.push(insertDisposable, handoffDisposable)
@@ -41,9 +49,10 @@ async function insertEditorContext() {
     return
   }
 
-  const prompt = getInsertMode() === "agentHandoff"
-    ? buildAgentHandoffPrompt(activeEditor)
-    : formatContextPrompt(getEditorContext(activeEditor), getContentMode())
+  const prompt =
+    getInsertMode() === "agentHandoff"
+      ? buildAgentHandoffPrompt(activeEditor)
+      : formatContextPrompt(getEditorContext(activeEditor), getContentMode())
   await sendPrompt(prompt, "context")
 }
 
@@ -60,8 +69,9 @@ async function insertAgentHandoffContext() {
 function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
   const settings = getHandoffSettings()
   const current = getEditorContext(activeEditor)
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
-    ?? vscode.workspace.workspaceFolders?.[0]
+  const workspaceFolder =
+    vscode.workspace.getWorkspaceFolder(activeEditor.document.uri) ??
+    vscode.workspace.workspaceFolders?.[0]
   const diagnostics = collectHandoffDiagnostics(settings.includeDiagnostics, getHandoffDiagnostics)
 
   return formatAgentHandoffPacket({
@@ -72,7 +82,6 @@ function buildAgentHandoffPrompt(activeEditor: vscode.TextEditor) {
     omittedDiagnostics: Math.max(0, diagnostics.length - settings.maxDiagnostics),
     maxBytes: settings.maxBytes,
   })
-
 }
 
 async function sendPrompt(prompt: string, label: string) {
@@ -88,7 +97,7 @@ async function sendPrompt(prompt: string, label: string) {
     await vscode.env.clipboard.writeText(prompt)
     const message = error instanceof Error ? error.message : "Unknown bridge error"
     await vscode.window.showWarningMessage(
-      `OMP bridge unavailable; copied ${label} to clipboard. ${message}`,
+      `OMP bridge unavailable; copied ${label} to clipboard. ${message}`
     )
   }
 }
@@ -131,7 +140,6 @@ function getEditorContext(activeEditor: vscode.TextEditor): EditorContext {
   }
 }
 
-
 function getRelativePath(document: vscode.TextDocument) {
   return getRelativePathForUri(document.uri)
 }
@@ -150,43 +158,53 @@ function getRelativePathForUri(uri: vscode.Uri) {
 }
 
 function getContentMode() {
-  return resolveContentMode(vscode.workspace
-    .getConfiguration("ompContext")
-    .get<string>("contentMode"))
+  return resolveContentMode(
+    vscode.workspace.getConfiguration("ompContext").get<string>("contentMode")
+  )
 }
 
 function getInsertMode() {
-  return resolveInsertMode(vscode.workspace
-    .getConfiguration("ompContext")
-    .get<string>("insertMode"))
+  return resolveInsertMode(
+    vscode.workspace.getConfiguration("ompContext").get<string>("insertMode")
+  )
 }
-
 
 function getHandoffSettings() {
   const configuration = vscode.workspace.getConfiguration("ompContext")
 
   return {
-    includeDiagnostics: resolveHandoffIncludeDiagnostics(configuration.get<boolean>("handoffIncludeDiagnostics")),
-    maxBytes: Math.max(1_000, configuration.get<number>("handoffMaxBytes", DEFAULT_HANDOFF_MAX_BYTES)),
-    maxDiagnostics: Math.max(0, Math.floor(configuration.get<number>("handoffMaxDiagnostics", DEFAULT_HANDOFF_MAX_DIAGNOSTICS))),
+    includeDiagnostics: resolveHandoffIncludeDiagnostics(
+      configuration.get<boolean>("handoffIncludeDiagnostics")
+    ),
+    maxBytes: Math.max(
+      1_000,
+      configuration.get<number>("handoffMaxBytes", DEFAULT_HANDOFF_MAX_BYTES)
+    ),
+    maxDiagnostics: Math.max(
+      0,
+      Math.floor(
+        configuration.get<number>("handoffMaxDiagnostics", DEFAULT_HANDOFF_MAX_DIAGNOSTICS)
+      )
+    ),
   }
 }
 
 function getHandoffDiagnostics(): HandoffDiagnostic[] {
   const severities = ["Error", "Warning", "Information", "Hint"]
 
-  return vscode.languages.getDiagnostics().flatMap(([uri, diagnostics]) => diagnostics.map((diagnostic) => ({
-    relativePath: getRelativePathForUri(uri),
-    startLine: diagnostic.range.start.line + 1,
-    endLine: diagnostic.range.end.line + 1,
-    startCharacter: diagnostic.range.start.character + 1,
-    endCharacter: diagnostic.range.end.character + 1,
-    severity: severities[diagnostic.severity] ?? "Diagnostic",
-    message: diagnostic.message,
-    source: diagnostic.source,
-  })))
+  return vscode.languages.getDiagnostics().flatMap(([uri, diagnostics]) =>
+    diagnostics.map((diagnostic) => ({
+      relativePath: getRelativePathForUri(uri),
+      startLine: diagnostic.range.start.line + 1,
+      endLine: diagnostic.range.end.line + 1,
+      startCharacter: diagnostic.range.start.character + 1,
+      endCharacter: diagnostic.range.end.character + 1,
+      severity: severities[diagnostic.severity] ?? "Diagnostic",
+      message: diagnostic.message,
+      source: diagnostic.source,
+    }))
+  )
 }
-
 
 async function getBridgeState(): Promise<BridgeState> {
   const configuredEndpoint = vscode.workspace

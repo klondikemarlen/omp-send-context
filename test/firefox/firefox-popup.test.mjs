@@ -5,7 +5,10 @@ import vm from "node:vm"
 
 const popupHtml = await fs.readFile(new URL("../../firefox/popup.html", import.meta.url), "utf8")
 const popupSource = await fs.readFile(new URL("../../firefox/popup.js", import.meta.url), "utf8")
-const contentSource = await fs.readFile(new URL("../../firefox/content.js", import.meta.url), "utf8")
+const contentSource = await fs.readFile(
+  new URL("../../firefox/content.js", import.meta.url),
+  "utf8"
+)
 
 test("Firefox popup keeps the branded compact dark surface", () => {
   assert.match(popupHtml, /width: 220px/)
@@ -14,7 +17,10 @@ test("Firefox popup keeps the branded compact dark surface", () => {
   assert.match(popupHtml, /font-family: Inter/)
   assert.match(popupHtml, /JetBrains Mono/)
   assert.match(popupHtml, /Quick start/)
-  assert.match(popupHtml, /If direct delivery is unavailable, context is copied to your clipboard\./)
+  assert.match(
+    popupHtml,
+    /If direct delivery is unavailable, context is copied to your clipboard\./
+  )
   assert.doesNotMatch(popupHtml, /margin-top:\s*auto/)
   assert.match(popupHtml, /button\[aria-pressed="true"\]/)
   assert.doesNotMatch(popupHtml, /cdn\.tailwindcss|fonts\.googleapis/)
@@ -54,7 +60,7 @@ test("Firefox popup exposes debug state and packaged version", async () => {
   ])
 
   vm.runInNewContext(popupSource, {
-    document: { querySelector: selector => elements.get(selector) },
+    document: { querySelector: (selector) => elements.get(selector) },
     browser: {
       runtime: {
         getManifest: () => ({ version: "1.8.7" }),
@@ -71,7 +77,7 @@ test("Firefox popup exposes debug state and packaged version", async () => {
     },
   })
 
-  await new Promise(resolve => setImmediate(resolve))
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(version.textContent, "v1.8.7")
   assert.equal(debugLabel.textContent, "Enable debug logging")
   assert.equal(debugButton["aria-pressed"], "false")
@@ -81,5 +87,8 @@ test("Firefox popup exposes debug state and packaged version", async () => {
   assert.equal(debugLabel.textContent, "Disable debug logging")
   assert.equal(debugButton["aria-pressed"], "true")
   assert.equal(status.textContent, "> Debug logging is enabled.")
-  assert.deepEqual(messages.map(message => message.type), ["get-debug-state", "toggle-debug"])
+  assert.deepEqual(
+    messages.map((message) => message.type),
+    ["get-debug-state", "toggle-debug"]
+  )
 })

@@ -1,0 +1,14 @@
+$schema: "https://json.schemastore.org/prettierrc"
+embeddedLanguageFormatting: "auto"
+trailingComma: "es5"
+tabWidth: 2
+semi: false
+singleQuote: false
+singleAttributePerLine: true
+useTabs: false
+printWidth: 100
+plugins:
+  - prettier-plugin-embed
+  - prettier-plugin-sql
+language: "tsql"
+paramTypes: "{ named: [':'] }"

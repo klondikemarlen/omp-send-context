@@ -7,6 +7,7 @@
 **WHAT this document produces:** A compact map of the concepts, request flow, data contract, and known limits.
 
 **Decision Rules:**
+
 - **Source facts come from clients:** VS Code, Firefox, and future clients capture their own selection and source metadata.
 - **Prompt mutation happens in OMP:** OMP owns the live prompt editor, so prompt insertion uses an OMP runtime extension.
 - **Local bridge, not public API:** The HTTP server binds to `127.0.0.1` and requires the token written by the running OMP extension.
@@ -23,6 +24,7 @@ This repo currently ships the VS Code client, Firefox client, and OMP `omp-send-
 3. OMP extension: starts a loopback bridge and inserts received prompt text into the OMP prompt.
 
 Each integration owns its source code and tooling under a top-level directory. Shared runtime code stays under `omp/`; shared wire fixtures stay under `protocol/`; tests are grouped under `test/<integration>/`.
+
 ## Runtime flow
 
 ```mermaid
@@ -51,6 +53,7 @@ Context clients post a versioned envelope to `/context`:
 ```
 
 The `source` is currently `vscode` or `firefox`. Optional metadata may contain `url` and `title`. Clients own source inspection and packet assembly; OMP validates the envelope and inserts only its `prompt` field. Rich handoff packets use this same transport contract.
+
 ## Content modes and handoff packets
 
 - `inline`: default. Sends `@file#LxCy-LxCy ` plus a fenced copy of the selected text, making ordinary selections stale-safe for active editing, unsaved buffers, and generated files. Handoff packets still cap total output with `ompContext.handoffMaxBytes`.
@@ -58,7 +61,6 @@ The `source` is currently `vscode` or `firefox`. Optional metadata may contain `
 - Agent handoff packet: default normal shortcut mode, or the separate handoff command. It wraps the active editor context with only non-empty extras: workspace root and, when `ompContext.handoffIncludeDiagnostics` is enabled, capped diagnostics. Empty optional sections are omitted.
 
 Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback.
-
 
 ## Prompt repaint compatibility
 

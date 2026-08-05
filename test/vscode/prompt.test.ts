@@ -1,7 +1,16 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { buildReference, collectHandoffDiagnostics, formatAgentHandoffPacket, formatContextPrompt, resolveHandoffIncludeDiagnostics, resolveInsertMode, type EditorContext, type HandoffDiagnostic } from "../../vscode/prompt"
+import {
+  buildReference,
+  collectHandoffDiagnostics,
+  formatAgentHandoffPacket,
+  formatContextPrompt,
+  resolveHandoffIncludeDiagnostics,
+  resolveInsertMode,
+  type EditorContext,
+  type HandoffDiagnostic,
+} from "../../vscode/prompt"
 
 function editorContext(overrides: Partial<EditorContext>): EditorContext {
   return {
@@ -23,45 +32,54 @@ test("buildReference formats character-precise references", () => {
 })
 
 test("buildReference collapses a single cursor position", () => {
-  const reference = buildReference(editorContext({
-    startLine: 7,
-    endLine: 7,
-    startCharacter: 17,
-    endCharacter: 17,
-  }))
+  const reference = buildReference(
+    editorContext({
+      startLine: 7,
+      endLine: 7,
+      startCharacter: 17,
+      endCharacter: 17,
+    })
+  )
 
   assert.equal(reference, "@src/example.ts#L7C17")
 })
 
-
 test("formatContextPrompt includes selected code in inline mode", () => {
   const prompt = formatContextPrompt(editorContext({}), "inline")
 
-  assert.equal(prompt, "@src/example.ts#L7C17-L9C20 \n\n```typescript\nconst value = 1\nreturn value\n```")
+  assert.equal(
+    prompt,
+    "@src/example.ts#L7C17-L9C20 \n\n```typescript\nconst value = 1\nreturn value\n```"
+  )
 })
 
 test("formatContextPrompt lengthens fence when selection contains backticks", () => {
-  const prompt = formatContextPrompt(editorContext({
-    relativePath: "README.md",
-    startLine: 1,
-    endLine: 3,
-    startCharacter: 1,
-    endCharacter: 3,
-    selectedText: "```ts\nconst value = 1\n```",
-    languageId: "markdown",
-  }), "inline")
+  const prompt = formatContextPrompt(
+    editorContext({
+      relativePath: "README.md",
+      startLine: 1,
+      endLine: 3,
+      startCharacter: 1,
+      endCharacter: 3,
+      selectedText: "```ts\nconst value = 1\n```",
+      languageId: "markdown",
+    }),
+    "inline"
+  )
 
   assert.equal(prompt, "@README.md#L1C1-L3C3 \n\n````markdown\n```ts\nconst value = 1\n```\n````")
 })
 
 test("formatContextPrompt emits a trailing space for cursor references", () => {
-  const prompt = formatContextPrompt(editorContext({
-    startLine: 3,
-    endLine: 3,
-    startCharacter: 8,
-    endCharacter: 8,
-    selectedText: "",
-  }))
+  const prompt = formatContextPrompt(
+    editorContext({
+      startLine: 3,
+      endLine: 3,
+      startCharacter: 8,
+      endCharacter: 8,
+      selectedText: "",
+    })
+  )
 
   assert.equal(prompt, "@src/example.ts#L3C8 ")
 })
@@ -98,21 +116,27 @@ test("collectHandoffDiagnostics gates collection and preserves enabled diagnosti
 
   const disabledDiagnostics = collectHandoffDiagnostics(false, collect)
   assert.equal(collectionCount, 0)
-  assert.doesNotMatch(formatAgentHandoffPacket({
-    current: editorContext({}),
-    contentMode: "reference",
-    diagnostics: disabledDiagnostics,
-    maxBytes: 20_000,
-  }), /## Diagnostics/)
+  assert.doesNotMatch(
+    formatAgentHandoffPacket({
+      current: editorContext({}),
+      contentMode: "reference",
+      diagnostics: disabledDiagnostics,
+      maxBytes: 20_000,
+    }),
+    /## Diagnostics/
+  )
 
   const enabledDiagnostics = collectHandoffDiagnostics(true, collect)
   assert.equal(collectionCount, 1)
-  assert.match(formatAgentHandoffPacket({
-    current: editorContext({}),
-    contentMode: "reference",
-    diagnostics: enabledDiagnostics,
-    maxBytes: 20_000,
-  }), /## Diagnostics/)
+  assert.match(
+    formatAgentHandoffPacket({
+      current: editorContext({}),
+      contentMode: "reference",
+      diagnostics: enabledDiagnostics,
+      maxBytes: 20_000,
+    }),
+    /## Diagnostics/
+  )
 })
 
 test("formatAgentHandoffPacket omits empty optional sections", () => {
@@ -125,8 +149,14 @@ test("formatAgentHandoffPacket omits empty optional sections", () => {
     maxBytes: 20_000,
   })
 
-  assert.match(prompt, /^# OMP Agent Handoff\n\n## Active editor\n\n@src\/example\.ts#L7C17-L9C20 \n\n$/)
-  assert.doesNotMatch(prompt, /## (Goal \/ constraints \/ verify with|Instructions|Other visible editors|Diagnostics)/)
+  assert.match(
+    prompt,
+    /^# OMP Agent Handoff\n\n## Active editor\n\n@src\/example\.ts#L7C17-L9C20 \n\n$/
+  )
+  assert.doesNotMatch(
+    prompt,
+    /## (Goal \/ constraints \/ verify with|Instructions|Other visible editors|Diagnostics)/
+  )
 })
 
 test("formatAgentHandoffPacket includes handoff context and omission notes", () => {
@@ -142,16 +172,18 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
     }),
     contentMode: "inline",
     workspaceRoot: "/work/omp-send-context",
-    diagnostics: [{
-      relativePath: "src/current.ts",
-      startLine: 4,
-      endLine: 4,
-      startCharacter: 7,
-      endCharacter: 14,
-      severity: "Error",
-      source: "ts",
-      message: "Type 'string' is not assignable to type 'number'.",
-    }],
+    diagnostics: [
+      {
+        relativePath: "src/current.ts",
+        startLine: 4,
+        endLine: 4,
+        startCharacter: 7,
+        endCharacter: 14,
+        severity: "Error",
+        source: "ts",
+        message: "Type 'string' is not assignable to type 'number'.",
+      },
+    ],
     omittedDiagnostics: 3,
     maxBytes: 20_000,
   })
@@ -161,7 +193,10 @@ test("formatAgentHandoffPacket includes handoff context and omission notes", () 
   assert.match(prompt, /@src\/current\.ts#L3C1-L5C12/)
   assert.match(prompt, /```typescript\nconst current = true\n```/)
   assert.match(prompt, /- Root: `\/work\/omp-send-context`/)
-  assert.match(prompt, /- Error ts: @src\/current\.ts#L4C7-L4C14 Type 'string' is not assignable to type 'number'\./)
+  assert.match(
+    prompt,
+    /- Error ts: @src\/current\.ts#L4C7-L4C14 Type 'string' is not assignable to type 'number'\./
+  )
   assert.match(prompt, /3 more omitted by ompContext\.handoffMaxDiagnostics/)
   assert.equal(prompt.endsWith("\n\n"), true)
 })
@@ -190,16 +225,19 @@ test("formatAgentHandoffPacket redacts secret-looking diagnostic values", () => 
     }),
     contentMode: "reference",
     workspaceRoot: "/work/omp-send-context",
-    diagnostics: [{
-      relativePath: "src/secrets.ts",
-      startLine: 9,
-      endLine: 9,
-      startCharacter: 3,
-      endCharacter: 18,
-      severity: "Warning",
-      source: "eslint",
-      message: "Do not commit password: hunter2 token=abc123 api_key=secret-key Authorization: Bearer sk-live-auth-token",
-    }],
+    diagnostics: [
+      {
+        relativePath: "src/secrets.ts",
+        startLine: 9,
+        endLine: 9,
+        startCharacter: 3,
+        endCharacter: 18,
+        severity: "Warning",
+        source: "eslint",
+        message:
+          "Do not commit password: hunter2 token=abc123 api_key=secret-key Authorization: Bearer sk-live-auth-token",
+      },
+    ],
     maxBytes: 20_000,
   })
 

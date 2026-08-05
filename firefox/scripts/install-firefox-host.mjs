@@ -39,13 +39,19 @@ function commandSucceeds(command, args) {
 }
 
 export function isSandboxedFirefoxInstalled() {
-  return commandSucceeds("snap", ["list", "firefox"]) || commandSucceeds("flatpak", ["info", "org.mozilla.firefox"])
+  return (
+    commandSucceeds("snap", ["list", "firefox"]) ||
+    commandSucceeds("flatpak", ["info", "org.mozilla.firefox"])
+  )
 }
 export function isNativeMessagingProxyInstalled(servicePaths = PROXY_SERVICE_PATHS) {
-  return servicePaths.some(path => {
+  return servicePaths.some((path) => {
     try {
       const content = readFileSync(path, "utf8")
-      return content.includes("org.freedesktop.NativeMessagingProxy") && content.includes("xdg-native-messaging-proxy")
+      return (
+        content.includes("org.freedesktop.NativeMessagingProxy") &&
+        content.includes("xdg-native-messaging-proxy")
+      )
     } catch {
       return false
     }
@@ -56,7 +62,7 @@ function requireSandboxProxy(required, servicePaths) {
   if (required && !isNativeMessagingProxyInstalled(servicePaths)) {
     throw new Error(
       "Sandboxed Firefox requires xdg-native-messaging-proxy. " +
-      "Install the equivalent supported package (Ubuntu 26.04/Resolute: sudo apt install xdg-native-messaging-proxy), then rerun npm run install:firefox-host -- --sandboxed.",
+        "Install the equivalent supported package (Ubuntu 26.04/Resolute: sudo apt install xdg-native-messaging-proxy), then rerun npm run install:firefox-host -- --sandboxed."
     )
   }
 }
@@ -75,18 +81,26 @@ export async function installFirefoxHost({
   await writeFile(launcherPath, createHostLauncher(nodePath, hostPath), "utf8")
   await chmod(launcherPath, 0o755)
   await mkdir(dirname(manifestPath), { recursive: true })
-  await writeFile(manifestPath, `${JSON.stringify(createHostManifest(launcherPath), null, 2)}\n`, "utf8")
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify(createHostManifest(launcherPath), null, 2)}\n`,
+    "utf8"
+  )
   return manifestPath
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const sandboxed = process.argv.includes("--sandboxed")
   try {
-    console.log(`Installed Firefox native host manifest: ${await installFirefoxHost({ sandboxed })}`)
+    console.log(
+      `Installed Firefox native host manifest: ${await installFirefoxHost({ sandboxed })}`
+    )
     if (sandboxed) {
       console.log("xdg-native-messaging-proxy D-Bus service is installed for sandboxed Firefox.")
     } else if (isSandboxedFirefoxInstalled() && !isNativeMessagingProxyInstalled()) {
-      console.warn("Sandboxed Firefox detected without xdg-native-messaging-proxy; rerun with --sandboxed after installing it.")
+      console.warn(
+        "Sandboxed Firefox detected without xdg-native-messaging-proxy; rerun with --sandboxed after installing it."
+      )
     }
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)

@@ -30,7 +30,9 @@ export async function resolveSourceCommit({ cwd = REPO_ROOT, requireClean = fals
 
   let status = ""
   try {
-    status = (await execFileAsync("git", ["-C", cwd, "status", "--porcelain", "--untracked-files=all"])).stdout
+    status = (
+      await execFileAsync("git", ["-C", cwd, "status", "--porcelain", "--untracked-files=all"])
+    ).stdout
   } catch {
     if (requireClean) {
       throw new Error("Firefox release provenance requires a readable Git worktree.")
@@ -48,7 +50,11 @@ export async function resolveSourceCommit({ cwd = REPO_ROOT, requireClean = fals
   return commit
 }
 
-export async function createFirefoxBuildSource({ sourceDirectory = resolve(REPO_ROOT, "firefox"), cwd = REPO_ROOT, requireClean = false } = {}) {
+export async function createFirefoxBuildSource({
+  sourceDirectory = resolve(REPO_ROOT, "firefox"),
+  cwd = REPO_ROOT,
+  requireClean = false,
+} = {}) {
   const sourceCommit = await resolveSourceCommit({ cwd, requireClean })
   const temporaryRoot = await mkdtemp(join(tmpdir(), "omp-send-context-firefox-"))
   const temporarySource = join(temporaryRoot, "firefox")
@@ -59,7 +65,14 @@ export async function createFirefoxBuildSource({ sourceDirectory = resolve(REPO_
     if (!backgroundSource.includes(SOURCE_COMMIT_DECLARATION)) {
       throw new Error("Firefox background source is missing the source commit placeholder.")
     }
-    await writeFile(backgroundPath, backgroundSource.replace(SOURCE_COMMIT_DECLARATION, `const SOURCE_COMMIT = "${sourceCommit}"`), "utf8")
+    await writeFile(
+      backgroundPath,
+      backgroundSource.replace(
+        SOURCE_COMMIT_DECLARATION,
+        `const SOURCE_COMMIT = "${sourceCommit}"`
+      ),
+      "utf8"
+    )
     return {
       sourceCommit,
       sourceDirectory: temporarySource,

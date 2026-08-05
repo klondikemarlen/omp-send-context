@@ -58,11 +58,10 @@ export function resolveHandoffIncludeDiagnostics(value: boolean | undefined) {
 
 export function collectHandoffDiagnostics(
   includeDiagnostics: boolean,
-  collect: () => readonly HandoffDiagnostic[],
+  collect: () => readonly HandoffDiagnostic[]
 ) {
   return includeDiagnostics ? collect() : []
 }
-
 
 export function resolveContentMode(value: string | undefined): ContentMode {
   return value === "reference" ? "reference" : DEFAULT_CONTENT_MODE
@@ -73,14 +72,16 @@ const DEFAULT_CODE_FENCE = "```"
 export function buildReference(context: EditorReference) {
   const startReference = `L${context.startLine}C${context.startCharacter}`
   const endReference = `L${context.endLine}C${context.endCharacter}`
-  const rangeReference = startReference === endReference
-    ? startReference
-    : `${startReference}-${endReference}`
+  const rangeReference =
+    startReference === endReference ? startReference : `${startReference}-${endReference}`
 
   return `@${context.relativePath}#${rangeReference}`
 }
 
-export function formatContextPrompt(context: EditorContext, contentMode: ContentMode = DEFAULT_CONTENT_MODE) {
+export function formatContextPrompt(
+  context: EditorContext,
+  contentMode: ContentMode = DEFAULT_CONTENT_MODE
+) {
   const reference = buildReference(context)
 
   if (contentMode === "reference" || context.selectedText.length === 0) {
@@ -123,7 +124,10 @@ function formatDiagnostics(diagnostics: readonly HandoffDiagnostic[], omittedCou
 function redactSecretishText(text: string) {
   return text
     .replace(/\bauthorization\b\s*[:=]\s*(?:bearer|basic)\s+\S+/gi, "authorization=[redacted]")
-    .replace(/\b(token|secret|password|api[_-]?key|authorization)\b\s*[:=]\s*\S+/gi, "$1=[redacted]")
+    .replace(
+      /\b(token|secret|password|api[_-]?key|authorization)\b\s*[:=]\s*\S+/gi,
+      "$1=[redacted]"
+    )
 }
 
 function endWithBlankLine(text: string, maxBytes: number) {
@@ -141,12 +145,12 @@ function capBytes(text: string, maxBytes: number) {
     return text
   }
 
-  return Buffer
-    .from(text)
-    .subarray(0, maxBytes - Buffer.byteLength(suffix))
-    .toString("utf8")
-    .replace(/\uFFFD$/, "")
-    + suffix
+  return (
+    Buffer.from(text)
+      .subarray(0, maxBytes - Buffer.byteLength(suffix))
+      .toString("utf8")
+      .replace(/\uFFFD$/, "") + suffix
+  )
 }
 
 function normalizeLanguageId(languageId: string) {

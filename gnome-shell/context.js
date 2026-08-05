@@ -2,7 +2,9 @@ const MAX_SELECTION_LENGTH = 128 * 1024
 const MAX_METADATA_LENGTH = 256
 
 export function isPtyxisApplication(application) {
-  return String(application ?? "").toLowerCase().includes("ptyxis")
+  return String(application ?? "")
+    .toLowerCase()
+    .includes("ptyxis")
 }
 
 export function createEnvelope({ selectionText, application, windowTitle }) {
@@ -10,9 +12,10 @@ export function createEnvelope({ selectionText, application, windowTitle }) {
     throw new Error("Select text before sending context to OMP.")
   }
 
-  const text = selectionText.length > MAX_SELECTION_LENGTH
-    ? `${selectionText.slice(0, MAX_SELECTION_LENGTH)}\n[selection truncated]`
-    : selectionText
+  const text =
+    selectionText.length > MAX_SELECTION_LENGTH
+      ? `${selectionText.slice(0, MAX_SELECTION_LENGTH)}\n[selection truncated]`
+      : selectionText
   const app = safeMetadata(application, "unknown application")
   const title = safeMetadata(windowTitle, "untitled window")
 
@@ -41,7 +44,10 @@ export function formatPrompt({ selectionText, application, windowTitle }) {
 }
 
 function codeFence(text) {
-  const longestRun = (text.match(/`+/g) ?? []).reduce((length, run) => Math.max(length, run.length), 0)
+  const longestRun = (text.match(/`+/g) ?? []).reduce(
+    (length, run) => Math.max(length, run.length),
+    0
+  )
   return "`".repeat(Math.max(3, longestRun + 1))
 }
 

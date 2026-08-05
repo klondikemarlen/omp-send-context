@@ -24,12 +24,14 @@ export async function uploadGnomeExtension({
   if (!zipPath) {
     throw new Error("--zip is required.")
   }
-  const loginAccount = (account ?? await prompt()).trim()
+  const loginAccount = (account ?? (await prompt())).trim()
   if (!loginAccount) {
     throw new Error("A GNOME Extensions login is required.")
   }
   if (!acceptLicense || !acceptTerms) {
-    throw new Error("Pass --accept-license and --accept-terms after reviewing GNOME Extensions' upload agreements.")
+    throw new Error(
+      "Pass --accept-license and --accept-terms after reviewing GNOME Extensions' upload agreements."
+    )
   }
   const password = await lookupSecret({
     service: SECRET_SERVICE,
@@ -60,7 +62,7 @@ export async function configureGnomeUpload({
   prompt = promptAccount,
   storeSecret = secretToolStore,
 }) {
-  const login = (account ?? await prompt()).trim()
+  const login = (account ?? (await prompt())).trim()
   if (!login) {
     throw new Error("A GNOME Extensions login is required.")
   }
@@ -79,7 +81,9 @@ async function loginGnomeExtension(fetchImpl, account, password) {
     throw new Error(`GNOME Extensions login page failed (${loginPage.status}).`)
   }
   const initialCookies = cookiePairs(loginPage.headers)
-  const csrfToken = (await loginPage.text()).match(/name="csrfmiddlewaretoken" value="([^"]+)"/)?.[1]
+  const csrfToken = (await loginPage.text()).match(
+    /name="csrfmiddlewaretoken" value="([^"]+)"/
+  )?.[1]
   if (!csrfToken) {
     throw new Error("GNOME Extensions login page did not provide a CSRF token.")
   }
@@ -94,10 +98,10 @@ async function loginGnomeExtension(fetchImpl, account, password) {
     throw new Error(`GNOME Extensions login failed (${login.status}).`)
   }
   const cookies = mergeCookies(initialCookies, cookiePairs(login.headers))
-  if (!cookies.some(cookie => cookie.startsWith("sessionid="))) {
+  if (!cookies.some((cookie) => cookie.startsWith("sessionid="))) {
     throw new Error("GNOME Extensions login did not return a session cookie.")
   }
-  const csrf = cookies.find(cookie => cookie.startsWith("csrftoken="))
+  const csrf = cookies.find((cookie) => cookie.startsWith("csrftoken="))
   if (!csrf) {
     throw new Error("GNOME Extensions login did not retain a CSRF cookie.")
   }
@@ -110,11 +114,11 @@ async function loginGnomeExtension(fetchImpl, account, password) {
 }
 
 function cookiePairs(headers) {
-  return headers.getSetCookie().map(value => value.split(";", 1)[0])
+  return headers.getSetCookie().map((value) => value.split(";", 1)[0])
 }
 
 function mergeCookies(...groups) {
-  return [...new Map(groups.flat().map(cookie => [cookie.split("=", 1)[0], cookie])).values()]
+  return [...new Map(groups.flat().map((cookie) => [cookie.split("=", 1)[0], cookie])).values()]
 }
 
 function secretToolLookup(attributes) {
@@ -123,9 +127,17 @@ function secretToolLookup(attributes) {
     const child = spawn("secret-tool", args, { stdio: ["ignore", "pipe", "ignore"] })
     let secret = ""
     child.stdout.setEncoding("utf8")
-    child.stdout.on("data", chunk => { secret += chunk })
-    child.on("error", () => reject(new Error("secret-tool is unavailable. Install libsecret-tools and unlock your desktop keyring.")))
-    child.on("close", code => {
+    child.stdout.on("data", (chunk) => {
+      secret += chunk
+    })
+    child.on("error", () =>
+      reject(
+        new Error(
+          "secret-tool is unavailable. Install libsecret-tools and unlock your desktop keyring."
+        )
+      )
+    )
+    child.on("close", (code) => {
       if (code === 0) {
         resolve(secret.replace(/\r?\n$/, ""))
       } else {
@@ -141,11 +153,21 @@ function promptAccount() {
 }
 
 function secretToolStore({ label, ...attributes }) {
-  const args = ["store", `--label=${label}`, ...Object.entries(attributes).flatMap(([name, value]) => [name, value])]
+  const args = [
+    "store",
+    `--label=${label}`,
+    ...Object.entries(attributes).flatMap(([name, value]) => [name, value]),
+  ]
   return new Promise((resolve, reject) => {
     const child = spawn("secret-tool", args, { stdio: "inherit" })
-    child.on("error", () => reject(new Error("secret-tool is unavailable. Install libsecret-tools and unlock your desktop keyring.")))
-    child.on("close", code => {
+    child.on("error", () =>
+      reject(
+        new Error(
+          "secret-tool is unavailable. Install libsecret-tools and unlock your desktop keyring."
+        )
+      )
+    )
+    child.on("close", (code) => {
       if (code === 0) {
         resolve()
       } else {
@@ -191,7 +213,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     const options = parseArguments(process.argv.slice(2))
     if (options.help) {
-      console.log("Usage: npm run upload:gnome -- --zip <extension.zip> [--account <GNOME login>] [--project <secret project>] --accept-license --accept-terms\n       npm run setup:gnome-secrets [-- --account <GNOME login> --project <secret project>]")
+      console.log(
+        "Usage: npm run upload:gnome -- --zip <extension.zip> [--account <GNOME login>] [--project <secret project>] --accept-license --accept-terms\n       npm run setup:gnome-secrets [-- --account <GNOME login> --project <secret project>]"
+      )
     } else if (options.setup) {
       await configureGnomeUpload(options)
       console.log("GNOME Extensions upload password stored in the desktop keyring.")

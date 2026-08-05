@@ -7,7 +7,7 @@ async function collectTests(directory) {
   for (const entry of entries) {
     const path = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, directory)
     if (entry.isDirectory()) {
-      tests.push(...await collectTests(path))
+      tests.push(...(await collectTests(path)))
     } else if (entry.name.endsWith(".test.mjs") || entry.name.endsWith(".test.ts")) {
       tests.push(path)
     }

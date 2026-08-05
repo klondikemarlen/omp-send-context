@@ -9,9 +9,9 @@ import { createBridgeRuntime } from "../../omp/bridge-runtime.js"
 
 async function availablePort() {
   const server = createServer()
-  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve))
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
   const { port } = server.address()
-  await new Promise(resolve => server.close(resolve))
+  await new Promise((resolve) => server.close(resolve))
   return port
 }
 
@@ -98,7 +98,11 @@ test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
       }),
     })
     assert.equal(ptyxisContext.status, 200)
-    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection", "terminal selection"])
+    assert.deepEqual(deliveredPrompts, [
+      "@src/example.ts#L1C1",
+      "github selection",
+      "terminal selection",
+    ])
 
     for (const body of [
       { prompt: "legacy" },
@@ -116,7 +120,11 @@ test("bridge runtime owns HTTP delivery and state lifecycle", async () => {
       })
       assert.equal(invalid.status, 400)
     }
-    assert.deepEqual(deliveredPrompts, ["@src/example.ts#L1C1", "github selection", "terminal selection"])
+    assert.deepEqual(deliveredPrompts, [
+      "@src/example.ts#L1C1",
+      "github selection",
+      "terminal selection",
+    ])
 
     await runtime.close()
     await assert.rejects(fs.stat(stateFile))

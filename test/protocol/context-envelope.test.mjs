@@ -5,8 +5,12 @@ import { readFile } from "node:fs/promises"
 import { isContextEnvelope } from "../../omp/bridge-runtime.js"
 import { assertEnvelope } from "../../firefox/native-host/omp-send-context-host.mjs"
 
-const schema = JSON.parse(await readFile(new URL("../../protocol/context-envelope.schema.json", import.meta.url), "utf8"))
-const fixture = JSON.parse(await readFile(new URL("../../protocol/context-envelope.example.json", import.meta.url), "utf8"))
+const schema = JSON.parse(
+  await readFile(new URL("../../protocol/context-envelope.schema.json", import.meta.url), "utf8")
+)
+const fixture = JSON.parse(
+  await readFile(new URL("../../protocol/context-envelope.example.json", import.meta.url), "utf8")
+)
 
 test("bridge and native host accept the shared context envelope fixture", () => {
   assert.equal(schema.type, "object")

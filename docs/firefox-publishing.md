@@ -37,7 +37,6 @@ Official references:
 7. Confirm the manifest's `browser_specific_settings.gecko.id`, minimum Firefox version, permissions, host scope, and `data_collection_permissions` are intentional.
 8. Merge the implementation pull request only after review, automated checks, native-host registration, and interactive QA are complete.
 
-
 ## Publish the native-host PPA package
 
 The native host package is built from `firefox/native-host/` as a Debian native source package. Create `ppa:klondikemarlen/omp-send-context` in Launchpad before the first upload, then build and sign from the release checkout:
@@ -78,7 +77,6 @@ With AMO API credentials configured locally:
 The signing script requires a clean Git worktree; it stages a temporary Firefox source tree and injects the full source commit into the exported debug log.
 
 Do not submit the listed release until the selected QA path passes. Record whether the listed artifact was QA-tested directly or followed a distinct signed unlisted pre-release.
-
 
 ## Submit through AMO
 

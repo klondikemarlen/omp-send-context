@@ -8,14 +8,20 @@ import { fileURLToPath } from "node:url"
 const DEFAULT_STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
 const MAX_MESSAGE_BYTES = 2 * 1024 * 1024
 
-export async function deliverEnvelope(envelope, {
-  stateFile = process.env.OMP_CONTEXT_STATE_FILE ?? DEFAULT_STATE_FILE,
-  fetchImpl = fetch,
-} = {}) {
+export async function deliverEnvelope(
+  envelope,
+  { stateFile = process.env.OMP_CONTEXT_STATE_FILE ?? DEFAULT_STATE_FILE, fetchImpl = fetch } = {}
+) {
   assertEnvelope(envelope)
   const state = JSON.parse(await readFile(stateFile, "utf8"))
   const endpoint = new URL(state.endpoint)
-  if (endpoint.protocol !== "http:" || endpoint.hostname !== "127.0.0.1" || endpoint.port.length === 0 || typeof state.token !== "string" || state.token.length === 0) {
+  if (
+    endpoint.protocol !== "http:" ||
+    endpoint.hostname !== "127.0.0.1" ||
+    endpoint.port.length === 0 ||
+    typeof state.token !== "string" ||
+    state.token.length === 0
+  ) {
     throw new Error("Invalid OMP bridge state")
   }
 
@@ -36,10 +42,18 @@ export function assertEnvelope(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Expected a context envelope")
   }
-  if (value.version !== 1 || (value.source !== "vscode" && value.source !== "firefox" && value.source !== "ptyxis") || typeof value.prompt !== "string" || value.prompt.length === 0) {
+  if (
+    value.version !== 1 ||
+    (value.source !== "vscode" && value.source !== "firefox" && value.source !== "ptyxis") ||
+    typeof value.prompt !== "string" ||
+    value.prompt.length === 0
+  ) {
     throw new Error("Expected a version 1 context envelope")
   }
-  if (value.metadata !== undefined && (typeof value.metadata !== "object" || value.metadata === null || Array.isArray(value.metadata))) {
+  if (
+    value.metadata !== undefined &&
+    (typeof value.metadata !== "object" || value.metadata === null || Array.isArray(value.metadata))
+  ) {
     throw new Error("Expected object metadata")
   }
   if (value.metadata?.url !== undefined && typeof value.metadata.url !== "string") {
@@ -91,14 +105,19 @@ async function handleMessage(payload) {
     await deliverEnvelope(JSON.parse(payload))
     await sendResponse({ ok: true })
   } catch (error) {
-    await sendResponse({ ok: false, error: error instanceof Error ? error.message : "Failed to deliver context" })
+    await sendResponse({
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to deliver context",
+    })
   }
 }
 
 function sendResponse(value) {
   return new Promise((resolve, reject) => {
     const message = encodeMessage(value)
-    process.stdout.write(message, (error) => error === undefined || error === null ? resolve() : reject(error))
+    process.stdout.write(message, (error) =>
+      error === undefined || error === null ? resolve() : reject(error)
+    )
   })
 }
 

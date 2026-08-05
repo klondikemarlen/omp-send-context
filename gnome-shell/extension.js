@@ -8,75 +8,101 @@ import { OmpBridgeClient } from "./bridge.js"
 
 import { createEnvelope, isPtyxisApplication } from "./context.js"
 
+const EXTENSION_NAME = "OMP Send Context"
 
 export default class OmpSendContextExtension extends Extension {
   enable() {
-    this._settings = this.getSettings()
-    this._generation = (this._generation ?? 0) + 1
-    this._bridge = new OmpBridgeClient()
+    const settings = this.getSettings()
+    const captureSession = { bridge: new OmpBridgeClient() }
+
+    this.captureSession = captureSession
     Main.wm.addKeybinding(
       "desktop-shortcut",
-      this._settings,
+      settings,
       Meta.KeyBindingFlags.NONE,
       Shell.ActionMode.ALL,
-      () => this._captureSelection(),
+      () => this.captureFocusedPtyxisSelection(captureSession)
     )
   }
 
   disable() {
-    this._generation += 1
+    const captureSession = this.captureSession
+
+    this.captureSession = null
     Main.wm.removeKeybinding("desktop-shortcut")
-    this._bridge.close()
-    this._bridge = null
-    this._settings = null
+    captureSession?.bridge.close()
   }
 
-  _captureSelection() {
-    const generation = this._generation
-    const focusWindow = global.display.focus_window
-    const application = focusWindow
-      ? focusWindow.get_gtk_application_id() || focusWindow.get_wm_class() || "unknown application"
-      : "unknown application"
-    if (!isPtyxisApplication(application)) {
-      Main.notify("OMP Send Context", "Focus a Ptyxis terminal to send terminal context.")
+  async captureFocusedPtyxisSelection(captureSession) {
+    const ptyxisContext = findFocusedPtyxisContext()
+    if (!ptyxisContext) {
+      Main.notify(EXTENSION_NAME, "Focus a Ptyxis terminal to send terminal context.")
       return
     }
 
-    const title = focusWindow ? focusWindow.get_title() || "untitled window" : "untitled window"
-    St.Clipboard.get_default().get_text(St.ClipboardType.PRIMARY, async (_clipboard, text) => {
-      if (generation !== this._generation) {
-        return
-      }
-      if (!text || text.trim().length === 0) {
-        Main.notify("OMP Send Context", "No selected text in the focused application.")
-        return
-      }
+    const selectionText = await getPrimarySelectionText()
+    if (!this.isCurrentCaptureSession(captureSession)) {
+      return
+    }
+    if (!selectionText || selectionText.trim().length === 0) {
+      Main.notify(EXTENSION_NAME, "No selected text in the focused application.")
+      return
+    }
 
-      const envelope = createEnvelope({ selectionText: text, application, windowTitle: title })
-      let state
-      try {
-        state = await this._bridge.readState()
-      } catch (error) {
-        if (generation === this._generation) {
-          Main.notify("OMP Send Context", error.message)
-        }
-        return
-      }
-      if (generation !== this._generation || !this._bridge) {
-        return
-      }
+    const envelope = createEnvelope({ selectionText, ...ptyxisContext })
+    let bridgeState
+    try {
+      bridgeState = await captureSession.bridge.readState()
+    } catch (error) {
+      this.notifyCurrentSession(captureSession, error.message)
+      return
+    }
 
-      try {
-        await this._bridge.send(state, envelope)
-        if (generation === this._generation) {
-          Main.notify("OMP Send Context", "Context sent to OMP.")
-        }
-      } catch (error) {
-        if (generation === this._generation) {
-          Main.notify("OMP Send Context", `Unable to send context: ${error.message}`)
-        }
-      }
-    })
+    if (!this.isCurrentCaptureSession(captureSession)) {
+      return
+    }
+
+    try {
+      await captureSession.bridge.send(bridgeState, envelope)
+      this.notifyCurrentSession(captureSession, "Context sent to OMP.")
+    } catch (error) {
+      this.notifyCurrentSession(captureSession, `Unable to send context: ${error.message}`)
+    }
   }
 
+  isCurrentCaptureSession(captureSession) {
+    return this.captureSession === captureSession
+  }
+
+  notifyCurrentSession(captureSession, message) {
+    if (this.isCurrentCaptureSession(captureSession)) {
+      Main.notify(EXTENSION_NAME, message)
+    }
+  }
+}
+
+function findFocusedPtyxisContext() {
+  const focusWindow = global.display.focus_window
+  if (!focusWindow) {
+    return null
+  }
+
+  const application =
+    focusWindow.get_gtk_application_id() || focusWindow.get_wm_class() || "unknown application"
+  if (!isPtyxisApplication(application)) {
+    return null
+  }
+
+  return {
+    application,
+    windowTitle: focusWindow.get_title() || "untitled window",
+  }
+}
+
+function getPrimarySelectionText() {
+  return new Promise((resolve) => {
+    St.Clipboard.get_default().get_text(St.ClipboardType.PRIMARY, (_clipboard, text) => {
+      resolve(text)
+    })
+  })
 }
