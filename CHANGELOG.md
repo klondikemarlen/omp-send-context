@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.0
+
+- Cover stale GNOME Shell bridge-state reads across disable/re-enable.
+
 ## 2.5.0
 
 - Refine GNOME Shell capture-session lifecycle handling and stale callback coverage.
