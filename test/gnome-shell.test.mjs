@@ -12,7 +12,10 @@ test("Ptyxis context creates a bounded terminal envelope", () => {
 
   assert.equal(envelope.version, 1)
   assert.equal(envelope.source, "ptyxis")
-  assert.deepEqual(envelope.metadata, { application: "org.gnome.Ptyxis", title: "Project terminal" })
+  assert.deepEqual(envelope.metadata, {
+    application: "org.gnome.Ptyxis",
+    title: "Project terminal",
+  })
   assert.match(envelope.prompt, /## Ptyxis terminal/)
   assert.match(envelope.prompt, /selected terminal text/)
 })
@@ -23,12 +26,23 @@ test("Ptyxis context recognizes only Ptyxis windows", () => {
 })
 
 test("Ptyxis context rejects empty selection and lengthens fences", () => {
-  assert.throws(() => createEnvelope({ selectionText: " \n", application: "terminal", windowTitle: "Terminal" }), /Select text/)
-  const prompt = formatPrompt({ selectionText: "contains ```", application: "terminal", windowTitle: "Terminal" })
-  assert.match(prompt, /````\ncontains ```\n````/)
-  assert.match(formatPrompt({
-    selectionText: "`".repeat(4096),
+  assert.throws(
+    () =>
+      createEnvelope({ selectionText: " \n", application: "terminal", windowTitle: "Terminal" }),
+    /Select text/
+  )
+  const prompt = formatPrompt({
+    selectionText: "contains ```",
     application: "terminal",
     windowTitle: "Terminal",
-  }), /`{4097}/)
+  })
+  assert.match(prompt, /````\ncontains ```\n````/)
+  assert.match(
+    formatPrompt({
+      selectionText: "`".repeat(4096),
+      application: "terminal",
+      windowTitle: "Terminal",
+    }),
+    /`{4097}/
+  )
 })

@@ -3,7 +3,10 @@ import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import vm from "node:vm"
 
-const backgroundSource = await fs.readFile(new URL("../../firefox/background.js", import.meta.url), "utf8")
+const backgroundSource = await fs.readFile(
+  new URL("../../firefox/background.js", import.meta.url),
+  "utf8"
+)
 
 function event() {
   const listeners = []
@@ -12,12 +15,21 @@ function event() {
       listeners.push(listener)
     },
     async emit(...args) {
-      return Promise.all(listeners.map(listener => listener(...args)))
+      return Promise.all(listeners.map((listener) => listener(...args)))
     },
   }
 }
 
-async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/pull/42/files", clipboardApi = true, clipboardExec = true, contentReady: initialContentReady = true, injectionAllowed = true } = {}) {
+async function runFlow(
+  nativeResponse,
+  {
+    pageUrl = "https://github.com/org/repo/pull/42/files",
+    clipboardApi = true,
+    clipboardExec = true,
+    contentReady: initialContentReady = true,
+    injectionAllowed = true,
+  } = {}
+) {
   const events = {
     installed: event(),
     menuClicked: event(),
@@ -123,15 +135,14 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
     },
   }
 
-
   vm.runInNewContext(backgroundSource, {
     navigator,
     document,
     browser,
     console: { info: (...args) => logs.push(args.join(" ")) },
     ompSendContext: {
-      isSupportedGithubUrl: value => value.includes("/pull/"),
-      isEligiblePageUrl: value => value.startsWith("http://") || value.startsWith("https://"),
+      isSupportedGithubUrl: (value) => value.includes("/pull/"),
+      isEligiblePageUrl: (value) => value.startsWith("http://") || value.startsWith("https://"),
       createEnvelope(capture) {
         return {
           prompt: `selected:${capture.selectionText}`,
@@ -151,50 +162,88 @@ async function runFlow(nativeResponse, { pageUrl = "https://github.com/org/repo/
   } catch (caught) {
     error = caught
   }
-  await new Promise(resolve => setTimeout(resolve, 10))
-  return { messages, logs, notifications, indicator, events, clipboardText, getClipboardText: () => clipboardText, error, injected, delivered }
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  return {
+    messages,
+    logs,
+    notifications,
+    indicator,
+    events,
+    clipboardText,
+    getClipboardText: () => clipboardText,
+    error,
+    injected,
+    delivered,
+  }
 }
 
 test("Firefox client falls back when the native host rejects delivery", async () => {
   const result = await runFlow({ ok: false, error: "Invalid OMP bridge state" })
 
   assert.equal(result.clipboardText, "selected:const value = 1")
-  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("context copied to the clipboard")))
-  assert.ok(result.logs.some(entry => entry.includes("native:failed:bridge-rejected")))
+  assert.ok(
+    result.messages.some(
+      (message) =>
+        message.type === "notify" && message.message.includes("context copied to the clipboard")
+    )
+  )
+  assert.ok(result.logs.some((entry) => entry.includes("native:failed:bridge-rejected")))
 })
 
 test("Firefox fallback copies the exact prompt when the Clipboard API succeeds", async () => {
   const result = await runFlow({ ok: false, error: "Invalid OMP bridge state" })
 
   assert.equal(result.clipboardText, "selected:const value = 1")
-  assert.ok(result.logs.some(entry => entry.includes("clipboard:api-succeeded")))
+  assert.ok(result.logs.some((entry) => entry.includes("clipboard:api-succeeded")))
 })
 
 test("Firefox fallback uses execCommand when the Clipboard API is unavailable", async () => {
-  const result = await runFlow({ ok: false, error: "Invalid OMP bridge state" }, {
-    clipboardApi: false,
-  })
+  const result = await runFlow(
+    { ok: false, error: "Invalid OMP bridge state" },
+    {
+      clipboardApi: false,
+    }
+  )
 
   assert.equal(result.clipboardText, "selected:const value = 1")
-  assert.ok(result.logs.some(entry => entry.includes("clipboard:fallback-succeeded")))
+  assert.ok(result.logs.some((entry) => entry.includes("clipboard:fallback-succeeded")))
 })
 
 test("Firefox fallback reports failure when clipboard writes fail", async () => {
-  const result = await runFlow({ ok: false, error: "Invalid OMP bridge state" }, {
-    clipboardApi: false,
-    clipboardExec: false,
-  })
+  const result = await runFlow(
+    { ok: false, error: "Invalid OMP bridge state" },
+    {
+      clipboardApi: false,
+      clipboardExec: false,
+    }
+  )
 
-  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("Unable to deliver context to OMP or the clipboard.")))
-  assert.equal(result.messages.some(message => message.type === "notify" && message.message.includes("context copied to the clipboard")), false)
-  assert.ok(result.logs.some(entry => entry.includes("clipboard:api-failed")))
-  assert.ok(result.logs.some(entry => entry.includes("clipboard:fallback-failed")))
-  assert.ok(result.logs.some(entry => entry.includes("clipboard:failed")))
+  assert.ok(
+    result.messages.some(
+      (message) =>
+        message.type === "notify" &&
+        message.message.includes("Unable to deliver context to OMP or the clipboard.")
+    )
+  )
+  assert.equal(
+    result.messages.some(
+      (message) =>
+        message.type === "notify" && message.message.includes("context copied to the clipboard")
+    ),
+    false
+  )
+  assert.ok(result.logs.some((entry) => entry.includes("clipboard:api-failed")))
+  assert.ok(result.logs.some((entry) => entry.includes("clipboard:fallback-failed")))
+  assert.ok(result.logs.some((entry) => entry.includes("clipboard:failed")))
 })
 
 test("Firefox debug log records redacted native failures", async () => {
-  const result = await runFlow(Promise.reject(new Error("Native host failed at /home/marlen/secret Authorization: Bearer abc123")))
-  const detail = result.logs.find(entry => entry.includes("native:failure-detail:"))
+  const result = await runFlow(
+    Promise.reject(
+      new Error("Native host failed at /home/marlen/secret Authorization: Bearer abc123")
+    )
+  )
+  const detail = result.logs.find((entry) => entry.includes("native:failure-detail:"))
 
   assert.match(detail, /native:failure-detail:Error: Native host failed at \[path\] \[redacted\]/)
   assert.equal(detail.includes("abc123"), false)
@@ -204,8 +253,11 @@ test("Firefox debug log records redacted native failures", async () => {
 test("Firefox client does not fall back after native delivery succeeds", async () => {
   const result = await runFlow({ ok: true })
 
-  assert.ok(result.logs.some(entry => entry.includes("native:succeeded")))
-  assert.equal(result.messages.some(message => message.type === "copy-context"), false)
+  assert.ok(result.logs.some((entry) => entry.includes("native:succeeded")))
+  assert.equal(
+    result.messages.some((message) => message.type === "copy-context"),
+    false
+  )
 })
 
 test("Firefox toolbar controls expose debug state and copy action", async () => {
@@ -226,10 +278,13 @@ test("Firefox toolbar controls expose debug state and copy action", async () => 
 })
 
 test("Firefox debug export reports clipboard failure accurately", async () => {
-  const result = await runFlow({ ok: true }, {
-    clipboardApi: false,
-    clipboardExec: false,
-  })
+  const result = await runFlow(
+    { ok: true },
+    {
+      clipboardApi: false,
+      clipboardExec: false,
+    }
+  )
 
   const copied = (await result.events.messages.emit({ type: "copy-debug-log" }))[0]
   assert.equal(copied.ok, false)
@@ -237,40 +292,54 @@ test("Firefox debug export reports clipboard failure accurately", async () => {
 })
 
 test("Firefox client captures generic web pages through preloaded content", async () => {
-  const result = await runFlow({ ok: true }, {
-    pageUrl: "https://example.com/article",
-  })
+  const result = await runFlow(
+    { ok: true },
+    {
+      pageUrl: "https://example.com/article",
+    }
+  )
 
   assert.equal(result.injected, false)
-  assert.ok(result.messages.some(message => message.type === "capture-context"))
-  assert.ok(result.logs.some(entry => entry.includes("native:succeeded")))
+  assert.ok(result.messages.some((message) => message.type === "capture-context"))
+  assert.ok(result.logs.some((entry) => entry.includes("native:succeeded")))
 })
 test("Firefox client asks to reload when capture content is unavailable", async () => {
-  const result = await runFlow({ ok: true }, {
-    pageUrl: "https://example.com/article",
-    contentReady: false,
-    injectionAllowed: false,
-  })
+  const result = await runFlow(
+    { ok: true },
+    {
+      pageUrl: "https://example.com/article",
+      contentReady: false,
+      injectionAllowed: false,
+    }
+  )
 
-  assert.ok(result.notifications.some(notification => notification.message.includes("reload the page")))
-  assert.ok(result.logs.some(entry => entry.includes("capture:inject-failed")))
+  assert.ok(
+    result.notifications.some((notification) => notification.message.includes("reload the page"))
+  )
+  assert.ok(result.logs.some((entry) => entry.includes("capture:inject-failed")))
 })
 
 test("Firefox client sends generic selected text from the context menu", async () => {
-  const result = await runFlow({ ok: true }, {
-    pageUrl: "https://example.com/article",
-  })
+  const result = await runFlow(
+    { ok: true },
+    {
+      pageUrl: "https://example.com/article",
+    }
+  )
 
-  await result.events.menuClicked.emit({
-    menuItemId: "omp-send-context",
-    pageUrl: "https://example.com/article",
-    selectionText: "menu selection",
-  }, {
-    id: 42,
-    url: "https://example.com/article",
-    title: "Test web page",
-  })
-  await new Promise(resolve => setTimeout(resolve, 10))
+  await result.events.menuClicked.emit(
+    {
+      menuItemId: "omp-send-context",
+      pageUrl: "https://example.com/article",
+      selectionText: "menu selection",
+    },
+    {
+      id: 42,
+      url: "https://example.com/article",
+      title: "Test web page",
+    }
+  )
+  await new Promise((resolve) => setTimeout(resolve, 10))
 
   assert.equal(result.delivered[1].prompt, "selected:menu selection")
   assert.deepEqual(result.delivered[1].metadata, {
@@ -279,12 +348,23 @@ test("Firefox client sends generic selected text from the context menu", async (
   })
 })
 test("Firefox client rejects unsupported shortcut pages", async () => {
-  const result = await runFlow({ ok: true }, {
-    pageUrl: "about:blank",
-  })
+  const result = await runFlow(
+    { ok: true },
+    {
+      pageUrl: "about:blank",
+    }
+  )
 
   assert.equal(result.injected, false)
-  assert.equal(result.messages.some(message => message.type === "capture-context"), false)
-  assert.ok(result.messages.some(message => message.type === "notify" && message.message.includes("Firefox blocks add-ons on this page")))
-  assert.ok(result.logs.some(entry => entry.includes("shortcut:unsupported-page")))
+  assert.equal(
+    result.messages.some((message) => message.type === "capture-context"),
+    false
+  )
+  assert.ok(
+    result.messages.some(
+      (message) =>
+        message.type === "notify" && message.message.includes("Firefox blocks add-ons on this page")
+    )
+  )
+  assert.ok(result.logs.some((entry) => entry.includes("shortcut:unsupported-page")))
 })

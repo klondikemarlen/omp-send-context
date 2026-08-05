@@ -7,7 +7,10 @@ import { promisify } from "node:util"
 import { delimiter, join } from "node:path"
 import { tmpdir } from "node:os"
 
-import { createFirefoxBuildSource, resolveSourceCommit } from "../../firefox/scripts/source-provenance.mjs"
+import {
+  createFirefoxBuildSource,
+  resolveSourceCommit,
+} from "../../firefox/scripts/source-provenance.mjs"
 
 const execFileAsync = promisify(execFile)
 
@@ -19,7 +22,11 @@ async function temporaryGitSource() {
   const root = await mkdtemp(join(tmpdir(), "omp-send-context-provenance-test-"))
   const sourceDirectory = join(root, "firefox")
   await mkdir(sourceDirectory)
-  await writeFile(join(sourceDirectory, "background.js"), 'const SOURCE_COMMIT = "uncommitted"\n', "utf8")
+  await writeFile(
+    join(sourceDirectory, "background.js"),
+    'const SOURCE_COMMIT = "uncommitted"\n',
+    "utf8"
+  )
   await git(root, "init", "--quiet")
   await git(root, "config", "user.email", "test@example.com")
   await git(root, "config", "user.name", "OMP test")
@@ -36,10 +43,17 @@ test("Firefox build staging injects the full clean source commit", async () => {
     assert.match(commit, /^[0-9a-f]{40}$/)
     assert.equal(await resolveSourceCommit({ cwd: root, requireClean: true }), commit)
 
-    const staged = await createFirefoxBuildSource({ sourceDirectory, cwd: root, requireClean: true })
+    const staged = await createFirefoxBuildSource({
+      sourceDirectory,
+      cwd: root,
+      requireClean: true,
+    })
     try {
       assert.equal(staged.sourceCommit, commit)
-      assert.equal(await readFile(join(staged.sourceDirectory, "background.js"), "utf8"), `const SOURCE_COMMIT = "${commit}"\n`)
+      assert.equal(
+        await readFile(join(staged.sourceDirectory, "background.js"), "utf8"),
+        `const SOURCE_COMMIT = "${commit}"\n`
+      )
     } finally {
       await staged.cleanup()
     }
@@ -51,14 +65,24 @@ test("Firefox build staging injects the full clean source commit", async () => {
 test("Firefox development staging labels dirty and non-Git sources explicitly", async () => {
   const { root, sourceDirectory } = await temporaryGitSource()
   try {
-    await writeFile(join(sourceDirectory, "background.js"), 'const SOURCE_COMMIT = "uncommitted"\n// local edit\n', "utf8")
+    await writeFile(
+      join(sourceDirectory, "background.js"),
+      'const SOURCE_COMMIT = "uncommitted"\n// local edit\n',
+      "utf8"
+    )
     assert.equal(await resolveSourceCommit({ cwd: root }), "uncommitted")
-    await assert.rejects(resolveSourceCommit({ cwd: root, requireClean: true }), /clean Git worktree/)
+    await assert.rejects(
+      resolveSourceCommit({ cwd: root, requireClean: true }),
+      /clean Git worktree/
+    )
 
     const staged = await createFirefoxBuildSource({ sourceDirectory, cwd: root })
     try {
       assert.equal(staged.sourceCommit, "uncommitted")
-      assert.match(await readFile(join(staged.sourceDirectory, "background.js"), "utf8"), /const SOURCE_COMMIT = "uncommitted"/)
+      assert.match(
+        await readFile(join(staged.sourceDirectory, "background.js"), "utf8"),
+        /const SOURCE_COMMIT = "uncommitted"/
+      )
     } finally {
       await staged.cleanup()
     }
@@ -81,7 +105,7 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
     cwd: process.cwd(),
     env: { ...process.env, PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter) },
   })
-  const artifacts = (await readdir("dist/firefox")).filter(name => name.endsWith(".zip"))
+  const artifacts = (await readdir("dist/firefox")).filter((name) => name.endsWith(".zip"))
   assert.equal(artifacts.length, 1)
 
   const zip = await JSZip.loadAsync(await readFile(join("dist/firefox", artifacts[0])))

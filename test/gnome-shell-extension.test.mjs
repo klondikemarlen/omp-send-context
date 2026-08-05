@@ -17,14 +17,18 @@ const loadExtension = Function(
   "Extension",
   "createEnvelope",
   "isPtyxisApplication",
-  `${`${bridgeSource}\n${extensionSource}`.replace(/^import .*$/gm, "").replace("export class", "class").replace("export default class", "class")}\nreturn OmpSendContextExtension`,
+  `${`${bridgeSource}\n${extensionSource}`
+    .replace(/^import .*$/gm, "")
+    .replace("export class", "class")
+    .replace("export default class", "class")}\nreturn OmpSendContextExtension`
 )
 
-test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelope", async () => {
+test("GNOME extension sends selected Ptyxis text and ignores stale callbacks", async () => {
   const notifications = []
   const messages = []
   let shortcut
   let clipboardCallback
+  let replyToClipboard = true
   const state = JSON.stringify({ endpoint: "http://127.0.0.1:47687", token: "test-token" })
   const window = {
     get_gtk_application_id: () => "org.gnome.Ptyxis",
@@ -35,7 +39,9 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
   const Gio = {
     _promisify: () => {},
     File: {
-      new_for_path: () => ({ load_contents_async: async () => [new TextEncoder().encode(state), null] }),
+      new_for_path: () => ({
+        load_contents_async: async () => [new TextEncoder().encode(state), null],
+      }),
     },
   }
   const GLib = {
@@ -52,7 +58,9 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
         uri,
         status_code: 200,
         request_headers: { append: () => {} },
-        set_request_body_from_bytes: (_contentType, body) => { messages.push({ uri, body }) },
+        set_request_body_from_bytes: (_contentType, body) => {
+          messages.push({ uri, body })
+        },
       }),
     },
     Session: class {
@@ -66,20 +74,26 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
       get_default: () => ({
         get_text: (_type, callback) => {
           clipboardCallback = callback
-          callback(null, "selected terminal text")
+          if (replyToClipboard) {
+            callback(null, "selected terminal text")
+          }
         },
       }),
     },
   }
   const Main = {
     wm: {
-      addKeybinding: (_name, _settings, _flags, _modes, callback) => { shortcut = callback },
+      addKeybinding: (_name, _settings, _flags, _modes, callback) => {
+        shortcut = callback
+      },
       removeKeybinding: () => {},
     },
     notify: (_title, message) => notifications.push(message),
   }
   class Extension {
-    getSettings() { return {} }
+    getSettings() {
+      return {}
+    }
   }
 
   const ExtensionClass = loadExtension(
@@ -92,7 +106,7 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
     Main,
     Extension,
     createEnvelope,
-    isPtyxisApplication,
+    isPtyxisApplication
   )
   const extension = new ExtensionClass()
   extension.enable()
@@ -104,12 +118,17 @@ test("GNOME extension captures focused Ptyxis PRIMARY text and sends one envelop
   assert.deepEqual(JSON.parse(new TextDecoder().decode(messages[0].body)), {
     version: 1,
     source: "ptyxis",
-    prompt: "# OMP Agent Handoff\n\n## Ptyxis terminal\n\n- Application: org.gnome.Ptyxis\n\n- Window: Project terminal\n\n## Selected text\n\n```\nselected terminal text\n```\n\n",
+    prompt:
+      "# OMP Agent Handoff\n\n## Ptyxis terminal\n\n- Application: org.gnome.Ptyxis\n\n- Window: Project terminal\n\n## Selected text\n\n```\nselected terminal text\n```\n\n",
     metadata: { application: "org.gnome.Ptyxis", title: "Project terminal" },
   })
   assert.deepEqual(notifications, ["Context sent to OMP."])
+  replyToClipboard = false
+  shortcut()
+  const staleClipboardCallback = clipboardCallback
   extension.disable()
-  clipboardCallback(null, "late selection")
+  extension.enable()
+  staleClipboardCallback(null, "late selection")
   await new Promise((resolve) => setImmediate(resolve))
   assert.equal(messages.length, 1)
   assert.deepEqual(notifications, ["Context sent to OMP."])

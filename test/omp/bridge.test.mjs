@@ -9,7 +9,11 @@ import { syncBuiltinESMExports } from "node:module"
 
 const BASE_PORT = 48731
 
-async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform = process.platform } = {}) {
+async function withBridge(
+  port,
+  run,
+  { flags = {}, pluginSettings = {}, platform = process.platform } = {}
+) {
   const originalHome = process.env.HOME
   const originalPort = process.env.OMP_CONTEXT_BRIDGE_PORT
   const homeDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "omp-send-context-"))
@@ -21,11 +25,14 @@ async function withBridge(port, run, { flags = {}, pluginSettings = {}, platform
   await fs.mkdir(path.dirname(pluginsLockFile), {
     recursive: true,
   })
-  await fs.writeFile(pluginsLockFile, JSON.stringify({
-    settings: {
-      "omp-send-context": pluginSettings,
-    },
-  }))
+  await fs.writeFile(
+    pluginsLockFile,
+    JSON.stringify({
+      settings: {
+        "omp-send-context": pluginSettings,
+      },
+    })
+  )
 
   const handlers = new Map()
   const commands = new Map()
@@ -93,7 +100,7 @@ async function waitFor(check) {
     if (Date.now() >= deadline) {
       throw new Error("Timed out waiting for bridge focus claim")
     }
-    await new Promise(resolve => setTimeout(resolve, 5))
+    await new Promise((resolve) => setTimeout(resolve, 5))
   }
 }
 
@@ -112,7 +119,6 @@ async function postContext(state, { prompt, source = "vscode", metadata }) {
     }),
   })
 }
-
 
 test("OMP bridge accepts authorized context and pastes into editor", async () => {
   await withBridge(BASE_PORT, async ({ commands, handlers, stateFile }) => {
@@ -139,10 +145,12 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     assert.equal(commands.has("ide"), true)
     assert.equal(commands.has("ide-status"), false)
     await commands.get("ide").handler(["status"], context)
-    assert.deepEqual(notifications, [{
-      message: `Send Context to OMP ${packageJson.version} is listening on ${state.endpoint}.`,
-      level: "info",
-    }])
+    assert.deepEqual(notifications, [
+      {
+        message: `Send Context to OMP ${packageJson.version} is listening on ${state.endpoint}.`,
+        level: "info",
+      },
+    ])
 
     const response = await postContext(state, {
       prompt: "@src/example.ts#L1C1",
@@ -183,14 +191,17 @@ test("OMP bridge adds an edit separator after structured Markdown prompts", asyn
       "",
     ].join("\n")
 
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        async pasteToEditor(prompt) {
-          pastedPrompts.push(prompt)
+    await handlers.get("session_start")(
+      {},
+      {
+        hasUI: true,
+        ui: {
+          async pasteToEditor(prompt) {
+            pastedPrompts.push(prompt)
+          },
         },
-      },
-    })
+      }
+    )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
@@ -206,17 +217,20 @@ test("OMP bridge appends prompt with setEditorText fallback", async () => {
   await withBridge(BASE_PORT + 22, async ({ handlers, stateFile }) => {
     let editorText = "draft "
 
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        async getEditorText() {
-          return editorText
+    await handlers.get("session_start")(
+      {},
+      {
+        hasUI: true,
+        ui: {
+          async getEditorText() {
+            return editorText
+          },
+          async setEditorText(text) {
+            editorText = text
+          },
         },
-        async setEditorText(text) {
-          editorText = text
-        },
-      },
-    })
+      }
+    )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
@@ -228,12 +242,14 @@ test("OMP bridge appends prompt with setEditorText fallback", async () => {
   })
 })
 
-
 test("OMP bridge rejects context when prompt paste is unavailable", async () => {
   await withBridge(BASE_PORT + 21, async ({ handlers, sentMessages, stateFile }) => {
-    await handlers.get("session_start")({}, {
-      hasUI: false,
-    })
+    await handlers.get("session_start")(
+      {},
+      {
+        hasUI: false,
+      }
+    )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
     const response = await postContext(state, {
@@ -262,18 +278,24 @@ test("OMP bridge session_start does not steal an existing live bridge", async ()
       await fs.mkdir(path.dirname(stateFile), {
         recursive: true,
       })
-      await fs.writeFile(stateFile, JSON.stringify({
-        endpoint: `http://127.0.0.1:${ownerPort}`,
-        token: "owner-token",
-        instanceId: "owner-instance",
-      }))
+      await fs.writeFile(
+        stateFile,
+        JSON.stringify({
+          endpoint: `http://127.0.0.1:${ownerPort}`,
+          token: "owner-token",
+          instanceId: "owner-instance",
+        })
+      )
 
-      await handlers.get("session_start")({}, {
-        hasUI: true,
-        ui: {
-          notify() {},
-        },
-      })
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            notify() {},
+          },
+        }
+      )
 
       const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal(state.instanceId, "owner-instance")
@@ -310,10 +332,13 @@ test("shutdown cannot delete a successor bridge claim", async () => {
   try {
     await withBridge(BASE_PORT + 10, async ({ handlers, stateFile: bridgeStateFile }) => {
       stateFile = bridgeStateFile
-      await handlers.get("session_start")({}, {
-        hasUI: true,
-        ui: {},
-      })
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {},
+        }
+      )
 
       // Pause after the shutdown has confirmed ownership but before its atomic move.
       const shutdown = handlers.get("session_shutdown")()
@@ -344,39 +369,49 @@ test("shutdown cannot delete a successor bridge claim", async () => {
 test("focus routing is enabled by default on Linux", async () => {
   await withBridge(BASE_PORT + 6, async ({ handlers }) => {
     let subscribed = false
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        onTerminalInput() {
-          subscribed = true
-          return () => {}
+    await handlers.get("session_start")(
+      {},
+      {
+        hasUI: true,
+        ui: {
+          onTerminalInput() {
+            subscribed = true
+            return () => {}
+          },
         },
-      },
-    })
+      }
+    )
 
     assert.equal(subscribed, true)
   })
 })
 
 test("focus routing can be disabled explicitly on Linux", async () => {
-  await withBridge(BASE_PORT + 7, async ({ handlers }) => {
-    let subscribed = false
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        onTerminalInput() {
-          subscribed = true
-          return () => {}
-        },
-      },
-    })
+  await withBridge(
+    BASE_PORT + 7,
+    async ({ handlers }) => {
+      let subscribed = false
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            onTerminalInput() {
+              subscribed = true
+              return () => {}
+            },
+          },
+        }
+      )
 
-    assert.equal(subscribed, false)
-  }, {
-    pluginSettings: {
-      claimIdeContextOnFocus: false,
+      assert.equal(subscribed, false)
     },
-  })
+    {
+      pluginSettings: {
+        claimIdeContextOnFocus: false,
+      },
+    }
+  )
 })
 
 test("plugin setting enables Linux focus routing", async () => {
@@ -384,175 +419,226 @@ test("plugin setting enables Linux focus routing", async () => {
   assert.deepEqual(packageJson.omp.settings.claimIdeContextOnFocus, {
     type: "boolean",
     default: true,
-    description: "On Linux, claim IDE context automatically after this terminal receives an xterm focus report.",
+    description:
+      "On Linux, claim IDE context automatically after this terminal receives an xterm focus report.",
   })
 
-  await withBridge(BASE_PORT + 11, async ({ handlers, terminalWrites }) => {
-    let focusHandler
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        onTerminalInput(handler) {
-          focusHandler = handler
-          return () => {}
-        },
-      },
-    })
+  await withBridge(
+    BASE_PORT + 11,
+    async ({ handlers, terminalWrites }) => {
+      let focusHandler
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            onTerminalInput(handler) {
+              focusHandler = handler
+              return () => {}
+            },
+          },
+        }
+      )
 
-    assert.equal(typeof focusHandler, "function")
-    assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
-    assert.deepEqual(focusHandler("\x1b"), { data: "\x1b" })
-    assert.deepEqual(focusHandler("[I"), { data: "[I" })
-  }, {
-    pluginSettings: {
-      claimIdeContextOnFocus: true,
+      assert.equal(typeof focusHandler, "function")
+      assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
+      assert.deepEqual(focusHandler("\x1b"), { data: "\x1b" })
+      assert.deepEqual(focusHandler("[I"), { data: "[I" })
     },
-  })
+    {
+      pluginSettings: {
+        claimIdeContextOnFocus: true,
+      },
+    }
+  )
 })
 
 test("plugin setting changes focus routing in a running Linux session", async () => {
-  await withBridge(BASE_PORT + 13, async ({ handlers, pluginsLockFile, terminalWrites }) => {
-    let focusHandler
-    let focusUnsubscribed = false
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        onTerminalInput(handler) {
-          focusHandler = handler
-          return () => {
-            focusUnsubscribed = true
-          }
-        },
-      },
-    })
+  await withBridge(
+    BASE_PORT + 13,
+    async ({ handlers, pluginsLockFile, terminalWrites }) => {
+      let focusHandler
+      let focusUnsubscribed = false
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            onTerminalInput(handler) {
+              focusHandler = handler
+              return () => {
+                focusUnsubscribed = true
+              }
+            },
+          },
+        }
+      )
 
-    assert.equal(focusHandler, undefined)
+      assert.equal(focusHandler, undefined)
 
-    await fs.writeFile(pluginsLockFile, JSON.stringify({
-      settings: {
-        "omp-send-context": {
-          claimIdeContextOnFocus: true,
-        },
-      },
-    }))
-    await waitFor(() => typeof focusHandler === "function")
-    assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
+      await fs.writeFile(
+        pluginsLockFile,
+        JSON.stringify({
+          settings: {
+            "omp-send-context": {
+              claimIdeContextOnFocus: true,
+            },
+          },
+        })
+      )
+      await waitFor(() => typeof focusHandler === "function")
+      assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
 
-    await fs.writeFile(pluginsLockFile, JSON.stringify({
-      settings: {
-        "omp-send-context": {
-          claimIdeContextOnFocus: false,
-        },
-      },
-    }))
-    await waitFor(() => focusUnsubscribed)
-    assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
-  }, {
-    pluginSettings: {
-      claimIdeContextOnFocus: false,
+      await fs.writeFile(
+        pluginsLockFile,
+        JSON.stringify({
+          settings: {
+            "omp-send-context": {
+              claimIdeContextOnFocus: false,
+            },
+          },
+        })
+      )
+      await waitFor(() => focusUnsubscribed)
+      assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
     },
-  })
+    {
+      pluginSettings: {
+        claimIdeContextOnFocus: false,
+      },
+    }
+  )
 })
 
 test("focus routing is disabled outside Linux by default", async () => {
-  await withBridge(BASE_PORT + 12, async ({ handlers, terminalWrites }) => {
-    let subscribed = false
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        onTerminalInput() {
-          subscribed = true
-          return () => {}
-        },
-      },
-    })
+  await withBridge(
+    BASE_PORT + 12,
+    async ({ handlers, terminalWrites }) => {
+      let subscribed = false
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            onTerminalInput() {
+              subscribed = true
+              return () => {}
+            },
+          },
+        }
+      )
 
-    assert.equal(subscribed, false)
-    assert.deepEqual(terminalWrites, [])
-  }, {
-    platform: "darwin",
-  })
+      assert.equal(subscribed, false)
+      assert.deepEqual(terminalWrites, [])
+    },
+    {
+      platform: "darwin",
+    }
+  )
 })
 
 test("focus routing warns when terminal input listeners are unavailable", async () => {
-  await withBridge(BASE_PORT + 9, async ({ handlers }) => {
-    const notifications = []
-    await handlers.get("session_start")({}, {
-      hasUI: true,
-      ui: {
-        notify(message, type) {
-          notifications.push({ message, type })
-        },
-      },
-    })
+  await withBridge(
+    BASE_PORT + 9,
+    async ({ handlers }) => {
+      const notifications = []
+      await handlers.get("session_start")(
+        {},
+        {
+          hasUI: true,
+          ui: {
+            notify(message, type) {
+              notifications.push({ message, type })
+            },
+          },
+        }
+      )
 
-    assert.deepEqual(notifications, [{
-      message: "Claim IDE context on focus requires OMP 16.5.1 or newer.",
-      type: "warning",
-    }])
-  }, {
-    flags: {
-      "claim-ide-context-on-focus": true,
+      assert.deepEqual(notifications, [
+        {
+          message: "Claim IDE context on focus requires OMP 16.5.1 or newer.",
+          type: "warning",
+        },
+      ])
     },
-  })
+    {
+      flags: {
+        "claim-ide-context-on-focus": true,
+      },
+    }
+  )
 })
 
 test("focus flag claims the bridge after an xterm focus report", async () => {
-  await withBridge(BASE_PORT + 7, async ({ handlers, registeredFlags, stateFile, terminalWrites }) => {
-    const ownerPort = BASE_PORT + 8
-    const ownerServer = createServer((_request, response) => {
-      response.writeHead(200, {
-        "Content-Type": "application/json",
+  await withBridge(
+    BASE_PORT + 7,
+    async ({ handlers, registeredFlags, stateFile, terminalWrites }) => {
+      const ownerPort = BASE_PORT + 8
+      const ownerServer = createServer((_request, response) => {
+        response.writeHead(200, {
+          "Content-Type": "application/json",
+        })
+        response.end(JSON.stringify({ ok: true, instanceId: "owner-instance" }))
       })
-      response.end(JSON.stringify({ ok: true, instanceId: "owner-instance" }))
-    })
-    await new Promise((resolve) => ownerServer.listen(ownerPort, "127.0.0.1", resolve))
+      await new Promise((resolve) => ownerServer.listen(ownerPort, "127.0.0.1", resolve))
 
-    let focusHandler
-    let focusUnsubscribed = false
-    try {
-      await fs.mkdir(path.dirname(stateFile), {
-        recursive: true,
-      })
-      await fs.writeFile(stateFile, JSON.stringify({
-        endpoint: `http://127.0.0.1:${ownerPort}`,
-        token: "owner-token",
-        instanceId: "owner-instance",
-      }))
+      let focusHandler
+      let focusUnsubscribed = false
+      try {
+        await fs.mkdir(path.dirname(stateFile), {
+          recursive: true,
+        })
+        await fs.writeFile(
+          stateFile,
+          JSON.stringify({
+            endpoint: `http://127.0.0.1:${ownerPort}`,
+            token: "owner-token",
+            instanceId: "owner-instance",
+          })
+        )
 
-      await handlers.get("session_start")({}, {
-        hasUI: true,
-        ui: {
-          onTerminalInput(handler) {
-            focusHandler = handler
-            return () => {
-              focusUnsubscribed = true
-            }
-          },
-        },
-      })
+        await handlers.get("session_start")(
+          {},
+          {
+            hasUI: true,
+            ui: {
+              onTerminalInput(handler) {
+                focusHandler = handler
+                return () => {
+                  focusUnsubscribed = true
+                }
+              },
+            },
+          }
+        )
 
-      assert.deepEqual(registeredFlags.get("claim-ide-context-on-focus"), {
-        description: "On Linux, claim context when this terminal gains focus",
-        type: "boolean",
-        default: false,
-      })
-      assert.deepEqual(focusHandler("\x1b[O"), { consume: true })
-      assert.deepEqual(focusHandler("prefix\x1b[Osuffix"), { data: "prefixsuffix" })
-      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId, "owner-instance")
+        assert.deepEqual(registeredFlags.get("claim-ide-context-on-focus"), {
+          description: "On Linux, claim context when this terminal gains focus",
+          type: "boolean",
+          default: false,
+        })
+        assert.deepEqual(focusHandler("\x1b[O"), { consume: true })
+        assert.deepEqual(focusHandler("prefix\x1b[Osuffix"), { data: "prefixsuffix" })
+        assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId, "owner-instance")
 
-      assert.deepEqual(focusHandler("\x1b[I"), { consume: true })
-      await waitFor(async () => JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint === `http://127.0.0.1:${BASE_PORT + 7}`)
+        assert.deepEqual(focusHandler("\x1b[I"), { consume: true })
+        await waitFor(
+          async () =>
+            JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint ===
+            `http://127.0.0.1:${BASE_PORT + 7}`
+        )
 
-      await handlers.get("session_shutdown")()
-      assert.equal(focusUnsubscribed, true)
-      assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
-    } finally {
-      await new Promise((resolve) => ownerServer.close(resolve))
-    }
-  }, {
-    flags: {
-      "claim-ide-context-on-focus": true,
+        await handlers.get("session_shutdown")()
+        assert.equal(focusUnsubscribed, true)
+        assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
+      } finally {
+        await new Promise((resolve) => ownerServer.close(resolve))
+      }
     },
-  })
+    {
+      flags: {
+        "claim-ide-context-on-focus": true,
+      },
+    }
+  )
 })

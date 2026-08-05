@@ -5,7 +5,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
-import { createHostLauncher, createHostManifest, installFirefoxHost, isNativeMessagingProxyInstalled } from "../../firefox/scripts/install-firefox-host.mjs"
+import {
+  createHostLauncher,
+  createHostManifest,
+  installFirefoxHost,
+  isNativeMessagingProxyInstalled,
+} from "../../firefox/scripts/install-firefox-host.mjs"
 
 const execFileAsync = promisify(execFile)
 
@@ -32,7 +37,10 @@ test("Firefox host installer writes a launcher-backed manifest and executable fi
     await writeFile(hostPath, "#!/usr/bin/env node\n")
     await installFirefoxHost({ hostPath, launcherPath, manifestPath, nodePath })
 
-    assert.deepEqual(JSON.parse(await readFile(manifestPath, "utf8")), createHostManifest(launcherPath))
+    assert.deepEqual(
+      JSON.parse(await readFile(manifestPath, "utf8")),
+      createHostManifest(launcherPath)
+    )
     assert.equal(await readFile(launcherPath, "utf8"), createHostLauncher(nodePath, hostPath))
     assert.equal((await stat(hostPath)).mode & 0o111, 0o111)
     assert.equal((await stat(launcherPath)).mode & 0o111, 0o111)
@@ -48,10 +56,18 @@ test("Firefox host installer checks for the proxy D-Bus service registration", a
   try {
     assert.equal(isNativeMessagingProxyInstalled([servicePath]), false)
     await assert.rejects(
-      installFirefoxHost({ sandboxed: true, servicePaths: [servicePath], hostPath: servicePath, manifestPath: join(directory, "manifest.json") }),
-      /requires xdg-native-messaging-proxy/,
+      installFirefoxHost({
+        sandboxed: true,
+        servicePaths: [servicePath],
+        hostPath: servicePath,
+        manifestPath: join(directory, "manifest.json"),
+      }),
+      /requires xdg-native-messaging-proxy/
     )
-    await writeFile(servicePath, "[D-BUS Service]\nName=org.freedesktop.NativeMessagingProxy\nExec=/usr/libexec/xdg-native-messaging-proxy\n")
+    await writeFile(
+      servicePath,
+      "[D-BUS Service]\nName=org.freedesktop.NativeMessagingProxy\nExec=/usr/libexec/xdg-native-messaging-proxy\n"
+    )
     assert.equal(isNativeMessagingProxyInstalled([servicePath]), true)
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -64,15 +80,25 @@ test("packaged Firefox host registration keeps package paths and stable allowlis
   const registrationCommand = join(packageDirectory, "omp-send-context-install-firefox-host")
 
   try {
-    const { stdout } = await execFileAsync(registrationCommand, [], { env: { ...process.env, HOME: directory } })
-    const manifestPath = join(directory, ".mozilla", "native-messaging-hosts", "omp_send_context.json")
+    const { stdout } = await execFileAsync(registrationCommand, [], {
+      env: { ...process.env, HOME: directory },
+    })
+    const manifestPath = join(
+      directory,
+      ".mozilla",
+      "native-messaging-hosts",
+      "omp_send_context.json"
+    )
 
     assert.match(stdout, new RegExp(`Installed Firefox native host manifest: ${manifestPath}`))
     assert.deepEqual(
       JSON.parse(await readFile(manifestPath, "utf8")),
-      JSON.parse(await readFile(join(packageDirectory, "omp_send_context.json"), "utf8")),
+      JSON.parse(await readFile(join(packageDirectory, "omp_send_context.json"), "utf8"))
     )
-    assert.equal(JSON.parse(await readFile(manifestPath, "utf8")).path, "/usr/bin/omp-send-context-native-host")
+    assert.equal(
+      JSON.parse(await readFile(manifestPath, "utf8")).path,
+      "/usr/bin/omp-send-context-native-host"
+    )
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
