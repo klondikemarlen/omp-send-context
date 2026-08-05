@@ -192,6 +192,8 @@ The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` 
 
 `npm run upload:gnome` logs into the GNOME Extensions web form, uploads one ZIP through the documented API, and keeps the returned session cookie in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
 
+Do not authenticate the uploader through `/api/v1/accounts/login/`: it validates the credential payload but does not establish the browser session that the upload API requires. The script intentionally follows `/accounts/login/`, carrying that form's CSRF and session cookies only in memory.
+
 One-time desktop setup:
 
 ```bash
