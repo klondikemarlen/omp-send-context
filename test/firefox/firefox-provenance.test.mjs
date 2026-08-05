@@ -117,3 +117,32 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
   assert.match(background, new RegExp(`const SOURCE_COMMIT = "${expectedCommit}"`))
   assert.match(background, /Source commit:/)
 })
+
+test("Firefox signing stages artifacts outside the checkout", async () => {
+  const binDirectory = await mkdtemp(join(tmpdir(), "omp-send-context-web-ext-test-"))
+  const argumentsFile = join(binDirectory, "arguments.json")
+  try {
+    await writeFile(
+      join(binDirectory, "web-ext"),
+      `#!/usr/bin/env node
+import { writeFileSync } from "node:fs"
+writeFileSync(process.env.WEB_EXT_ARGUMENTS_FILE, JSON.stringify(process.argv.slice(2)))
+`,
+      { mode: 0o755 }
+    )
+    await execFileAsync(process.execPath, ["firefox/scripts/sign-firefox.mjs"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        AMO_API_ISSUER: "test-issuer",
+        AMO_API_SECRET: "test-secret",
+        PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter),
+        WEB_EXT_ARGUMENTS_FILE: argumentsFile,
+      },
+    })
+    const args = JSON.parse(await readFile(argumentsFile, "utf8"))
+    assert.equal(args[args.indexOf("--artifacts-dir") + 1], firefoxArtifactsDirectory)
+  } finally {
+    await rm(binDirectory, { recursive: true, force: true })
+  }
+})

@@ -1,4 +1,6 @@
+import { spawn } from "node:child_process"
 import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import { createFirefoxBuildSource } from "./source-provenance.mjs"
 
