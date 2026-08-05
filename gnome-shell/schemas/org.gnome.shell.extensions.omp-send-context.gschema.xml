@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.omp-send-context" path="/org/gnome/shell/extensions/omp-send-context/">
+    <key name="desktop-shortcut" type="as">
+      <default>[]</default>
+      <summary>Send desktop selection to OMP</summary>
+      <description>Shortcut for the focused desktop selection integration.</description>
+    </key>
+  </schema>
+</schemalist>

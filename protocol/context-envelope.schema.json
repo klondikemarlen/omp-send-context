@@ -11,7 +11,7 @@
     },
     "source": {
       "type": "string",
-      "enum": ["vscode", "firefox"]
+      "enum": ["vscode", "firefox", "ptyxis"]
     },
     "prompt": {
       "type": "string",

@@ -7,6 +7,7 @@ VS Code client plus OMP extension for sending source selections to OMP with `Ctr
 - `vscode/` — VS Code extension source (`extension.ts`, `prompt.ts`).
 - `firefox/` — Firefox add-on, native host, and Firefox-only build/sign/install scripts.
 - `omp/` — OMP bridge runtime and extension entry point.
+- `gnome-shell/` — GNOME Shell companion extension for focused Ptyxis selections.
 - `protocol/` — versioned context-envelope schema and example fixtures shared by clients and runtimes.
 - `test/<integration>/` — tests grouped by integration (`vscode`, `firefox`, `omp`, and `protocol`).
 
@@ -147,6 +148,113 @@ After installation, start a fresh OMP process and restart Firefox. Invoke `Ctrl+
 
 
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
+
+### GNOME Shell companion for Ptyxis
+
+Ptyxis does not currently expose a supported plugin ABI. The repository therefore ships a GNOME Shell companion extension that reads the focused Ptyxis window's PRIMARY selection and sends it through the active OMP bridge; it does not patch or inject into Ptyxis.
+
+On GNOME Shell 50, build and install the extension from a checkout:
+
+```bash
+npm run package:gnome
+gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
+```
+
+Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To configure the original `Ctrl+Alt+K` shortcut, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
+```bash
+gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
+```
+
+This companion is separate from the Firefox integration and does not change Firefox behavior.
+
+#### GNOME companion maintenance and review
+
+The companion is packaged separately from the VS Code, OMP, and Firefox artifacts:
+
+```bash
+npm test
+npm run package:gnome
+unzip -l dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+```
+
+Run the GNOME static analyzer from the repository's asdf Python:
+
+```bash
+python -m pip install -U shexli
+shexli "$PWD/gnome-shell"
+shexli "$PWD/dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
+```
+
+The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
+
+#### Headless GNOME Extensions upload
+
+`npm run upload:gnome` logs into the GNOME Extensions web form, uploads one ZIP through the documented API, and keeps the returned session cookie in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
+
+Do not authenticate the uploader through `/api/v1/accounts/login/`: it validates the credential payload but does not establish the browser session that the upload API requires. The script intentionally follows `/accounts/login/`, carrying that form's CSRF and session cookies only in memory.
+
+One-time desktop setup:
+
+```bash
+sudo apt install libsecret-tools
+npm run setup:gnome-secrets
+```
+
+The setup script asks for your GNOME Extensions login, then `secret-tool` asks for its password. `npm run upload:gnome` asks for the same login when `--account` is omitted. Copy the password from your password manager into the `secret-tool` prompt; it stays in the desktop keyring, not `.envrc` or Git.
+
+```bash
+npm test
+npm run package:gnome
+npm run upload:gnome -- \
+  --zip dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
+  --accept-license \
+  --accept-terms
+```
+
+The command reports success only after the API returns HTTP `201`. That means the upload was accepted for review; it is not publication or reviewer approval.
+
+For another project, copy `upload-gnome.mjs` and add this package script:
+
+```json
+"setup:gnome-secrets": "node upload-gnome.mjs --setup",
+"upload:gnome": "node upload-gnome.mjs"
+```
+
+Install Node from that repository's `.tool-versions` and `libsecret-tools`, then run the copied setup script with that project's name. It prompts for the login and password:
+
+```bash
+npm run setup:gnome-secrets -- --project "other-project"
+npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-project" --accept-license --accept-terms
+```
+
+This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
+
+For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
+
+```bash
+gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
+gnome-extensions list | grep omp-send-context
+```
+
+To remove a checkout install:
+
+```bash
+gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
+```
+
+The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). New or corrected ZIPs are submitted through the [GNOME review form](https://extensions.gnome.org/review/73711); the upload is manual and publication remains pending until GNOME review accepts it. Do not describe a ZIP as published until the listing shows the accepted version.
+
+The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Super+Alt+K` preserves Firefox and VS Code's `Ctrl+Alt+K`, while `Ctrl+Alt+K` gives the GNOME companion precedence. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
+
+For extension errors after a fresh session, inspect the Shell journal:
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell
+```
+
+The companion requires an active OMP bridge. Start a fresh OMP process after installation and confirm that `~/.omp/agent/editor-context-bridge.json` exists before testing a selected Ptyxis terminal.
 
 Maintenance guides:
 

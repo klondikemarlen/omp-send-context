@@ -36,7 +36,7 @@ export function assertEnvelope(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Expected a context envelope")
   }
-  if (value.version !== 1 || (value.source !== "vscode" && value.source !== "firefox") || typeof value.prompt !== "string" || value.prompt.length === 0) {
+  if (value.version !== 1 || (value.source !== "vscode" && value.source !== "firefox" && value.source !== "ptyxis") || typeof value.prompt !== "string" || value.prompt.length === 0) {
     throw new Error("Expected a version 1 context envelope")
   }
   if (value.metadata !== undefined && (typeof value.metadata !== "object" || value.metadata === null || Array.isArray(value.metadata))) {
