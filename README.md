@@ -22,7 +22,7 @@ By default, OMP receives a bounded agent handoff packet with the active editor c
 
 ## Active editor
 
-@src/example.ts#L7C17-L9C20 
+@src/example.ts#L7C17-L9C20
 
 ```typescript
 const value = 1
@@ -147,7 +147,6 @@ The checkout installer writes an executable launcher at `~/.local/share/omp-send
 
 After installation, start a fresh OMP process and restart Firefox. Invoke `Ctrl+Alt+K` on any eligible HTTP(S) page, including GitHub pull requests. With debug logging enabled, native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
 
-
 The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
 
 ### GNOME Shell companion for Ptyxis
@@ -163,6 +162,7 @@ gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 ```
 
 Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To configure the original `Ctrl+Alt+K` shortcut, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
+
 ```bash
 gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
 ```
@@ -288,7 +288,7 @@ npm run package:vsix
 omp plugin link "$PWD"
 ```
 
-Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in VS Code. Local edits to `omp/index.js` take effect after `/reload-plugins`; VS Code extension edits still require rebuilding/reinstalling the `.vsix`.
+Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in VS Code. The package command writes it to `/tmp/omp-send-context-<version>.vsix`, keeping generated artifacts out of the checkout. Local edits to `omp/index.js` take effect after `/reload-plugins`; VS Code extension edits still require rebuilding/reinstalling the `.vsix`.
 
 ## Multiple OMP terminals
 

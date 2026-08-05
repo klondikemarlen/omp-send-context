@@ -56,7 +56,6 @@ To capture diagnostics for this release, click the add-on toolbar button to enab
 
 The copied log includes `Extension version`, `Source commit`, and bounded debug entries. `Source commit` is the full SHA for a clean release build, `uncommitted` for a dirty development tree, or `unknown` when Git provenance cannot be resolved; it never includes selected text, URLs, prompts, bridge state, or bearer tokens.
 
-
 ## Test cases
 
 ### 1. Generic page context-menu delivery

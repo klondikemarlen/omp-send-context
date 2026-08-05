@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## 2.4.0
 
 - Document Devin Desktop as the project's VS Code-compatible Marketplace client and its install/version commands.
@@ -144,7 +143,6 @@
 - Remove persistent GitHub page access and static page injection; capture uses click-time `activeTab` access on eligible HTTP(S) pages.
 - Refresh the normal and debug toolbar artwork.
 
-
 ## 1.8.2
 
 - Prepare the listed AMO review submission after the signed unlisted 1.8.1 validation build.
@@ -165,7 +163,6 @@
 ## 2.0.0
 
 - Cut over the VS Code Marketplace and OMP plugin identities to `omp-send-context`.
-
 
 ## 1.7.7
 
