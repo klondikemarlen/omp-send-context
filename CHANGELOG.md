@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2.2.0
+
+- Correct GNOME Extensions upload guidance to name the automated project command while preserving the external-review boundary.
+
 ## 2.1.0
 
 - Add the GNOME Shell companion for explicit selected Ptyxis terminal context handoffs.
