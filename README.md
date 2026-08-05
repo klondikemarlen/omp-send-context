@@ -238,6 +238,20 @@ gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 gnome-extensions list | grep omp-send-context
 ```
 
+The local ZIP keeps its GSettings schema in the extension directory, so configure the opt-in shortcut with that schema path:
+
+```bash
+UUID='omp-send-context-gnome@klondikemarlen.github.io'
+SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID/schemas"
+
+GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
+  gsettings set org.gnome.shell.extensions.omp-send-context \
+  desktop-shortcut "['<Control><Super><Alt>k']"
+
+GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
+  gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
+```
+
 To remove a checkout install:
 
 ```bash
