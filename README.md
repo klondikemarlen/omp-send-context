@@ -161,7 +161,7 @@ gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gn
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-`gnome-extensions install` writes the ZIP to the user extension directory but does not load a new UUID into the already-running Shell; GNOME Shell discovers it at session startup. Start a fresh GNOME Shell session after installing, then start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. Configure `Ctrl+Shift+Alt+X` with the schema-aware command below; it stays distinct from Firefox and VS Code's `Ctrl+Alt+K`.
+`gnome-extensions install` writes the ZIP to the user extension directory and verifies its schema, but it does not call GNOME Shell's live `InstallRemoteExtension` path. That path can load an extension without a new session, but only after downloading it from extensions.gnome.org; it cannot accept a local ZIP. Therefore a locally installed ZIP is discovered at the next GNOME Shell session. Start a fresh GNOME Shell session after installing, then start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. Configure `Ctrl+Shift+Alt+X` with the schema-aware command below; it stays distinct from Firefox and VS Code's `Ctrl+Alt+K`.
 
 This companion is separate from the Firefox integration and does not change Firefox behavior.
 
@@ -227,7 +227,7 @@ npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-pr
 
 This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
 
-For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
+For local testing, install the ZIP with `gnome-extensions install --force`, then start a fresh GNOME Shell session before enabling it. The CLI does not use the live `InstallRemoteExtension` API; only the extensions.gnome.org download flow can dynamically load an extension:
 
 ```bash
 gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
