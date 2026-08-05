@@ -2,7 +2,7 @@
   "name": "omp-send-context",
   "displayName": "Oh My Pi Send Context",
   "description": "Send VS Code selections to Oh My Pi with Ctrl+Alt+K.",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "publisher": "klondikemarlen",
   "type": "module",
   "license": "MIT",
