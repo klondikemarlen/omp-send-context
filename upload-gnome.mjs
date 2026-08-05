@@ -48,16 +48,12 @@ export async function uploadGnomeExtension({
     throw new Error(`GNOME Extensions login failed (${login.status}).`)
   }
 
-  const { cookie, csrfToken } = sessionCookie(login.headers)
+  const headers = await loginHeaders(login)
   const source = new File([await readFile(zipPath)], basename(zipPath), { type: "application/zip" })
   const body = new FormData()
   body.set("source", source)
   body.set("shell_license_compliant", "true")
   body.set("tos_compliant", "true")
-  const headers = { Cookie: cookie }
-  if (csrfToken) {
-    headers["X-CSRFToken"] = csrfToken
-  }
 
   const upload = await fetchImpl(`${API_BASE}/extensions`, { method: "POST", headers, body })
   if (upload.status !== 201) {
@@ -84,14 +80,22 @@ export async function configureGnomeUpload({
   })
 }
 
-function sessionCookie(headers) {
-  const cookies = headers.getSetCookie().map(value => value.split(";", 1)[0])
+async function loginHeaders(login) {
+  const cookies = login.headers.getSetCookie().map(value => value.split(";", 1)[0])
   const session = cookies.find(value => value.startsWith("sessionid="))
-  if (!session) {
-    throw new Error("GNOME Extensions login did not return a session cookie.")
+  if (session) {
+    const csrf = cookies.find(value => value.startsWith("csrftoken="))
+    return {
+      Cookie: cookies.join("; "),
+      ...(csrf ? { "X-CSRFToken": csrf.slice("csrftoken=".length) } : {}),
+    }
   }
-  const csrf = cookies.find(value => value.startsWith("csrftoken="))
-  return { cookie: cookies.join("; "), csrfToken: csrf?.slice("csrftoken=".length) }
+
+  const body = await login.json().catch(() => null)
+  if (typeof body?.token === "string" && body.token) {
+    return { Authorization: `Token ${body.token}` }
+  }
+  throw new Error("GNOME Extensions login returned neither a session cookie nor an authorization token.")
 }
 
 function secretToolLookup(attributes) {

@@ -108,6 +108,27 @@ test("GNOME uploader logs in from Secret Service and submits the required ZIP fi
   })
 })
 
+test("GNOME uploader uses the login token when no session cookie is returned", async () => {
+  await withZip(async zipPath => {
+    let requests = 0
+    await uploadGnomeExtension({
+      zipPath,
+      account: "maintainer@example.com",
+      acceptLicense: true,
+      acceptTerms: true,
+      lookupSecret: async () => "keyring password",
+      fetchImpl: async (_url, options) => {
+        if (requests++ === 0) {
+          return new Response(JSON.stringify({ token: "opaque-token" }), { status: 200 })
+        }
+        assert.equal(options.headers.Authorization, "Token opaque-token")
+        assert.equal(options.body.get("shell_license_compliant"), "true")
+        return new Response(null, { status: 201 })
+      },
+    })
+  })
+})
+
 test("GNOME uploader rejects unacknowledged agreements, missing sessions, and failed uploads", async () => {
   await assert.rejects(
     uploadGnomeExtension({ zipPath: "extension.zip", account: "maintainer@example.com" }),
@@ -117,7 +138,7 @@ test("GNOME uploader rejects unacknowledged agreements, missing sessions, and fa
   await withZip(async zipPath => {
     await assert.rejects(
       uploadGnomeExtension(uploadOptions(zipPath, async () => new Response(null, { status: 200 }))),
-      /did not return a session cookie/,
+      /neither a session cookie nor an authorization token/,
     )
 
     await assert.rejects(
