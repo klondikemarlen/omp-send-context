@@ -190,7 +190,7 @@ The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` 
 
 #### Headless GNOME Extensions upload
 
-`npm run upload:gnome` logs into the documented GNOME Extensions API, uploads one ZIP, and keeps its returned session cookie or login token in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
+`npm run upload:gnome` logs into the GNOME Extensions web form, uploads one ZIP through the documented API, and keeps the returned session cookie in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
 
 One-time desktop setup:
 
@@ -226,7 +226,7 @@ npm run setup:gnome-secrets -- --project "other-project"
 npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-project" --accept-license --accept-terms
 ```
 
-This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. GNOME Extensions accepts a session cookie or a login-issued `Token` authorization value; this command stores neither and does not use a PAT.
+This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
 
 For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
 
