@@ -144,10 +144,12 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
+    "check-format": "prettier --check .",
     "check-types": "tsc --noEmit",
     "compile": "npm run check-types && node esbuild.js",
+    "format": "prettier --write .",
     "package": "npm run check-types && node esbuild.js --production",
-    "package:vsix": "vsce package",
+    "package:vsix": "vsce package --out /tmp/omp-send-context-${npm_package_version}.vsix",
     "package:gnome": "mkdir -p dist/gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=../dist/gnome --force",
     "upload:gnome": "node upload-gnome.mjs",
     "setup:gnome-secrets": "node upload-gnome.mjs --setup",
@@ -156,7 +158,7 @@
     "test:firefox-native-host": "cd firefox/native-host && go test ./...",
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
-    "test": "npm run check-types && node --import tsx --test test/run.mjs"
+    "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
@@ -164,6 +166,9 @@
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.25.3",
     "jszip": "^3.10.1",
+    "prettier": "3.9.6",
+    "prettier-plugin-embed": "0.5.1",
+    "prettier-plugin-sql": "0.20.0",
     "selenium-webdriver": "^4.46.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
