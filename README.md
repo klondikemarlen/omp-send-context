@@ -175,6 +175,14 @@ npm run package:gnome
 unzip -l /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
 ```
 
+To test the packaged extension without restarting your desktop session, run:
+
+```bash
+npm run test:gnome
+```
+
+This starts a disposable headless GNOME Shell, installs the ZIP through its `--extension` test-tool option, and asserts that the extension becomes `ACTIVE`. It does not modify the running Shell or emulate a focused Ptyxis selection.
+
 Run the GNOME static analyzer from the repository's asdf Python:
 
 ```bash
