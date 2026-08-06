@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import { createFirefoxBuildSource } from "./source-provenance.mjs"
 
@@ -15,13 +17,13 @@ if (channel !== "listed" && channel !== "unlisted") {
 
 const buildSource = await createFirefoxBuildSource({ requireClean: true })
 try {
-  const command = process.platform === "win32" ? "web-ext.cmd" : "web-ext"
-  const args = [
+  const webExtCommand = process.platform === "win32" ? "web-ext.cmd" : "web-ext"
+  const webExtArguments = [
     "sign",
     "--source-dir",
     buildSource.sourceDirectory,
     "--artifacts-dir",
-    "dist/firefox",
+    join(tmpdir(), "omp-send-context-firefox"),
     "--ignore-files",
     "native-host/**",
     "native-host/",
@@ -36,7 +38,7 @@ try {
   ]
 
   await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(webExtCommand, webExtArguments, {
       env: {
         ...process.env,
         WEB_EXT_API_KEY: issuer,

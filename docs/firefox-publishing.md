@@ -58,7 +58,7 @@ npm install
 npm run package:firefox
 ```
 
-The command cleans `dist/firefox`, builds one unsigned ZIP, and prints its path and SHA-256. Upload that printed ZIP to the AMO submission form. The generated ZIP is disposable; do not commit it unless the repository release policy explicitly requires checked-in artifacts.
+The command cleans `/tmp/omp-send-context-firefox`, builds one unsigned ZIP there, and prints its path and SHA-256. Upload that printed ZIP to the AMO submission form. The generated ZIP is disposable; do not commit it unless the repository release policy explicitly requires checked-in artifacts.
 
 ## Signed pre-release validation
 
@@ -82,7 +82,7 @@ Do not submit the listed release until the selected QA path passes. Record wheth
 
 1. Sign in to the [AMO Developer Hub](https://addons.mozilla.org/developers/).
 2. Choose **Submit a New Add-on** for the first release, or open the existing add-on for a new version.
-3. Upload the artifact from `dist/firefox/`.
+3. Upload the ZIP path printed by `npm run package:firefox` from `/tmp/omp-send-context-firefox/`.
 4. Complete the listing metadata, support URL, privacy/data-collection declarations, and source-code submission requested by AMO.
 5. Keep the stable extension ID unchanged.
 6. Submit for signing/review. Record the AMO add-on URL and submitted version in the release record.

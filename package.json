@@ -150,7 +150,7 @@
     "format": "prettier --write .",
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package --out /tmp/omp-send-context-${npm_package_version}.vsix",
-    "package:gnome": "mkdir -p dist/gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=../dist/gnome --force",
+    "package:gnome": "mkdir -p /tmp/omp-send-context-gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=/tmp/omp-send-context-gnome --force",
     "upload:gnome": "node upload-gnome.mjs",
     "setup:gnome-secrets": "node upload-gnome.mjs --setup",
     "package:firefox": "node firefox/scripts/package-firefox.mjs",
@@ -158,7 +158,8 @@
     "test:firefox-native-host": "cd firefox/native-host && go test ./...",
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
-    "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs"
+    "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs",
+    "test:gnome": "npm run package:gnome && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",

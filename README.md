@@ -157,15 +157,11 @@ On GNOME Shell 50, build and install the extension from a checkout:
 
 ```bash
 npm run package:gnome
-gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-Start a fresh GNOME Shell session after installing, start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. To configure the original `Ctrl+Alt+K` shortcut, accepting that it will take precedence over the dedicated Firefox and VS Code shortcuts:
-
-```bash
-gsettings set org.gnome.shell.extensions.omp-send-context desktop-shortcut "['<Control><Alt>k']"
-```
+`gnome-extensions install` writes the ZIP to the user extension directory and verifies its schema, but it does not call GNOME Shell's live `InstallRemoteExtension` path. That path can load an extension without a new session, but only after downloading it from extensions.gnome.org; it cannot accept a local ZIP. Therefore a locally installed ZIP is discovered at the next GNOME Shell session. Start a fresh GNOME Shell session after installing, then start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. Configure `Ctrl+Shift+Alt+X` with the schema-aware command below; it stays distinct from Firefox and VS Code's `Ctrl+Alt+K`.
 
 This companion is separate from the Firefox integration and does not change Firefox behavior.
 
@@ -176,15 +172,23 @@ The companion is packaged separately from the VS Code, OMP, and Firefox artifact
 ```bash
 npm test
 npm run package:gnome
-unzip -l dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+unzip -l /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
 ```
+
+To test the packaged extension without restarting your desktop session, run:
+
+```bash
+npm run test:gnome
+```
+
+This starts a disposable headless GNOME Shell, installs the ZIP through its `--extension` test-tool option, and asserts that the extension becomes `ACTIVE`. It does not modify the running Shell or emulate a focused Ptyxis selection.
 
 Run the GNOME static analyzer from the repository's asdf Python:
 
 ```bash
 python -m pip install -U shexli
 shexli "$PWD/gnome-shell"
-shexli "$PWD/dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
+shexli "/tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
 ```
 
 The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
@@ -208,7 +212,7 @@ The setup script asks for your GNOME Extensions login, then `secret-tool` asks f
 npm test
 npm run package:gnome
 npm run upload:gnome -- \
-  --zip dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
+  --zip /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
   --accept-license \
   --accept-terms
 ```
@@ -231,10 +235,10 @@ npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-pr
 
 This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
 
-For local testing, install the ZIP with `gnome-extensions install --force`, then log out and back in (or start a fresh GNOME Shell session) before enabling it. A running GNOME Shell does not necessarily rescan newly installed extensions:
+For local testing, install the ZIP with `gnome-extensions install --force`, then start a fresh GNOME Shell session before enabling it. The CLI does not use the live `InstallRemoteExtension` API; only the extensions.gnome.org download flow can dynamically load an extension:
 
 ```bash
-gnome-extensions install --force dist/gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 gnome-extensions list | grep omp-send-context
 ```
@@ -247,7 +251,7 @@ SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID/schemas"
 
 GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings set org.gnome.shell.extensions.omp-send-context \
-  desktop-shortcut "['<Control><Super><Alt>k']"
+  desktop-shortcut "['<Control><Alt><Shift>k']"
 
 GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
@@ -261,7 +265,7 @@ gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 
 The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). Submit new or corrected ZIPs with `npm run upload:gnome`; GNOME review and public listing acceptance remain external. Do not describe a ZIP as published until the listing shows the accepted version.
 
-The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Super+Alt+K` preserves Firefox and VS Code's `Ctrl+Alt+K`, while `Ctrl+Alt+K` gives the GNOME companion precedence. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
+The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Alt+Shift+K` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
 For extension errors after a fresh session, inspect the Shell journal:
 

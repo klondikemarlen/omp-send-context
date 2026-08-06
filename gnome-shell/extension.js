@@ -1,7 +1,7 @@
 import Meta from "gi://Meta"
 import Shell from "gi://Shell"
 import St from "gi://St"
-import Main from "resource:///org/gnome/shell/ui/main.js"
+import * as Main from "resource:///org/gnome/shell/ui/main.js"
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js"
 
 import { OmpBridgeClient } from "./bridge.js"

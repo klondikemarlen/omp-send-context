@@ -14,6 +14,8 @@ import {
 
 const execFileAsync = promisify(execFile)
 
+const firefoxArtifactsDirectory = join(tmpdir(), "omp-send-context-firefox")
+
 async function git(cwd, ...args) {
   await execFileAsync("git", ["-C", cwd, ...args])
 }
@@ -105,11 +107,45 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
     cwd: process.cwd(),
     env: { ...process.env, PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter) },
   })
-  const artifacts = (await readdir("dist/firefox")).filter((name) => name.endsWith(".zip"))
+  const artifacts = (await readdir(firefoxArtifactsDirectory)).filter((name) =>
+    name.endsWith(".zip")
+  )
   assert.equal(artifacts.length, 1)
 
-  const zip = await JSZip.loadAsync(await readFile(join("dist/firefox", artifacts[0])))
+  const zip = await JSZip.loadAsync(await readFile(join(firefoxArtifactsDirectory, artifacts[0])))
   const background = await zip.file("background.js").async("string")
   assert.match(background, new RegExp(`const SOURCE_COMMIT = "${expectedCommit}"`))
   assert.match(background, /Source commit:/)
+})
+
+test("Firefox signing stages artifacts outside the checkout", async () => {
+  const webExtStubDirectory = await mkdtemp(join(tmpdir(), "omp-send-context-web-ext-test-"))
+  const recordedArgumentsPath = join(webExtStubDirectory, "arguments.json")
+  try {
+    await writeFile(
+      join(webExtStubDirectory, "web-ext"),
+      `#!/usr/bin/env node
+import { writeFileSync } from "node:fs"
+writeFileSync(process.env.WEB_EXT_ARGUMENTS_FILE, JSON.stringify(process.argv.slice(2)))
+`,
+      { mode: 0o755 }
+    )
+    await execFileAsync(process.execPath, ["firefox/scripts/sign-firefox.mjs"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        AMO_API_ISSUER: "test-issuer",
+        AMO_API_SECRET: "test-secret",
+        PATH: [webExtStubDirectory, process.env.PATH].filter(Boolean).join(delimiter),
+        WEB_EXT_ARGUMENTS_FILE: recordedArgumentsPath,
+      },
+    })
+    const webExtArguments = JSON.parse(await readFile(recordedArgumentsPath, "utf8"))
+    assert.equal(
+      webExtArguments[webExtArguments.indexOf("--artifacts-dir") + 1],
+      firefoxArtifactsDirectory
+    )
+  } finally {
+    await rm(webExtStubDirectory, { recursive: true, force: true })
+  }
 })
