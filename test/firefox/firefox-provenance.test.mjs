@@ -119,11 +119,11 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
 })
 
 test("Firefox signing stages artifacts outside the checkout", async () => {
-  const binDirectory = await mkdtemp(join(tmpdir(), "omp-send-context-web-ext-test-"))
-  const argumentsFile = join(binDirectory, "arguments.json")
+  const webExtStubDirectory = await mkdtemp(join(tmpdir(), "omp-send-context-web-ext-test-"))
+  const recordedArgumentsPath = join(webExtStubDirectory, "arguments.json")
   try {
     await writeFile(
-      join(binDirectory, "web-ext"),
+      join(webExtStubDirectory, "web-ext"),
       `#!/usr/bin/env node
 import { writeFileSync } from "node:fs"
 writeFileSync(process.env.WEB_EXT_ARGUMENTS_FILE, JSON.stringify(process.argv.slice(2)))
@@ -136,13 +136,16 @@ writeFileSync(process.env.WEB_EXT_ARGUMENTS_FILE, JSON.stringify(process.argv.sl
         ...process.env,
         AMO_API_ISSUER: "test-issuer",
         AMO_API_SECRET: "test-secret",
-        PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter),
-        WEB_EXT_ARGUMENTS_FILE: argumentsFile,
+        PATH: [webExtStubDirectory, process.env.PATH].filter(Boolean).join(delimiter),
+        WEB_EXT_ARGUMENTS_FILE: recordedArgumentsPath,
       },
     })
-    const args = JSON.parse(await readFile(argumentsFile, "utf8"))
-    assert.equal(args[args.indexOf("--artifacts-dir") + 1], firefoxArtifactsDirectory)
+    const webExtArguments = JSON.parse(await readFile(recordedArgumentsPath, "utf8"))
+    assert.equal(
+      webExtArguments[webExtArguments.indexOf("--artifacts-dir") + 1],
+      firefoxArtifactsDirectory
+    )
   } finally {
-    await rm(binDirectory, { recursive: true, force: true })
+    await rm(webExtStubDirectory, { recursive: true, force: true })
   }
 })
