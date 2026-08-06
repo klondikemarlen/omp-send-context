@@ -6,6 +6,11 @@ readonly EXTENSION_ZIP="/tmp/omp-send-context-gnome/$UUID.shell-extension.zip"
 readonly SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID/schemas"
 readonly DISPLAY_NAME='omp-context-qa'
 
+if test ! -x /usr/libexec/mutter-devkit; then
+  echo "Missing /usr/libexec/mutter-devkit. Install the Mutter Development Kit (Ubuntu: sudo apt install mutter-dev-bin)." >&2
+  exit 1
+fi
+
 npm run package:gnome
 gnome-extensions install --force "$EXTENSION_ZIP"
 
@@ -16,7 +21,7 @@ cleanup_config() {
 trap cleanup_config EXIT HUP INT TERM
 
 env UUID="$UUID" SCHEMA_DIR="$SCHEMA_DIR" DISPLAY_NAME="$DISPLAY_NAME" \
-  SHORTCUT="['<Control><Shift><Alt>x']" XDG_CONFIG_HOME="$config_dir" \
+  SHORTCUT="['<Control><Alt><Shift>k']" XDG_CONFIG_HOME="$config_dir" \
   dbus-run-session -- sh -eu -c '
     cleanup_shell() {
       test -n "${shell_pid:-}" && kill "$shell_pid" 2>/dev/null || true
@@ -51,6 +56,6 @@ env UUID="$UUID" SCHEMA_DIR="$SCHEMA_DIR" DISPLAY_NAME="$DISPLAY_NAME" \
       --method org.gnome.Shell.Extensions.GetExtensionInfo "$UUID" \
       | grep "state.*<1.0>" >/dev/null
 
-    echo "Nested GNOME extension is ACTIVE. Select text in Ptyxis and press Ctrl+Shift+Alt+X."
+    echo "Nested GNOME extension is ACTIVE. Select text in Ptyxis and press Ctrl+Alt+Shift+K."
     WAYLAND_DISPLAY="$DISPLAY_NAME" ptyxis
   '
