@@ -273,7 +273,7 @@ For an installed extension in `ERROR`, run:
 npm run diagnose:gnome
 ```
 
-It prints the installed version and `extension.js` import, followed by timestamped records from this boot. If the installed file has `import * as Main` but the journal shows the old default import, the running Wayland Shell loaded the previous version. Log out and back in to start a new Shell process; disabling and enabling cannot unload the old module. Press `Alt+F2`, type `lg`, then open **Extensions** to inspect current-session errors.
+It prints the installed version, the running Shell and installed-file timestamps, the `extension.js` import, and timestamped records from this boot. If `extension.js` is newer than the Shell, the running Wayland Shell loaded the previous version. Log out and back in to start a new Shell process; disabling and enabling cannot unload the old module. Press `Alt+F2`, type `lg`, then open **Extensions** to inspect current-session errors.
 
 The companion requires an active OMP bridge. Start a fresh OMP process after installation and confirm that `~/.omp/agent/editor-context-bridge.json` exists before testing a selected Ptyxis terminal.
 
