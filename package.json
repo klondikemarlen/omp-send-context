@@ -159,8 +159,7 @@
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
     "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs",
-    "test:gnome": "npm run package:gnome && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js",
-    "qa:gnome": "gnome-shell/manual-qa.sh"
+    "test:gnome": "npm run package:gnome && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
