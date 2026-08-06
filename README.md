@@ -267,11 +267,13 @@ The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/
 
 The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Alt+Shift+K` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
-For extension errors after a fresh session, inspect the Shell journal:
+For an installed extension in `ERROR`, run:
 
 ```bash
-journalctl -f -o cat /usr/bin/gnome-shell
+npm run diagnose:gnome
 ```
+
+It prints the installed version, the running Shell and installed-file timestamps, the `extension.js` import, and timestamped records from this boot. If `extension.js` is newer than the Shell, the running Wayland Shell loaded the previous version. Log out and back in to start a new Shell process; disabling and enabling cannot unload the old module. Press `Alt+F2`, type `lg`, then open **Extensions** to inspect current-session errors.
 
 The companion requires an active OMP bridge. Start a fresh OMP process after installation and confirm that `~/.omp/agent/editor-context-bridge.json` exists before testing a selected Ptyxis terminal.
 
