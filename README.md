@@ -183,6 +183,14 @@ npm run test:gnome
 
 This starts a disposable headless GNOME Shell, installs the ZIP through its `--extension` test-tool option, and asserts that the extension becomes `ACTIVE`. It does not modify the running Shell or emulate a focused Ptyxis selection.
 
+For manual graphical QA without restarting your desktop, start `omp` in one terminal and run this in another:
+
+```bash
+npm run qa:gnome
+```
+
+It packages and installs the local ZIP, starts a disposable GNOME 50+ devkit session with isolated settings, verifies that the extension is `ACTIVE`, then opens Ptyxis in that session. Select text and press `Ctrl+Shift+Alt+X`. Closing Ptyxis ends the nested session; it does not change your desktop shortcut setting.
+
 Run the GNOME static analyzer from the repository's asdf Python:
 
 ```bash
