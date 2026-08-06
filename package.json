@@ -159,7 +159,8 @@
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
     "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs",
-    "test:gnome": "npm run package:gnome && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js"
+    "test:gnome": "npm run package:gnome && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js",
+    "diagnose:gnome": "gnome-extensions info omp-send-context-gnome@klondikemarlen.github.io && sed -n '1,5p' $HOME/.local/share/gnome-shell/extensions/omp-send-context-gnome@klondikemarlen.github.io/extension.js && journalctl --user -b -o short-iso -g 'Extension omp-send-context-gnome@klondikemarlen.github.io|OMP Send Context:'"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
