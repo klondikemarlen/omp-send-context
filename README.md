@@ -235,12 +235,17 @@ npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-pr
 
 This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
 
-For local testing, install the ZIP with `gnome-extensions install --force`, then start a fresh GNOME Shell session before enabling it. The CLI does not use the live `InstallRemoteExtension` API; only the extensions.gnome.org download flow can dynamically load an extension:
+For local testing from the current checkout, run:
 
 ```bash
-gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+npm run install:gnome
+```
+
+It packages the ZIP and replaces the local extension. GNOME Shell does not discover a locally installed UUID in its current session, so log out and back in before enabling it:
+
+```bash
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
-gnome-extensions list | grep omp-send-context
+gnome-extensions info omp-send-context-gnome@klondikemarlen.github.io
 ```
 
 The local ZIP keeps its GSettings schema in the extension directory, so configure the opt-in shortcut with that schema path:
