@@ -241,7 +241,7 @@ For local testing from the current checkout, run:
 npm run install:gnome
 ```
 
-It packages the ZIP and replaces the local extension. GNOME Shell does not discover a locally installed UUID in its current session, so log out and back in before enabling it:
+It packages and replaces the local extension. If this UUID was first installed after the current Wayland GNOME Shell session started, start a new session before enabling it: the live Shell registry does not rescan extension directories. Replacing an already discovered extension also leaves its imported code in memory, so start a new session to exercise the checkout:
 
 ```bash
 gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
