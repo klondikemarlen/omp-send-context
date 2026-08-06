@@ -54,7 +54,7 @@ export default class OmpSendContextExtension extends Extension {
     try {
       bridgeState = await captureSession.bridge.readState()
     } catch (error) {
-      this.notifyCurrentSession(captureSession, error.message)
+      this.reportFailure(captureSession, error.message)
       return
     }
 
@@ -66,7 +66,7 @@ export default class OmpSendContextExtension extends Extension {
       await captureSession.bridge.send(bridgeState, envelope)
       this.notifyCurrentSession(captureSession, "Context sent to OMP.")
     } catch (error) {
-      this.notifyCurrentSession(captureSession, `Unable to send context: ${error.message}`)
+      this.reportFailure(captureSession, `Unable to send context: ${error.message}`)
     }
   }
 
@@ -78,6 +78,11 @@ export default class OmpSendContextExtension extends Extension {
     if (this.isCurrentCaptureSession(captureSession)) {
       Main.notify(EXTENSION_NAME, message)
     }
+  }
+
+  reportFailure(captureSession, message) {
+    console.error(`${EXTENSION_NAME}: ${message}`)
+    this.notifyCurrentSession(captureSession, message)
   }
 }
 
