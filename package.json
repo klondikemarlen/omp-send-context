@@ -151,7 +151,7 @@
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package --out /tmp/omp-send-context-${npm_package_version}.vsix",
     "package:gnome": "mkdir -p /tmp/omp-send-context-gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=/tmp/omp-send-context-gnome --force",
-    "install:gnome": "npm run package:gnome && gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip && echo 'Installed OMP Send Context. Log out and back in, then enable it with gnome-extensions.'",
+    "install:gnome": "npm run package:gnome && gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip && echo 'Installed OMP Send Context. Start a new GNOME session to discover or reload it, then enable it with gnome-extensions.'",
     "upload:gnome": "node upload-gnome.mjs",
     "setup:gnome-secrets": "node upload-gnome.mjs --setup",
     "package:firefox": "node firefox/scripts/package-firefox.mjs",
