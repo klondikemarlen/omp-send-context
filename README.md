@@ -189,7 +189,7 @@ For manual graphical QA without restarting your desktop, start `omp` in one term
 npm run qa:gnome
 ```
 
-It packages and installs the local ZIP, starts a disposable GNOME 50+ devkit session with isolated settings, verifies that the extension is `ACTIVE`, then opens Ptyxis in that session. Select text and press `Ctrl+Shift+Alt+X`. Closing Ptyxis ends the nested session; it does not change your desktop shortcut setting.
+It packages and installs the local ZIP, starts a disposable GNOME 50+ devkit session with isolated settings, verifies that the extension is `ACTIVE`, then opens Ptyxis in that session. Select text and press `Ctrl+Alt+Shift+K`. Closing Ptyxis ends the nested session; it does not change your desktop shortcut setting. It requires the Mutter Development Kit; on Ubuntu, install it with `sudo apt install mutter-dev-bin`.
 
 Run the GNOME static analyzer from the repository's asdf Python:
 
@@ -259,7 +259,7 @@ SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID/schemas"
 
 GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings set org.gnome.shell.extensions.omp-send-context \
-  desktop-shortcut "['<Control><Shift><Alt>x']"
+  desktop-shortcut "['<Control><Alt><Shift>k']"
 
 GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
@@ -273,7 +273,7 @@ gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 
 The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). Submit new or corrected ZIPs with `npm run upload:gnome`; GNOME review and public listing acceptance remain external. Do not describe a ZIP as published until the listing shows the accepted version.
 
-The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Shift+Alt+X` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
+The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Alt+Shift+K` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
 For extension errors after a fresh session, inspect the Shell journal:
 
