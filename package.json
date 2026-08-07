@@ -150,7 +150,7 @@
     "format": "prettier --write .",
     "package": "npm run check-types && node esbuild.js --production",
     "package:vsix": "vsce package --out /tmp/omp-send-context-${npm_package_version}.vsix",
-    "package:gnome": "rm -rf /tmp/omp-send-context-gnome && mkdir -p /tmp/omp-send-context-gnome/schemas && cp gnome-shell/schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml /tmp/omp-send-context-gnome/schemas/ && glib-compile-schemas /tmp/omp-send-context-gnome/schemas && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=/tmp/omp-send-context-gnome --force && cd /tmp/omp-send-context-gnome && zip -q omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip schemas/gschemas.compiled",
+    "package:gnome": "mkdir -p /tmp/omp-send-context-gnome && cd gnome-shell && gnome-extensions pack . --schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml --extra-source=bridge.js --extra-source=context.js --extra-source=../LICENSE --out-dir=/tmp/omp-send-context-gnome --force",
     "install:gnome": "npm run package:gnome && gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip && echo 'Installed OMP Send Context. Start a new GNOME session to discover or reload it, then enable it with gnome-extensions.'",
     "upload:gnome": "node upload-gnome.mjs",
     "setup:gnome-secrets": "node upload-gnome.mjs --setup",
@@ -160,7 +160,7 @@
     "sign:firefox": "node firefox/scripts/sign-firefox.mjs",
     "publish:marketplace": "vsce publish",
     "test": "npm run check-format && npm run check-types && node --import tsx --test test/run.mjs",
-    "test:gnome": "npm run package:gnome && unzip -Z1 /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip | grep -qx 'schemas/gschemas.compiled' && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js",
+    "test:gnome": "npm run package:gnome && ! unzip -Z1 /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip | grep -qx 'schemas/gschemas.compiled' && dbus-run-session -- gnome-shell-test-tool --headless --extension /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip test/gnome-shell/activation.js",
     "diagnose:gnome": "gnome-extensions info omp-send-context-gnome@klondikemarlen.github.io && printf '\\nRunning GNOME Shell:\\n' && ps -C gnome-shell -o pid,lstart,args && stat --printf='extension.js modified: %y\\n' $HOME/.local/share/gnome-shell/extensions/omp-send-context-gnome@klondikemarlen.github.io/extension.js && sed -n '1,5p' $HOME/.local/share/gnome-shell/extensions/omp-send-context-gnome@klondikemarlen.github.io/extension.js && journalctl --user -b -o short-iso -g 'Extension omp-send-context-gnome@klondikemarlen.github.io|OMP Send Context:'"
   },
   "devDependencies": {
