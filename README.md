@@ -193,47 +193,18 @@ shexli "/tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github
 
 The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
 
-#### Headless GNOME Extensions upload
+#### GNOME deployment is paused
 
-`npm run upload:gnome` logs into the GNOME Extensions web form, uploads one ZIP through the documented API, and keeps the returned session cookie in memory only. It uses `secret-tool` (GNOME Keyring/Secret Service) for the account password; it does not read `.envrc`, write a cookie jar, or accept arbitrary upload endpoints.
+> **DO NOT UPLOAD THE GNOME EXTENSION.** GNOME review rejected version 7 because it contained `schemas/gschemas.compiled`. Deployment remains disabled until a locally installed extension is proven to work end to end.
 
-Do not authenticate the uploader through `/api/v1/accounts/login/`: it validates the credential payload but does not establish the browser session that the upload API requires. The script intentionally follows `/accounts/login/`, carrying that form's CSRF and session cookies only in memory.
-
-One-time desktop setup:
+Use the local-only workflow:
 
 ```bash
-sudo apt install libsecret-tools
-npm run setup:gnome-secrets
+npm run test:gnome
+npm run install:gnome
 ```
 
-The setup script asks for your GNOME Extensions login, then `secret-tool` asks for its password. `npm run upload:gnome` asks for the same login when `--account` is omitted. Copy the password from your password manager into the `secret-tool` prompt; it stays in the desktop keyring, not `.envrc` or Git.
-
-```bash
-npm test
-npm run package:gnome
-npm run upload:gnome -- \
-  --zip /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip \
-  --accept-license \
-  --accept-terms
-```
-
-The command reports success only after the API returns HTTP `201`. That means the upload was accepted for review; it is not publication or reviewer approval.
-
-For another project, copy `upload-gnome.mjs` and add this package script:
-
-```json
-"setup:gnome-secrets": "node upload-gnome.mjs --setup",
-"upload:gnome": "node upload-gnome.mjs"
-```
-
-Install Node from that repository's `.tool-versions` and `libsecret-tools`, then run the copied setup script with that project's name. It prompts for the login and password:
-
-```bash
-npm run setup:gnome-secrets -- --project "other-project"
-npm run upload:gnome -- --zip dist/gnome/other-extension.zip --project "other-project" --accept-license --accept-terms
-```
-
-This desktop flow requires a running unlocked Secret Service and is not a CI credential mechanism. The command holds its authenticated GNOME Extensions session cookie only for the upload and does not use a PAT.
+Start a fresh GNOME session, enable the installed extension, configure `desktop-shortcut`, start a fresh OMP process, select Ptyxis text, and invoke the shortcut. The `upload:gnome` command stops before it prompts, reads credentials, or makes a network request. Only re-enable deployment after that flow succeeds.
 
 For local testing from the current checkout, run:
 
@@ -268,7 +239,7 @@ To remove a checkout install:
 gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). Submit new or corrected ZIPs with `npm run upload:gnome`; GNOME review and public listing acceptance remain external. Do not describe a ZIP as published until the listing shows the accepted version.
+The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). **DO NOT UPLOAD** with `npm run upload:gnome`; deployment is disabled until the local manual workflow succeeds. GNOME review and public listing acceptance remain external.
 
 The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Alt+Shift+K` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
 
