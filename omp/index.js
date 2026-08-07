@@ -15,6 +15,7 @@ let bridge
 let focusUnsubscribe
 let focusSettingsWatcher
 let focusSettingsRefreshTimer
+let pendingFocusInput = ""
 
 export default function ompSendContextExtension(pi) {
   pi.setLabel("Send Context to OMP")
@@ -150,6 +151,7 @@ function enableFocusClaiming(ctx, force = false) {
 }
 
 function disableFocusClaiming() {
+  pendingFocusInput = ""
   if (focusUnsubscribe === undefined) {
     return
   }
@@ -159,13 +161,18 @@ function disableFocusClaiming() {
 }
 
 function handleFocusInput(data) {
+  const input = `${pendingFocusInput}${data}`
+  pendingFocusInput = input.match(/\x1b(?:\[)?$/)?.[0] ?? ""
+
   let focused = false
-  const forwarded = data.replace(/\x1b\[([IO])/g, (_report, state) => {
-    if (state === "I") {
-      focused = true
-    }
-    return ""
-  })
+  const forwarded = input
+    .slice(0, input.length - pendingFocusInput.length)
+    .replace(/\x1b\[([IO])/g, (_report, state) => {
+      if (state === "I") {
+        focused = true
+      }
+      return ""
+    })
 
   if (focused) {
     void claimActiveBridge({ force: true }).catch(() => {})
