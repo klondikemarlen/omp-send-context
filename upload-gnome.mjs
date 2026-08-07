@@ -11,6 +11,11 @@ const SECRET_SERVICE = "extensions.gnome.org"
 const DEFAULT_PROJECT = "omp-send-context"
 const SECRET_PURPOSE = "upload"
 
+// DO NOT set false until a locally installed GNOME extension completes manual QA.
+const GNOME_DEPLOYMENT_PAUSED = true
+const GNOME_DEPLOYMENT_PAUSE_MESSAGE =
+  "DO NOT UPLOAD: GNOME extension deployment is paused until local installation works."
+
 export async function uploadGnomeExtension({
   zipPath,
   account,
@@ -21,6 +26,10 @@ export async function uploadGnomeExtension({
   lookupSecret = secretToolLookup,
   prompt = promptAccount,
 }) {
+  if (GNOME_DEPLOYMENT_PAUSED) {
+    throw new Error(GNOME_DEPLOYMENT_PAUSE_MESSAGE)
+  }
+
   if (!zipPath) {
     throw new Error("--zip is required.")
   }
