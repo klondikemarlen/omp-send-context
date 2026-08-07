@@ -414,7 +414,7 @@ test("focus routing can be disabled explicitly on Linux", async () => {
   )
 })
 
-test("plugin setting enables Linux focus routing", async () => {
+test("plugin setting claims a Linux terminal after a split focus report", async () => {
   const packageJson = JSON.parse(await fs.readFile("package.json", "utf8"))
   assert.deepEqual(packageJson.omp.settings.claimIdeContextOnFocus, {
     type: "boolean",
@@ -425,7 +425,7 @@ test("plugin setting enables Linux focus routing", async () => {
 
   await withBridge(
     BASE_PORT + 11,
-    async ({ handlers, terminalWrites }) => {
+    async ({ handlers, stateFile, terminalWrites }) => {
       let focusHandler
       await handlers.get("session_start")(
         {},
@@ -442,8 +442,16 @@ test("plugin setting enables Linux focus routing", async () => {
 
       assert.equal(typeof focusHandler, "function")
       assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
-      assert.deepEqual(focusHandler("\x1b"), { data: "\x1b" })
-      assert.deepEqual(focusHandler("[I"), { data: "[I" })
+      await fs.writeFile(
+        stateFile,
+        JSON.stringify({ endpoint: "http://127.0.0.1:49875", instanceId: "other-instance" })
+      )
+      assert.deepEqual(focusHandler("\x1b"), { consume: true })
+      assert.deepEqual(focusHandler("[I"), { consume: true })
+      await waitFor(
+        async () => JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId !== "other-instance"
+      )
+      assert.deepEqual(focusHandler("normal terminal input"), { data: "normal terminal input" })
     },
     {
       pluginSettings: {
