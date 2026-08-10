@@ -195,7 +195,15 @@ The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` 
 
 #### GNOME deployment is paused
 
-> **DO NOT UPLOAD THE GNOME EXTENSION.** GNOME review rejected version 7 because it contained `schemas/gschemas.compiled`. Deployment remains disabled until a locally installed extension is proven to work end to end.
+> **DO NOT UPLOAD THE GNOME EXTENSION.** GNOME review rejected version 7 because it contained `schemas/gschemas.compiled`. The reviewer reported: “No change. Also, `schemas/gschemas.compiled` shouldn't be included in the package.” Deployment remains disabled until a locally installed extension is proven to work end to end.
+
+Before enabling deployment or submitting any future GNOME version, give the user a submission brief containing:
+
+1. The ZIP diff against the active GNOME version and why each changed file alters user-visible behavior.
+2. Local evidence: `npm run test:gnome`, fresh-session Ptyxis shortcut delivery to a fresh OMP process, and every `shexli` finding with its disposition.
+3. Relevant GNOME reviewer feedback.
+
+Obtain explicit user confirmation in the current conversation after that explanation. A general request to publish or release is not approval to submit a GNOME version.
 
 Use the local-only workflow:
 
@@ -204,7 +212,7 @@ npm run test:gnome
 npm run install:gnome
 ```
 
-Start a fresh GNOME session, enable the installed extension, configure `desktop-shortcut`, start a fresh OMP process, select Ptyxis text, and invoke the shortcut. The `upload:gnome` command stops before it prompts, reads credentials, or makes a network request. Only re-enable deployment after that flow succeeds.
+The `upload:gnome` command stops before it prompts, reads credentials, or makes a network request. Only re-enable deployment after the local workflow and explicit approval succeed.
 
 For local testing from the current checkout, run:
 
@@ -326,6 +334,7 @@ For user-facing feature work, a request to follow the feature release pattern me
 6. For published changes, merge first, then bump the package version and changelog on `main`.
 7. Publish, then poll the Marketplace (`npx vsce show klondikemarlen.omp-send-context --json`) until the new version appears.
 8. Reinstall from the remote source and verify the installed version.
+9. For a GNOME extension version, provide the GNOME submission brief and obtain explicit user confirmation before any upload; no generic publish or release instruction authorizes that submission.
 
 ## Publish
 
