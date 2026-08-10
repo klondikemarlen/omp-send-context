@@ -37,7 +37,7 @@ test("GNOME deployment stops before external calls", async () => {
         fetched = true
       },
     }),
-    /DO NOT UPLOAD/
+    /DO NOT UPLOAD: explain the archive diff, local QA evidence, and GNOME reviewer feedback, then get explicit user confirmation/
   )
   assert.deepEqual(
     { prompted, lookedUpSecret, fetched },

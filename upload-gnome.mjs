@@ -11,10 +11,10 @@ const SECRET_SERVICE = "extensions.gnome.org"
 const DEFAULT_PROJECT = "omp-send-context"
 const SECRET_PURPOSE = "upload"
 
-// DO NOT set false until a locally installed GNOME extension completes manual QA.
+// DO NOT set false until local desktop QA passes and the user explicitly approves this upload.
 const GNOME_DEPLOYMENT_PAUSED = true
 const GNOME_DEPLOYMENT_PAUSE_MESSAGE =
-  "DO NOT UPLOAD: GNOME extension deployment is paused until local installation works."
+  "DO NOT UPLOAD: explain the archive diff, local QA evidence, and GNOME reviewer feedback, then get explicit user confirmation before enabling GNOME deployment."
 
 export async function uploadGnomeExtension({
   zipPath,
