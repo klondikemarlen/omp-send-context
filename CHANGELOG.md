@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.1
 
 - Make `/ide` restore enabled autofocus while selecting the console through the same effect as automatic activity; it never pins future routing.
 - Reattach focus input during cancellable session changes when OMP delivers the recovery hook. If an earlier plugin cancels first, `/ide` repairs the cleared listener.
