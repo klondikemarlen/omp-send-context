@@ -68,7 +68,7 @@ This plugin's documented support floor is OMP `16.3.7` or newer. OMP PR [can1357
 
 ## State file
 
-On session start, the OMP extension writes:
+Each running OMP console writes a private record in `~/.omp/agent/editor-context-bridge.json.d/`. The selected console is also projected into the shared pointer used by existing clients:
 
 ```text
 ~/.omp/agent/editor-context-bridge.json
@@ -82,22 +82,23 @@ The file contains:
 - `instanceId`: random id for the running OMP terminal bridge.
 - `version`: installed plugin package version.
 - `updatedAt`: timestamp for diagnosing stale state.
+- `claimedAt`: original terminal-activity time, used to order live consoles independently of delayed shared-pointer writes. Background startup uses zero.
 
-The VS Code setting `ompContext.endpoint` overrides discovery when needed.
+Per-console records are authoritative when present. VS Code validates loopback URLs and `/health` instance identity before delivery, skips confirmed dead processes/refused connections/reused identities, and fails safely on ambiguous health failures. Discovery is bounded to 1.5 seconds, with a 500 ms limit per probe. The VS Code setting `ompContext.endpoint` pins discovery to that endpoint and attaches its discovered credentials.
 
 ## Multiple terminals
 
-Multiple OMP terminals can run the plugin at the same time. Each terminal listens on a different loopback port. `session_start` keeps an existing live bridge, while `session_switch` and `/ide` explicitly route VS Code context to the current OMP terminal. Use `/ide status` to show the endpoint and installed plugin version.
+Multiple OMP terminals can run the plugin at the same time. Each listens on a different loopback port; after the preferred range fills, the OS assigns a free port. `session_start` preserves an existing selected live console, while `session_switch` and `/ide` select the current terminal. Closing an owner removes only its own record and promotes a live survivor. Plugin reload carries its activity timestamp across the same-process module replacement, so reloading an inactive console cannot steal a newer selection. Use `/ide status` to show the local endpoint and loaded plugin version.
 
 ### Experimental Linux terminal focus routing
 
-On Linux, the OMP-side **Claim IDE context on focus** plugin setting and `--claim-ide-context-on-focus` flag are disabled by default. When enabled, the plugin subscribes to raw terminal input, enables xterm DECSET 1004, and force-claims the shared state file after a focus-in (`CSI I`) report. It removes focus-in and focus-out reports from the forwarded input but forwards all other bytes unchanged. This is a Linux capability-based feature: no terminal-emulator, desktop, PID, or VS Code API detection is involved. Focus-out does nothing; unsupported Linux transports retain `/ide` routing. The setting is inert outside Linux.
+On Linux, **Claim IDE context on focus** is enabled by default; `--claim-ide-context-on-focus` forces it on for one process. The plugin subscribes to terminal input, enables xterm DECSET 1004, and selects the console on focus-in, first observed focus-out, or keyboard interaction. The initial focus-out handles a console that was already focused at startup. Later focus-outs and terminal probe replies do not claim. Focus reports are consumed; other input is forwarded. Session switches reattach listeners that OMP clears. The setting is inert outside Linux.
 
 This feature requires OMP `16.5.1` or newer.
 
 On Linux, the plugin watches the OMP plugin runtime configuration that the Settings UI writes. Changing this setting starts or stops focus reporting in every running OMP instance without a reload or restart. The CLI flag remains a per-process override.
 
-Terminal multiplexers must forward xterm focus reports to OMP for automatic claiming; otherwise the feature remains inactive and `/ide` is the manual route.
+Terminal multiplexers must forward xterm focus reports for focus-only selection. Keyboard interaction and `/ide` remain available without those reports. VS Code sends the selected instance identity; an explicit 401 or 409 triggers one new discovery attempt because no paste occurred. Ambiguous POST failures never trigger automatic replay.
 
 ## Shortcut semantics
 
