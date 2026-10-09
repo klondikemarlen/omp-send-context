@@ -298,6 +298,8 @@ To see the active endpoint and plugin version in a terminal, run:
 /ide status
 ```
 
+Type `/ide ` (including the space) to see the `status` autocomplete option, then press Tab to complete it and Enter to display the loaded version and endpoint. The `/ide` command description also advertises this option.
+
 ### Experimental Linux terminal focus routing
 
 On Linux, focus routing is enabled by default. Set **Claim IDE context on focus** to `false` in OMP **Settings → Plugins → omp-send-context** to disable it, or start OMP with `--claim-ide-context-on-focus` to force it on for a process. This setting does nothing outside Linux.

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Expose `/ide status` in the command description and argument autocomplete so the loaded plugin version and bridge endpoint are discoverable in the TUI.
+
 ## 2.7.1
 
 - Make `/ide` restore enabled autofocus while selecting the console through the same effect as automatic activity; it never pins future routing.
