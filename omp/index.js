@@ -39,7 +39,19 @@ export default function ompSendContextExtension(pi) {
   })
 
   pi.registerCommand("ide", {
-    description: "Restore enabled autofocus and route context to this OMP terminal",
+    description: "Restore enabled autofocus; /ide status shows version and endpoint",
+    getArgumentCompletions: (argumentPrefix) => {
+      if (!"status".startsWith(argumentPrefix.toLowerCase())) {
+        return null
+      }
+      return [
+        {
+          value: "status",
+          label: "status",
+          description: "Show this console's loaded plugin version and bridge endpoint",
+        },
+      ]
+    },
     handler: async (args, ctx) => {
       const claimedAt = performance.timeOrigin + performance.now()
       activeContext = ctx
