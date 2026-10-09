@@ -398,20 +398,21 @@ test("focus routing is enabled by default on Linux", async () => {
 test("focus routing can be disabled explicitly on Linux", async () => {
   await withBridge(
     BASE_PORT + 7,
-    async ({ handlers }) => {
+    async ({ commands, handlers }) => {
       let subscribed = false
-      await handlers.get("session_start")(
-        {},
-        {
-          hasUI: true,
-          ui: {
-            onTerminalInput() {
-              subscribed = true
-              return () => {}
-            },
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput() {
+            subscribed = true
+            return () => {}
           },
-        }
-      )
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      await commands.get("ide").handler("", context)
+      await handlers.get("session_before_switch")({ reason: "new" }, context)
 
       assert.equal(subscribed, false)
     },
@@ -522,20 +523,21 @@ test("plugin setting changes focus routing in a running Linux session", async ()
 test("focus routing is disabled outside Linux by default", async () => {
   await withBridge(
     BASE_PORT + 12,
-    async ({ handlers, terminalWrites }) => {
+    async ({ commands, handlers, terminalWrites }) => {
       let subscribed = false
-      await handlers.get("session_start")(
-        {},
-        {
-          hasUI: true,
-          ui: {
-            onTerminalInput() {
-              subscribed = true
-              return () => {}
-            },
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput() {
+            subscribed = true
+            return () => {}
           },
-        }
-      )
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      await commands.get("ide").handler("", context)
+      await handlers.get("session_before_switch")({ reason: "new" }, context)
 
       assert.equal(subscribed, false)
       assert.deepEqual(terminalWrites, [])
@@ -720,6 +722,96 @@ test("session switch restores the input subscription cleared by OMP", async () =
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal((await postContext(selected, { prompt: "new-session-context" })).status, 200)
       assert.equal(editorText, "new-session-context ")
+    })
+  })
+})
+
+test("cancelled session changes retain focus routing without selecting the cancelling console", async () => {
+  await withBridge(BASE_PORT + 34, async ({ commands, handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {
+              inputHandler = undefined
+            }
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      // OMP clears listeners before its cancellable session_before_switch event.
+      inputHandler = undefined
+      await handlers.get("session_before_switch")({ reason: "new" }, context)
+      await commands.get("ide").handler("status", context)
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+
+      inputHandler("\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal(
+        (await postContext(selected, { prompt: "cancelled-session-context" })).status,
+        200
+      )
+      assert.equal(editorText, "cancelled-session-context ")
+    })
+  })
+})
+
+test("/ide repairs enabled autofocus without turning later focus-outs into activity", async () => {
+  await withBridge(BASE_PORT + 35, async ({ commands, handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {
+              inputHandler = undefined
+            }
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      inputHandler("\x1b[I")
+      inputHandler = undefined
+      await commands.get("ide").handler("", context)
+      const manuallySelected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(manuallySelected, { prompt: "manual-context" })).status, 200)
+
+      await otherConsole.claim({ force: true })
+      inputHandler("\x1b[O")
+      await commands.get("ide").handler("status", context)
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+
+      inputHandler("\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const automaticallySelected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal(automaticallySelected.instanceId, manuallySelected.instanceId)
+      assert.equal(
+        (await postContext(automaticallySelected, { prompt: "automatic-context" })).status,
+        200
+      )
+      assert.equal(editorText, "manual-context automatic-context ")
     })
   })
 })

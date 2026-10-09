@@ -39,7 +39,7 @@ export default function ompSendContextExtension(pi) {
   })
 
   pi.registerCommand("ide", {
-    description: "Route context to this OMP terminal",
+    description: "Restore enabled autofocus and route context to this OMP terminal",
     handler: async (args, ctx) => {
       const claimedAt = performance.timeOrigin + performance.now()
       activeContext = ctx
@@ -51,8 +51,16 @@ export default function ompSendContextExtension(pi) {
         )
         return
       }
-      if (await claimActiveBridge({ force: true, claimedAt })) {
-        ctx.ui.notify(`Context will target this terminal via ${bridge.endpoint}.`, "info")
+      await refreshFocusClaiming(pi, { rebind: true })
+      if (await claimCurrentConsole(claimedAt)) {
+        const autofocusNotice =
+          focusUnsubscribe === undefined
+            ? ""
+            : " Autofocus restored; future console activity can change the target."
+        ctx.ui.notify(
+          `Context will target this terminal via ${bridge.endpoint}.${autofocusNotice}`,
+          "info"
+        )
       }
     },
   })
@@ -65,11 +73,17 @@ export default function ompSendContextExtension(pi) {
     if (pendingClaimedAt > 0) {
       const claimedAt = pendingClaimedAt
       pendingClaimedAt = 0
-      await claimActiveBridge({ force: true, claimedAt })
+      await claimCurrentConsole(claimedAt)
     } else {
-      await claimActiveBridge()
+      await bridge.claim()
     }
     watchFocusSettings(pi)
+  })
+
+  pi.on("session_before_switch", async (_event, ctx) => {
+    activeContext = ctx
+    // OMP has already cleared listeners; cancellation skips session_switch.
+    await refreshFocusClaiming(pi, { rebind: true })
   })
 
   pi.on("session_switch", async (_event, ctx) => {
@@ -81,7 +95,7 @@ export default function ompSendContextExtension(pi) {
     await ensureServer()
     const claimedAt = Math.max(switchClaimedAt, pendingClaimedAt)
     pendingClaimedAt = 0
-    await claimActiveBridge({ force: true, claimedAt })
+    await claimCurrentConsole(claimedAt)
     watchFocusSettings(pi)
   })
 
@@ -98,7 +112,7 @@ export default function ompSendContextExtension(pi) {
   })
 }
 
-async function refreshFocusClaiming(pi) {
+async function refreshFocusClaiming(pi, { rebind = false } = {}) {
   if (process.platform !== "linux" || activeContext === undefined) {
     return
   }
@@ -110,6 +124,11 @@ async function refreshFocusClaiming(pi) {
   }
   const force = pi.getFlag("claim-ide-context-on-focus") === true
   if (force || setting === true) {
+    if (rebind) {
+      focusUnsubscribe?.()
+      focusUnsubscribe = undefined
+      pendingFocusInput = ""
+    }
     enableFocusClaiming(activeContext, force)
   } else if (setting === false) {
     disableFocusClaiming()
@@ -219,7 +238,7 @@ function handleFocusInput(data) {
     if (bridge?.endpoint === undefined) {
       pendingClaimedAt = performance.timeOrigin + performance.now()
     } else {
-      void claimActiveBridge({ force: true }).catch((error) => {
+      void claimCurrentConsole().catch((error) => {
         activeContext?.ui.notify(
           `Could not select this context bridge: ${error.message}`,
           "warning"
@@ -253,8 +272,8 @@ async function ensureServer() {
   startupClaimedAt = 0
 }
 
-async function claimActiveBridge(options) {
-  return bridge?.claim(options) ?? false
+async function claimCurrentConsole(claimedAt = performance.timeOrigin + performance.now()) {
+  return bridge?.claim({ force: true, claimedAt }) ?? false
 }
 
 async function pasteToPromptEditor(prompt) {

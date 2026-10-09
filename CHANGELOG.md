@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Make `/ide` restore enabled autofocus while selecting the console through the same effect as automatic activity; it never pins future routing.
+- Reattach focus input during cancellable session changes when OMP delivers the recovery hook. If an earlier plugin cancels first, `/ide` repairs the cleared listener.
+
 ## 2.7.0
 
 - Keep VS Code/Devin delivery on the most recently active live OMP console across new sessions, console shutdowns/crashes, and plugin reloads.
