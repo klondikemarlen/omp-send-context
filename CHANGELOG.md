@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.2
 
 - Expose `/ide status` in the command description and argument autocomplete so the loaded plugin version and bridge endpoint are discoverable in the TUI.
 
