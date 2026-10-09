@@ -1,9 +1,9 @@
-import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 
 import * as vscode from "vscode"
 
+import { sendBridgeContext } from "./bridge-client"
 import {
   collectHandoffDiagnostics,
   formatAgentHandoffPacket,
@@ -16,14 +16,7 @@ import {
   type HandoffDiagnostic,
 } from "./prompt"
 
-interface BridgeState {
-  readonly endpoint: string
-  readonly token?: string
-}
-
-const DEFAULT_ENDPOINT = "http://127.0.0.1:47687"
 const STATE_FILE = path.join(os.homedir(), ".omp", "agent", "editor-context-bridge.json")
-const REQUEST_TIMEOUT_MILLISECONDS = 2000
 const DEFAULT_HANDOFF_MAX_BYTES = 20_000
 const DEFAULT_HANDOFF_MAX_DIAGNOSTICS = 20
 
@@ -92,7 +85,11 @@ async function sendPrompt(prompt: string, label: string) {
   }
 
   try {
-    await postContext(await getBridgeState(), request)
+    const configuredEndpoint = vscode.workspace
+      .getConfiguration("ompContext")
+      .get<string>("endpoint", "")
+      .trim()
+    await sendBridgeContext(STATE_FILE, request, configuredEndpoint || undefined)
   } catch (error) {
     await vscode.env.clipboard.writeText(prompt)
     const message = error instanceof Error ? error.message : "Unknown bridge error"
@@ -204,71 +201,4 @@ function getHandoffDiagnostics(): HandoffDiagnostic[] {
       source: diagnostic.source,
     }))
   )
-}
-
-async function getBridgeState(): Promise<BridgeState> {
-  const configuredEndpoint = vscode.workspace
-    .getConfiguration("ompContext")
-    .get<string>("endpoint", "")
-    .trim()
-
-  if (configuredEndpoint.length > 0) {
-    return { endpoint: configuredEndpoint }
-  }
-
-  try {
-    const stateContent = await fs.readFile(STATE_FILE, "utf8")
-    const state = JSON.parse(stateContent) as unknown
-
-    if (isBridgeStateFile(state)) {
-      return {
-        endpoint: state.endpoint,
-        token: state.token,
-      }
-    }
-  } catch {
-    return { endpoint: DEFAULT_ENDPOINT }
-  }
-
-  return { endpoint: DEFAULT_ENDPOINT }
-}
-
-function isBridgeStateFile(value: unknown): value is BridgeState {
-  if (typeof value !== "object" || value === null) {
-    return false
-  }
-
-  const candidate = value as { endpoint?: unknown; token?: unknown }
-  const tokenIsValid = candidate.token === undefined || typeof candidate.token === "string"
-
-  return typeof candidate.endpoint === "string" && tokenIsValid
-}
-
-async function postContext(bridgeState: BridgeState, bridgeRequest: ContextEnvelope) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
-
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    }
-
-    if (bridgeState.token !== undefined) {
-      headers.Authorization = `Bearer ${bridgeState.token}`
-    }
-
-    const response = await fetch(`${bridgeState.endpoint}/context`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(bridgeRequest),
-      signal: controller.signal,
-    })
-
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`OMP bridge returned ${response.status}: ${text}`)
-    }
-  } finally {
-    clearTimeout(timeout)
-  }
 }

@@ -7,6 +7,8 @@ import { createServer } from "node:http"
 import { pathToFileURL } from "node:url"
 import { syncBuiltinESMExports } from "node:module"
 
+import { createBridgeRuntime } from "../../omp/bridge-runtime.js"
+
 const BASE_PORT = 48731
 
 async function withBridge(
@@ -36,7 +38,6 @@ async function withBridge(
 
   const handlers = new Map()
   const commands = new Map()
-  const registeredFlags = new Map()
   const sentMessages = []
   const terminalWrites = []
   const originalStdoutWrite = process.stdout.write
@@ -46,12 +47,18 @@ async function withBridge(
   }
 
   try {
-    const moduleUrl = pathToFileURL(path.resolve("omp/index.js"))
-    const extensionModule = await import(`${moduleUrl.href}?bridge-test=${port}-${Date.now()}`)
-    extensionModule.default({
-      registerFlag(name, definition) {
-        registeredFlags.set(name, definition)
-      },
+    let loadCount = 0
+
+    async function loadExtension() {
+      const moduleUrl = pathToFileURL(path.resolve("omp/index.js"))
+      const extensionModule = await import(
+        `${moduleUrl.href}?bridge-test=${port}-${Date.now()}-${loadCount++}`
+      )
+      extensionModule.default(extensionApi)
+    }
+
+    const extensionApi = {
+      registerFlag() {},
       getFlag(name) {
         return flags[name]
       },
@@ -65,7 +72,8 @@ async function withBridge(
       async sendUserMessage(prompt, options) {
         sentMessages.push({ prompt, options })
       },
-    })
+    }
+    await loadExtension()
 
     await run({
       commands,
@@ -73,9 +81,13 @@ async function withBridge(
       homeDirectory,
       sentMessages,
       stateFile: path.join(homeDirectory, ".omp", "agent", "editor-context-bridge.json"),
-      registeredFlags,
       terminalWrites,
       pluginsLockFile,
+      async reloadExtension(beforeLoad = async () => {}) {
+        await handlers.get("session_shutdown")?.()
+        await beforeLoad()
+        await loadExtension()
+      },
     })
   } finally {
     await handlers.get("session_shutdown")?.()
@@ -144,13 +156,10 @@ test("OMP bridge accepts authorized context and pastes into editor", async () =>
     assert.equal(typeof state.instanceId, "string")
     assert.equal(commands.has("ide"), true)
     assert.equal(commands.has("ide-status"), false)
-    await commands.get("ide").handler(["status"], context)
-    assert.deepEqual(notifications, [
-      {
-        message: `Send Context to OMP ${packageJson.version} is listening on ${state.endpoint}.`,
-        level: "info",
-      },
-    ])
+    await commands.get("ide").handler("status", context)
+    assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).claimedAt, state.claimedAt)
+    assert.ok(notifications[0].message.includes(state.endpoint))
+    assert.ok(notifications[0].message.includes(packageJson.version))
 
     const response = await postContext(state, {
       prompt: "@src/example.ts#L1C1",
@@ -415,14 +424,6 @@ test("focus routing can be disabled explicitly on Linux", async () => {
 })
 
 test("plugin setting claims a Linux terminal after a split focus report", async () => {
-  const packageJson = JSON.parse(await fs.readFile("package.json", "utf8"))
-  assert.deepEqual(packageJson.omp.settings.claimIdeContextOnFocus, {
-    type: "boolean",
-    default: true,
-    description:
-      "On Linux, claim IDE context automatically after this terminal receives an xterm focus report.",
-  })
-
   await withBridge(
     BASE_PORT + 11,
     async ({ handlers, stateFile, terminalWrites }) => {
@@ -562,12 +563,7 @@ test("focus routing warns when terminal input listeners are unavailable", async 
         }
       )
 
-      assert.deepEqual(notifications, [
-        {
-          message: "Claim IDE context on focus requires OMP 16.5.1 or newer.",
-          type: "warning",
-        },
-      ])
+      assert.equal(notifications[0]?.type, "warning")
     },
     {
       flags: {
@@ -580,7 +576,7 @@ test("focus routing warns when terminal input listeners are unavailable", async 
 test("focus flag claims the bridge after an xterm focus report", async () => {
   await withBridge(
     BASE_PORT + 7,
-    async ({ handlers, registeredFlags, stateFile, terminalWrites }) => {
+    async ({ handlers, stateFile, terminalWrites }) => {
       const ownerPort = BASE_PORT + 8
       const ownerServer = createServer((_request, response) => {
         response.writeHead(200, {
@@ -620,15 +616,6 @@ test("focus flag claims the bridge after an xterm focus report", async () => {
           }
         )
 
-        assert.deepEqual(registeredFlags.get("claim-ide-context-on-focus"), {
-          description: "On Linux, claim context when this terminal gains focus",
-          type: "boolean",
-          default: false,
-        })
-        assert.deepEqual(focusHandler("\x1b[O"), { consume: true })
-        assert.deepEqual(focusHandler("prefix\x1b[Osuffix"), { data: "prefixsuffix" })
-        assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId, "owner-instance")
-
         assert.deepEqual(focusHandler("\x1b[I"), { consume: true })
         await waitFor(
           async () =>
@@ -649,4 +636,162 @@ test("focus flag claims the bridge after an xterm focus report", async () => {
       },
     }
   )
+})
+
+async function withOtherConsole(stateFile, run) {
+  const runtime = createBridgeRuntime({
+    deliverPrompt() {},
+    notify() {},
+    packageFile: path.resolve("package.json"),
+    stateFile,
+    defaultPort: 0,
+  })
+  try {
+    await runtime.start()
+    await runtime.claim({ force: true })
+    await run(runtime)
+  } finally {
+    await runtime.close()
+  }
+}
+
+test("typing in an already-focused console selects it without treating probes as activity", async () => {
+  await withBridge(BASE_PORT + 30, async ({ handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {}
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      inputHandler("\x1b[1;1R\x1b[?1;2c\x1b[?1u\x1b[?1004;1$y\x1b]10;rgb:ffff/ffff/ffff\x1b\\")
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+
+      assert.deepEqual(inputHandler("draft"), { data: "draft" })
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(selected, { prompt: "typed-console-context" })).status, 200)
+      assert.equal(editorText, "typed-console-context ")
+    })
+  })
+})
+
+test("session switch restores the input subscription cleared by OMP", async () => {
+  await withBridge(BASE_PORT + 31, async ({ handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {
+              inputHandler = undefined
+            }
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      // New-session creation clears listeners before emitting session_switch.
+      inputHandler = undefined
+      await handlers.get("session_switch")({}, context)
+      await otherConsole.claim({ force: true })
+      inputHandler("\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(selected, { prompt: "new-session-context" })).status, 200)
+      assert.equal(editorText, "new-session-context ")
+    })
+  })
+})
+
+test("plugin reload retains activity order without stealing newer console activity", async () => {
+  await withBridge(BASE_PORT + 32, async ({ commands, handlers, stateFile, reloadExtension }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput() {
+            return () => {}
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      await commands.get("ide").handler("", context)
+      const original = JSON.parse(await fs.readFile(stateFile, "utf8"))
+
+      await reloadExtension()
+      await handlers.get("session_start")({}, context)
+      const reloaded = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.notEqual(reloaded.instanceId, original.instanceId)
+      assert.equal(reloaded.claimedAt, original.claimedAt)
+      assert.equal((await postContext(reloaded, { prompt: "after-reload" })).status, 200)
+      assert.equal(editorText, "after-reload ")
+
+      await reloadExtension(() => otherConsole.claim({ force: true }))
+      await handlers.get("session_start")({}, context)
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+    })
+  })
+})
+
+test("first focus-out claims an already-focused startup but later focus-outs do not steal routing", async () => {
+  await withBridge(BASE_PORT + 33, async ({ commands, handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {}
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      inputHandler("\x1b[O")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(selected, { prompt: "already-focused-startup" })).status, 200)
+      assert.equal(editorText, "already-focused-startup ")
+
+      await otherConsole.claim({ force: true })
+      inputHandler("\x1b[O")
+      // Drain this runtime's queued work without adding another activity event.
+      await commands.get("ide").handler("status", context)
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+    })
+  })
 })

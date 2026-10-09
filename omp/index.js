@@ -1,6 +1,7 @@
 import { unwatchFile, watch, watchFile } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { dirname, basename, join } from "node:path"
+import { performance } from "node:perf_hooks"
 import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
@@ -10,14 +11,25 @@ const PLUGINS_LOCK_FILE = join(process.env.HOME ?? "", ".omp", "plugins", "omp-p
 const PACKAGE_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json")
 const DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS = process.platform === "linux"
 
+// Plugin reloads replace this module, but keep the process and terminal alive.
+// Carry activity time across that boundary without inventing a new focus event.
+const RELOAD_ACTIVITY_KEY = Symbol.for("omp-send-context.reload-activity")
+
 let activeContext
 let bridge
 let focusUnsubscribe
 let focusSettingsWatcher
 let focusSettingsRefreshTimer
 let pendingFocusInput = ""
+let startupClaimedAt = 0
+let pendingClaimedAt = 0
+let focusSettingsGeneration = 0
+let terminalFocusObserved = false
 
 export default function ompSendContextExtension(pi) {
+  const reloadActivity = globalThis[RELOAD_ACTIVITY_KEY]
+  startupClaimedAt = reloadActivity?.home === process.env.HOME ? reloadActivity.claimedAt : 0
+  delete globalThis[RELOAD_ACTIVITY_KEY]
   pi.setLabel("Send Context to OMP")
 
   pi.registerFlag("claim-ide-context-on-focus", {
@@ -29,16 +41,17 @@ export default function ompSendContextExtension(pi) {
   pi.registerCommand("ide", {
     description: "Route context to this OMP terminal",
     handler: async (args, ctx) => {
+      const claimedAt = performance.timeOrigin + performance.now()
       activeContext = ctx
       await ensureServer()
-      if (args[0] === "status") {
+      if (args.trim() === "status") {
         ctx.ui.notify(
           `Send Context to OMP ${bridge.version} is listening on ${bridge.endpoint}.`,
           "info"
         )
         return
       }
-      if (await claimActiveBridge({ force: true })) {
+      if (await claimActiveBridge({ force: true, claimedAt })) {
         ctx.ui.notify(`Context will target this terminal via ${bridge.endpoint}.`, "info")
       }
     },
@@ -46,19 +59,38 @@ export default function ompSendContextExtension(pi) {
 
   pi.on("session_start", async (_event, ctx) => {
     activeContext = ctx
-    await ensureServer()
-    await claimActiveBridge()
+    disableFocusClaiming()
     await refreshFocusClaiming(pi)
+    await ensureServer()
+    if (pendingClaimedAt > 0) {
+      const claimedAt = pendingClaimedAt
+      pendingClaimedAt = 0
+      await claimActiveBridge({ force: true, claimedAt })
+    } else {
+      await claimActiveBridge()
+    }
     watchFocusSettings(pi)
   })
 
   pi.on("session_switch", async (_event, ctx) => {
+    const switchClaimedAt = performance.timeOrigin + performance.now()
     activeContext = ctx
+    // OMP clears terminal-input listeners when creating a new session.
+    disableFocusClaiming()
+    await refreshFocusClaiming(pi)
     await ensureServer()
-    await claimActiveBridge({ force: true })
+    const claimedAt = Math.max(switchClaimedAt, pendingClaimedAt)
+    pendingClaimedAt = 0
+    await claimActiveBridge({ force: true, claimedAt })
+    watchFocusSettings(pi)
   })
 
   pi.on("session_shutdown", async () => {
+    globalThis[RELOAD_ACTIVITY_KEY] = {
+      home: process.env.HOME,
+      claimedAt: bridge?.claimedAt ?? 0,
+    }
+    pendingClaimedAt = 0
     stopFocusSettingsWatcher()
     disableFocusClaiming()
     activeContext = undefined
@@ -71,7 +103,11 @@ async function refreshFocusClaiming(pi) {
     return
   }
 
+  const generation = ++focusSettingsGeneration
   const setting = await readFocusClaimingSetting()
+  if (generation !== focusSettingsGeneration || activeContext === undefined) {
+    return
+  }
   const force = pi.getFlag("claim-ide-context-on-focus") === true
   if (force || setting === true) {
     enableFocusClaiming(activeContext, force)
@@ -151,7 +187,9 @@ function enableFocusClaiming(ctx, force = false) {
 }
 
 function disableFocusClaiming() {
+  focusSettingsGeneration += 1
   pendingFocusInput = ""
+  terminalFocusObserved = false
   if (focusUnsubscribe === undefined) {
     return
   }
@@ -168,16 +206,37 @@ function handleFocusInput(data) {
   const forwarded = input
     .slice(0, input.length - pendingFocusInput.length)
     .replace(/\x1b\[([IO])/g, (_report, state) => {
-      if (state === "I") {
+      // A first focus-out proves this console was already focused at startup.
+      // Later focus-outs must not steal a console that just gained focus.
+      if (state === "I" || !terminalFocusObserved) {
         focused = true
       }
+      terminalFocusObserved = true
       return ""
     })
 
-  if (focused) {
-    void claimActiveBridge({ force: true }).catch(() => {})
+  if (focused || hasUserInput(forwarded)) {
+    if (bridge?.endpoint === undefined) {
+      pendingClaimedAt = performance.timeOrigin + performance.now()
+    } else {
+      void claimActiveBridge({ force: true }).catch((error) => {
+        activeContext?.ui.notify(
+          `Could not select this context bridge: ${error.message}`,
+          "warning"
+        )
+      })
+    }
   }
   return forwarded.length > 0 ? { data: forwarded } : { consume: true }
+}
+
+function hasUserInput(input) {
+  // Startup probes are terminal responses, not evidence of user activity.
+  const withoutResponses = input
+    .replace(/\x1b\[[0-9;:?=>$]*[Rcnty]/g, "")
+    .replace(/\x1b\[\?[0-9;]*u/g, "")
+    .replace(/\x1b(?:\]|P|_|^)[\s\S]*?(?:\x07|\x1b\\)/g, "")
+  return withoutResponses.length > 0
 }
 
 async function ensureServer() {
@@ -190,7 +249,8 @@ async function ensureServer() {
       packageFile: PACKAGE_FILE,
     })
   }
-  await bridge.start()
+  await bridge.start({ claimedAt: startupClaimedAt })
+  startupClaimedAt = 0
 }
 
 async function claimActiveBridge(options) {
