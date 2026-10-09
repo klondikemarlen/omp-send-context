@@ -55,7 +55,7 @@
       "claimIdeContextOnFocus": {
         "type": "boolean",
         "default": true,
-        "description": "On Linux, claim IDE context automatically after this terminal receives an xterm focus report."
+        "description": "On Linux, route context to the last OMP console reporting focus or receiving keyboard input."
       }
     }
   },
@@ -110,7 +110,7 @@
           "tags": [
             "advanced"
           ],
-          "description": "Override the OMP context bridge endpoint. Empty means read ~/.omp/agent/editor-context-bridge.json, then fall back to http://127.0.0.1:47687."
+          "description": "Pin delivery to a local OMP bridge (http://127.0.0.1:<port>) using its discovered credentials. Empty discovers the most recently active live OMP console."
         },
         "ompContext.handoffMaxBytes": {
           "type": "number",
