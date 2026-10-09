@@ -282,9 +282,9 @@ Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in 
 
 ## Multiple OMP terminals
 
-Each OMP terminal runs its own local bridge. The VS Code extension reads `~/.omp/agent/editor-context-bridge.json` and sends `Ctrl+Alt+K` context to the bridge recorded there.
+Each OMP terminal runs its own authenticated local bridge. The VS Code/Devin extension discovers the most recently active live console from `~/.omp/agent/editor-context-bridge.json` and the per-console records in `editor-context-bridge.json.d/`. It checks the process identity before sending, so a restarted console or reused port cannot silently receive another console's context.
 
-Session start keeps an existing live bridge; session switch claims the current terminal. To explicitly route VS Code context to the terminal you are looking at, run:
+Background session startup preserves the selected live console. Session switches, terminal activity on Linux, and `/ide` select the current console. Closing the selected console promotes the most recently active live survivor; VS Code also skips confirmed dead owners after a crash. Plugin reloads keep the console's activity order while replacing its endpoint credentials. To explicitly select a terminal, run:
 
 ```text
 /ide
@@ -304,9 +304,11 @@ This feature requires OMP `16.5.1` or newer.
 
 Changing this setting starts or stops focus reporting in every running Linux OMP instance; no reload or restart is required. `--claim-ide-context-on-focus` remains a per-process override.
 
-The plugin listens to raw terminal input and enables xterm focus reporting (DECSET 1004). A terminal or transport that forwards a focus-in report (`CSI I`) makes its OMP instance claim the active bridge. Hover is not enough: the terminal must actually receive focus. Other input, including incomplete or non-focus escape sequences, is forwarded unchanged. Unsupported terminals preserve the normal manual route.
+The plugin enables xterm focus reporting (DECSET 1004). Focus-in (`CSI I`) selects that console. A first focus-out (`CSI O`) also selects it: the console may already have been focused when it started, and moving back to Devin is its first report. Later focus-outs do not steal another console's selection. Typing or navigation input selects the console even without a new focus report; terminal probe replies do not. New-session creation reattaches the input listener.
 
-When using a terminal multiplexer, configure it to forward xterm focus reports to OMP; otherwise automatic claiming stays inactive and `/ide` remains available.
+Hover is not enough: focus or terminal interaction must be observable. With a multiplexer, forward xterm focus reports to support focus-only selection; keyboard interaction and `/ide` remain available otherwise. An unavailable latest owner is not treated as dead merely because a health request times out: VS Code copies the packet to the clipboard rather than guessing another target. Automatic delivery retries a fresh discovery only after an explicit authentication or stale-selection rejection, never after an ambiguous paste failure.
+
+After updating this plugin, restart or reload **every** OMP console and reload the Devin/VS Code window. Existing processes retain the extension code loaded earlier.
 
 ## Settings
 
@@ -314,7 +316,7 @@ When using a terminal multiplexer, configure it to forward xterm focus reports t
 - `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
 - `ompContext.handoffIncludeDiagnostics`: include VS Code diagnostics in handoff packets. Default: `false`.
 - Advanced settings:
-  - `ompContext.endpoint`: optional endpoint override. Empty means read `~/.omp/agent/editor-context-bridge.json`, then fall back to `http://127.0.0.1:47687`.
+  - `ompContext.endpoint`: optional pinned loopback endpoint (`http://127.0.0.1:<port>`). Empty uses live-console discovery. An override stays pinned and uses that console's discovered credentials; no fallback to an arbitrary default port.
   - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
   - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included when `ompContext.handoffIncludeDiagnostics` is enabled. Default: `20`.
 
@@ -378,8 +380,8 @@ See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge sec
 ## Security model
 
 - The OMP bridge binds only to `127.0.0.1`.
-- OMP writes a random bearer token to `~/.omp/agent/editor-context-bridge.json` with `0600` permissions.
-- The VS Code extension reads that file and sends the token on each request.
+- OMP writes random bearer tokens in `0600` state files; the per-console directory is `0700`.
+- The VS Code extension sends the selected token and instance identity on each automatic request. A bridge rejects a stale identity or selection before pasting.
 
 ## Research notes
 

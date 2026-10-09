@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Keep VS Code/Devin delivery on the most recently active live OMP console across new sessions, console shutdowns/crashes, and plugin reloads.
+- Restore terminal-input listeners after session switches and recognize already-focused startup consoles, keyboard activity, and split focus reports without treating terminal probe replies as activity.
+- Discover authenticated per-console identities instead of guessing a default port; safely rediscover after stale-selection rejection without replaying ambiguous pastes.
+- Preserve pinned endpoint credentials and support more consoles than the preferred port range.
+
 ## 2.6.0
 
 - Cover stale GNOME Shell bridge-state reads across disable/re-enable.
