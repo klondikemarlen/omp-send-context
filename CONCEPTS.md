@@ -94,6 +94,8 @@ Multiple OMP terminals can run the plugin at the same time. Each listens on a di
 
 On Linux, **Claim IDE context on focus** is enabled by default; `--claim-ide-context-on-focus` forces it on for one process. The plugin subscribes to terminal input, enables xterm DECSET 1004, and selects the console on focus-in, first observed focus-out, or keyboard interaction. The initial focus-out handles a console that was already focused at startup. Later focus-outs and terminal probe replies do not claim. Focus reports are consumed; other input is forwarded. Session switches reattach listeners that OMP clears. The setting is inert outside Linux.
 
+Manual `/ide` selection and automatic terminal activity share the same forced bridge claim; neither pins future routing. `/ide` also rebinds enabled focus input and reasserts DECSET 1004 without forgetting previously observed focus reports. `session_before_switch` rebinds before a cancellation can skip the successful-switch handler. OMP short-circuits this event when an earlier plugin cancels, so that ordering still requires explicit `/ide` recovery. Focus opt-out is preserved.
+
 This feature requires OMP `16.5.1` or newer.
 
 On Linux, the plugin watches the OMP plugin runtime configuration that the Settings UI writes. Changing this setting starts or stops focus reporting in every running OMP instance without a reload or restart. The CLI flag remains a per-process override.

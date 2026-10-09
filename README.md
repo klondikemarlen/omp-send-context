@@ -290,6 +290,8 @@ Background session startup preserves the selected live console. Session switches
 /ide
 ```
 
+`/ide` uses the same one-time selection effect as autofocus. It also reattaches this terminal's enabled autofocus listener and re-enables focus reporting, so it can repair stopped autofocus. It does not pin routing: focusing or interacting with another console can select that console next. An explicit autofocus opt-out remains disabled.
+
 To see the active endpoint and plugin version in a terminal, run:
 
 ```text
@@ -305,6 +307,8 @@ This feature requires OMP `16.5.1` or newer.
 Changing this setting starts or stops focus reporting in every running Linux OMP instance; no reload or restart is required. `--claim-ide-context-on-focus` remains a per-process override.
 
 The plugin enables xterm focus reporting (DECSET 1004). Focus-in (`CSI I`) selects that console. A first focus-out (`CSI O`) also selects it: the console may already have been focused when it started, and moving back to Devin is its first report. Later focus-outs do not steal another console's selection. Typing or navigation input selects the console even without a new focus report; terminal probe replies do not. New-session creation reattaches the input listener.
+
+OMP may clear terminal-input listeners before a cancellable session change. The plugin reattaches them in `session_before_switch` as well as after a successful switch. If an earlier plugin cancels the event, OMP skips later handlers, including this recovery hook; run `/ide` in the affected terminal to restore enabled autofocus. This cancelled-transition gap was not covered by the 2.7.0 session-switch fix.
 
 Hover is not enough: focus or terminal interaction must be observable. With a multiplexer, forward xterm focus reports to support focus-only selection; keyboard interaction and `/ide` remain available otherwise. An unavailable latest owner is not treated as dead merely because a health request times out: VS Code copies the packet to the clipboard rather than guessing another target. Automatic delivery retries a fresh discovery only after an explicit authentication or stale-selection rejection, never after an ambiguous paste failure.
 
