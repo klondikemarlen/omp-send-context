@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.0
 
 - Keep VS Code/Devin delivery on the most recently active live OMP console across new sessions, console shutdowns/crashes, and plugin reloads.
 - Restore terminal-input listeners after session switches and recognize already-focused startup consoles, keyboard activity, and split focus reports without treating terminal probe replies as activity.
