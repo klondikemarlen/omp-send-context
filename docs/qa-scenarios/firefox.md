@@ -19,7 +19,7 @@ Confirm `omp-send-context@2.0.0` or newer is listed.
 - A local checkout with dependencies installed:
 
   ```bash
-  npm install
+  npm ci
   npm test
   npx web-ext lint --source-dir firefox --ignore-files 'native-host/**' 'native-host/' 'scripts/**' 'scripts/'
   ```
@@ -52,7 +52,7 @@ If the pull request requires authentication, sign in to the temporary profile be
 
 Start a fresh OMP process after the native host is installed. Keep its prompt visible.
 
-To capture diagnostics for this release, click the add-on toolbar button to enable session-only debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens. Debug entries disappear when Firefox restarts.
+To capture diagnostics for this release, open the add-on toolbar popup and enable session-only debug logging. After reproducing a failure, use the page context menu item **Copy OMP Send Context debug log**. The exported log contains bounded stage/error codes only; it does not contain selected text, URLs, titles, prompts, bridge state, or bearer tokens. Debug entries disappear when Firefox restarts.
 
 The copied log includes `Extension version`, `Source commit`, and bounded debug entries. `Source commit` is the full SHA for a clean release build, `uncommitted` for a dirty development tree, or `unknown` when Git provenance cannot be resolved; it never includes selected text, URLs, prompts, bridge state, or bearer tokens.
 
@@ -60,7 +60,7 @@ The copied log includes `Extension version`, `Source commit`, and bounded debug 
 
 ### 1. Generic page context-menu delivery
 
-1. Open an ordinary `https://` or `http://` page, such as an article, `https://addons.mozilla.org/`, or a local development page.
+1. Open an ordinary `https://` or `http://` page, such as an article or local development page. Do not use Firefox-protected pages such as AMO.
 2. Select a sentence or code fragment.
 3. Open the Firefox page context menu.
 4. Choose **Send selection and link to OMP**.
@@ -108,11 +108,11 @@ Expected: the most specific available HTTP(S) GitHub link is used. If no line li
 
 ### 5. Clipboard fallback
 
-1. Stop OMP or temporarily move the native-host manifest out of `~/.mozilla/native-messaging-hosts/`.
+1. Stop all OMP sessions in the test account so native delivery has no active destination.
 2. Select source text on a pull request.
 3. Invoke the shortcut or context-menu action.
 4. Paste into a text editor.
-5. Restore the native-host manifest and restart OMP.
+5. Restart OMP after checking the fallback.
 
 Expected:
 
@@ -122,7 +122,7 @@ Expected:
 
 ### 6. Unsupported and empty selections
 
-1. On `about:blank`, a `file:` page, or another non-HTTP(S) page, invoke the shortcut.
+1. On `about:blank`, a `file:` page, AMO, or another protected/unsupported page, invoke the shortcut.
 2. On an eligible HTTP(S) page, invoke the action with no selected text.
 
 Expected: no request is sent and a clear user-facing error appears in both cases. Existing clipboard contents remain unchanged for rejected input.

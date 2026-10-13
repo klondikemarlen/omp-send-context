@@ -1,396 +1,94 @@
 # OMP Send Context
 
-VS Code client plus OMP extension for sending source selections to OMP with `Ctrl+Alt+K`; a Firefox client is also available under `firefox/`. It sends context only when you explicitly invoke `Ctrl+Alt+K` or the **Send selection and link to OMP** context-menu command; it never sends page data automatically.
+Send selected code from **VS Code or Devin Desktop**, or selected text and links from **Firefox**, to your [Oh My Pi (OMP)](https://github.com/can1357/oh-my-pi) prompt.
 
-## Repository layout
-
-- `vscode/` — VS Code extension source (`extension.ts`, `prompt.ts`).
-- `firefox/` — Firefox add-on, native host, and Firefox-only build/sign/install scripts.
-- `omp/` — OMP bridge runtime and extension entry point.
-- `gnome-shell/` — GNOME Shell companion extension for focused Ptyxis selections.
-- `protocol/` — versioned context-envelope schema and example fixtures shared by clients and runtimes.
-- `test/<integration>/` — tests grouped by integration (`vscode`, `firefox`, `omp`, and `protocol`).
-
-## What it does
-
-Press `Ctrl+Alt+K` on Linux/Windows or `Cmd+Alt+K` on macOS while a VS Code editor is focused.
-
-By default, OMP receives a bounded agent handoff packet with the active editor context and workspace root. VS Code diagnostics are omitted by default; enable `ompContext.handoffIncludeDiagnostics` when you want them included:
-
-````text
-# OMP Agent Handoff
-
-## Active editor
-
-@src/example.ts#L7C17-L9C20
-
-```typescript
-const value = 1
-return value
-```
-
-## Workspace
-
-- Root: `/path/to/workspace`
-````
-
-The default inline content mode is stale-safe for ordinary selections: it includes the reference plus selected text as a fenced code block, so OMP receives the exact bytes you selected unless the bounded handoff packet reaches `ompContext.handoffMaxBytes`. Set `ompContext.contentMode` to `reference` to send only `@file#LxCy-LxCy` when you prefer the smaller file-reference optimization.
-
-If the OMP bridge is not reachable, the VS Code extension copies the same context block to the clipboard.
-
-Set `ompContext.insertMode` to `editorContext` when you want `Ctrl+Alt+K` / `Cmd+Alt+K` to send only the active file reference and selected text.
+Context is sent only when you invoke a shortcut or command. It is inserted into your prompt for review—not submitted automatically. If delivery is unavailable, the client copies the context to your clipboard so you can paste it yourself.
 
 ## Install
 
-You need both pieces:
+Install the OMP plugin, then choose an editor or browser client.
 
-1. The VS Code extension captures editor state.
-2. The OMP extension receives the context and inserts it into the OMP prompt.
+### 1. Install the OMP plugin
 
-### VS Code-Compatible Marketplace Clients
-
-Install or update from Marketplace. This project uses **Devin Desktop**, a VS Code-based desktop client; it supports the same Marketplace extension format and its own `devin-desktop` CLI:
-
-```bash
-devin-desktop --install-extension klondikemarlen.omp-send-context --force
-devin-desktop --list-extensions --show-versions | grep '^klondikemarlen.omp-send-context@'
-```
-
-Plain VS Code uses:
-
-```bash
-code --install-extension klondikemarlen.omp-send-context --force
-```
-
-Or use the client's Extensions view and search for **Oh My Pi Send Context**. Marketplace installs normally auto-update unless extension auto-update is disabled.
-
-Links:
-
-- Marketplace: https://marketplace.visualstudio.com/items?itemName=klondikemarlen.omp-send-context
-- Marketplace publisher hub: https://marketplace.visualstudio.com/manage/publishers/klondikemarlen
-- GitHub: https://github.com/klondikemarlen/omp-send-context
-
-If this project helps you, you can optionally support maintenance with a [Ko-fi tip](https://ko-fi.com/klondikemarlen).
-
-### OMP plugin
-
-Install the companion OMP extension from GitHub:
+Requires OMP **16.3.7 or newer**; optional Linux terminal-focus routing requires **16.5.1 or newer**.
 
 ```bash
 omp plugin install github:klondikemarlen/omp-send-context
 ```
 
-If the old `omp-vscode-context` package is already installed, remove it once before installing from the renamed repository to avoid a package-name resolution loop:
+Start a fresh OMP process after installation.
+
+### 2. Choose your client
+
+**VS Code or Devin Desktop:** find **Oh My Pi Send Context** in your editor's Extensions view, or install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=klondikemarlen.omp-send-context).
+
+For VS Code:
 
 ```bash
-omp plugin uninstall omp-vscode-context
-omp plugin install github:klondikemarlen/omp-send-context
+code --install-extension klondikemarlen.omp-send-context
 ```
 
-`omp install github:klondikemarlen/omp-send-context` also works; `omp plugin install` is clearer because this is an OMP plugin, not the VS Code extension.
-
-Update an already-installed GitHub plugin with the same command:
+For Devin Desktop:
 
 ```bash
-omp plugin install github:klondikemarlen/omp-send-context
+devin-desktop --install-extension klondikemarlen.omp-send-context
 ```
 
-Then restart OMP or run `/reload-plugins`.
+**Firefox:** install [OMP Send Context from Mozilla Add-ons](https://addons.mozilla.org/en-CA/firefox/addon/omp-send-context/). It works with selected text on eligible HTTP(S) pages, including GitHub pull requests. Firefox-protected pages and local files are excluded.
 
-Supported OMP runtime: `16.3.7` or newer. That release includes upstream OMP [can1357/oh-my-pi#4342](https://github.com/can1357/oh-my-pi/pull/4342), which repaints the prompt after extension `pasteToEditor` / `setEditorText` mutations; older runtimes may still load the plugin but are outside this repo's support floor.
+The add-on can copy context to your clipboard without additional setup. For direct delivery to OMP, install the separate Linux native-messaging host using the [Firefox setup guide](docs/product/firefox.md#install-the-linux-native-messaging-host).
 
-This plugin is installed from the GitHub repo because it ships an OMP runtime extension, while the VS Code half is installed from Marketplace.
+## Send context
 
-### Firefox client
+1. Start OMP and leave its prompt open.
+2. Select code in your editor or text on a web page.
+3. Press **Ctrl+Alt+K** on Linux/Windows or **Cmd+Alt+K** on macOS. In Firefox, you can also right-click and choose **Send selection and link to OMP**.
+4. Review the context in OMP before submitting your prompt. If the client used clipboard fallback, paste it into OMP first.
 
-The Firefox client is a WebExtension with opt-in, session-only diagnostic logging. Debug output is limited to bounded stage and error codes to help diagnose delivery failures.
+Editor selections include a file reference and the selected text by default, plus the workspace root when available. Browser selections include the page link and title; GitHub pull-request selections retain richer source metadata.
 
-The Firefox client is a separate WebExtension under `firefox/`. On ordinary `http://` and `https://` pages, its **Send selection and link to OMP** context-menu action and configurable `Ctrl+Alt+K` shortcut send the current selected text, page URL, and document title. The add-on requests persistent access only to ordinary HTTP(S) pages so the shortcut works without a prior toolbar click; it does not request access to local files. Firefox-protected pages, including AMO, Firefox internal pages, `file:` pages, empty selections, and other unsupported inputs are rejected without delivery.
+Want a smaller editor packet? See [editor settings](docs/product/editor.md#choose-what-the-shortcut-sends).
 
-GitHub pull-request pages keep the richer behavior: the same menu action and shortcut preserve the GitHub title, selected-link/permalink metadata, and `## GitHub` prompt section. Selections from a PR diff add human-readable Git metadata: `File`, `Version` (`original` or `modified`), `Change` (`added`, `removed`, `context`, or `mixed`), selected `Lines`, and an explicit `Head commit` only when the page exposes a head-specific SHA. `Location` remains an optional exact GitHub diff permalink; its UI-specific diff anchor is never treated as a commit. Generic pages use `## Web page` and always retain the page URL.
+## Choose an OMP terminal
 
-For normal distribution, install the signed add-on from its [AMO listing](https://addons.mozilla.org/en-CA/firefox/addon/omp-send-context/). Maintainers can manage submissions from the [AMO developer page](https://addons.mozilla.org/en-CA/developers/addon/omp-send-context/edit). The OMP plugin and the Firefox add-on are separate installs; installing the add-on does not install the native-messaging host.
-
-For local development, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts.
-
-The toolbar button toggles opt-in, session-only debug logging. Debug entries disappear when Firefox restarts. With debug logging enabled, the **Copy OMP Send Context debug log** context-menu action copies bounded stage/error codes only; it never includes selected text, URLs, titles, prompts, bridge state, or bearer tokens. The add-on does not persist page context or collect telemetry.
-
-The client first tries the native-messaging host. If the host is unavailable or rejects delivery, it copies the exact prompt packet to the clipboard; no bridge token is exposed to Firefox.
-
-### Firefox native messaging host (Linux setup)
-
-The Firefox native messaging host is a separately installed local process. Native delivery is optional: when the host is unavailable, the add-on copies the exact context packet to the clipboard. The published PPA package contains a statically linked Go host and does not install the Node.js runtime.
-
-For Ubuntu 26.04 (Resolute), the recommended install is the native host PPA:
-
-```bash
-sudo add-apt-repository ppa:klondikemarlen/omp-send-context
-sudo apt update
-sudo apt install omp-send-context-firefox-host
-```
-
-The package installs the host and system Firefox manifest. If Firefox is installed through Snap or Flatpak, also install the sandbox proxy:
-
-```bash
-sudo apt install xdg-native-messaging-proxy
-omp-send-context-install-firefox-host --sandboxed
-```
-
-Run the registration command as your normal desktop user, not with `sudo`. It writes the per-user manifest used by sandboxed Firefox. On other distributions, install the equivalent `xdg-native-messaging-proxy` package when needed.
-
-For source development or distributions without the PPA, install from a checkout. This development path uses the existing Node.js host and therefore requires the documented Node.js prerequisite:
-
-- **System Firefox:** `npm run install:firefox-host`
-- **Snap or Flatpak Firefox:** `npm run install:firefox-host -- --sandboxed` after installing `xdg-native-messaging-proxy`
-
-The checkout installer writes an executable launcher at `~/.local/share/omp-send-context/omp_send_context-host` and a per-user manifest at `~/.mozilla/native-messaging-hosts/omp_send_context.json`. The manifest allowlists the extension ID `omp-send-context@klondikemarlen.github.io`. Do not copy the manifest into `~/snap/firefox/` or another sandbox-private directory because the proxy discovers the normal host-manifest location. Review the [proxy security warning](https://github.com/flatpak/xdg-native-messaging-proxy#readme) before enabling it.
-
-After installation, start a fresh OMP process and restart Firefox. Invoke `Ctrl+Alt+K` on any eligible HTTP(S) page, including GitHub pull requests. With debug logging enabled, native delivery passes when the log contains `native:succeeded`; clipboard fallback is expected only when the host is unavailable.
-
-The native host intentionally accepts only `http://127.0.0.1:<port>` bridge endpoints and never logs prompts or bearer tokens.
-
-### GNOME Shell companion for Ptyxis
-
-Ptyxis does not currently expose a supported plugin ABI. The repository therefore ships a GNOME Shell companion extension that reads the focused Ptyxis window's PRIMARY selection and sends it through the active OMP bridge; it does not patch or inject into Ptyxis.
-
-On GNOME Shell 50, build and install the extension from a checkout:
-
-```bash
-npm run package:gnome
-gnome-extensions install --force /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
-gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
-```
-
-`gnome-extensions install` writes the ZIP to the user extension directory and verifies its schema, but it does not call GNOME Shell's live `InstallRemoteExtension` path. That path can load an extension without a new session, but only after downloading it from extensions.gnome.org; it cannot accept a local ZIP. Therefore a locally installed ZIP is discovered at the next GNOME Shell session. Start a fresh GNOME Shell session after installing, then start a fresh OMP process, select text in Ptyxis, and use a user-configured shortcut. The extension sends only the current PRIMARY selection and reports no-selection, unsupported-focus, and bridge errors visibly. The schema intentionally has no default clipboard shortcut because GNOME review guidelines prohibit shipping default keyboard shortcuts for clipboard access. GNOME Shell's supported keybinding API owns a registered accelerator at the compositor layer; it does not provide a supported consume-and-re-send operation. Configure `Ctrl+Shift+Alt+X` with the schema-aware command below; it stays distinct from Firefox and VS Code's `Ctrl+Alt+K`.
-
-This companion is separate from the Firefox integration and does not change Firefox behavior.
-
-#### GNOME companion maintenance and review
-
-The companion is packaged separately from the VS Code, OMP, and Firefox artifacts:
-
-```bash
-npm test
-npm run package:gnome
-unzip -l /tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
-```
-
-To test the packaged extension without restarting your desktop session, run:
-
-```bash
-npm run test:gnome
-```
-
-This starts a disposable headless GNOME Shell, installs the ZIP through its `--extension` test-tool option, and asserts that the extension becomes `ACTIVE`. It does not modify the running Shell or emulate a focused Ptyxis selection.
-
-Run the GNOME static analyzer from the repository's asdf Python:
-
-```bash
-python -m pip install -U shexli
-shexli "$PWD/gnome-shell"
-shexli "/tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
-```
-
-The expected `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is intentional: the extension declares PRIMARY clipboard use in its description and only reads it after an explicit user-configured shortcut. Address any other finding before submission.
-
-#### GNOME deployment is paused
-
-> **DO NOT UPLOAD THE GNOME EXTENSION.** GNOME review rejected version 7 because it contained `schemas/gschemas.compiled`. The reviewer reported: “No change. Also, `schemas/gschemas.compiled` shouldn't be included in the package.” Deployment remains disabled until a locally installed extension is proven to work end to end.
-
-Before enabling deployment or submitting any future GNOME version, give the user a submission brief containing:
-
-1. The ZIP diff against the active GNOME version and why each changed file alters user-visible behavior.
-2. Local evidence: `npm run test:gnome`, fresh-session Ptyxis shortcut delivery to a fresh OMP process, and every `shexli` finding with its disposition.
-3. Relevant GNOME reviewer feedback.
-
-Obtain explicit user confirmation in the current conversation after that explanation. A general request to publish or release is not approval to submit a GNOME version.
-
-Use the local-only workflow:
-
-```bash
-npm run test:gnome
-npm run install:gnome
-```
-
-The `upload:gnome` command stops before it prompts, reads credentials, or makes a network request. Only re-enable deployment after the local workflow and explicit approval succeed.
-
-For local testing from the current checkout, run:
-
-```bash
-npm run install:gnome
-```
-
-It packages and replaces the local extension. If this UUID was first installed after the current Wayland GNOME Shell session started, start a new session before enabling it: the live Shell registry does not rescan extension directories. Replacing an already discovered extension also leaves its imported code in memory, so start a new session to exercise the checkout:
-
-```bash
-gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
-gnome-extensions info omp-send-context-gnome@klondikemarlen.github.io
-```
-
-The local ZIP keeps its GSettings schema in the extension directory, so configure the opt-in shortcut with that schema path:
-
-```bash
-UUID='omp-send-context-gnome@klondikemarlen.github.io'
-SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID/schemas"
-
-GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
-  gsettings set org.gnome.shell.extensions.omp-send-context \
-  desktop-shortcut "['<Control><Alt><Shift>k']"
-
-GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
-  gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
-```
-
-To remove a checkout install:
-
-```bash
-gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
-```
-
-The GNOME Extensions listing is [OMP Send Context](https://extensions.gnome.org/extension/10625/omp-send-context/). **DO NOT UPLOAD** with `npm run upload:gnome`; deployment is disabled until the local manual workflow succeeds. GNOME review and public listing acceptance remain external.
-
-The extension currently targets GNOME Shell 50 and ships without a default shortcut. Set `desktop-shortcut` explicitly for desktop capture; `Ctrl+Alt+Shift+K` stays distinct from Firefox and VS Code's `Ctrl+Alt+K`. The companion has no supported Ptyxis plugin ABI to depend on and does not provide shortcut pass-through.
-
-For an installed extension in `ERROR`, run:
-
-```bash
-npm run diagnose:gnome
-```
-
-It prints the installed version, the running Shell and installed-file timestamps, the `extension.js` import, and timestamped records from this boot. If `extension.js` is newer than the Shell, the running Wayland Shell loaded the previous version. Log out and back in to start a new Shell process; disabling and enabling cannot unload the old module. Press `Alt+F2`, type `lg`, then open **Extensions** to inspect current-session errors.
-
-The companion requires an active OMP bridge. Start a fresh OMP process after installation and confirm that `~/.omp/agent/editor-context-bridge.json` exists before testing a selected Ptyxis terminal.
-
-Maintenance guides:
-
-- [Firefox manual QA](docs/firefox-manual-qa.md)
-- [Firefox publishing](docs/firefox-publishing.md)
-
-### Local development install
-
-For normal use, install from GitHub as shown above. For development on a local checkout, link the local package so OMP loads your working tree instead of a pinned GitHub commit:
-
-```bash
-git clone https://github.com/klondikemarlen/omp-send-context.git
-cd omp-send-context
-npm install
-npm run package:vsix
-omp plugin link "$PWD"
-```
-
-Then restart OMP or run `/reload-plugins`, and install the generated `.vsix` in VS Code. The package command writes it to `/tmp/omp-send-context-<version>.vsix`, keeping generated artifacts out of the checkout. Local edits to `omp/index.js` take effect after `/reload-plugins`; VS Code extension edits still require rebuilding/reinstalling the `.vsix`.
-
-## Multiple OMP terminals
-
-Each OMP terminal runs its own authenticated local bridge. The VS Code/Devin extension discovers the most recently active live console from `~/.omp/agent/editor-context-bridge.json` and the per-console records in `editor-context-bridge.json.d/`. It checks the process identity before sending, so a restarted console or reused port cannot silently receive another console's context.
-
-Background session startup preserves the selected live console. Session switches, terminal activity on Linux, and `/ide` select the current console. Closing the selected console promotes the most recently active live survivor; VS Code also skips confirmed dead owners after a crash. Plugin reloads keep the console's activity order while replacing its endpoint credentials. To explicitly select a terminal, run:
+With multiple OMP consoles open, run this in the console that should receive context:
 
 ```text
 /ide
 ```
 
-`/ide` uses the same one-time selection effect as autofocus. It also reattaches this terminal's enabled autofocus listener and re-enables focus reporting, so it can repair stopped autofocus. It does not pin routing: focusing or interacting with another console can select that console next. An explicit autofocus opt-out remains disabled.
+On Linux, supported terminal focus and keyboard activity also select the receiving console by default. `/ide` selects it once; it does not pin future routing.
 
-To see the active endpoint and plugin version in a terminal, run:
+To inspect the loaded plugin version and local endpoint:
 
 ```text
 /ide status
 ```
 
-Type `/ide ` (including the space) to see the `status` autocomplete option, then press Tab to complete it and Enter to display the loaded version and endpoint. The `/ide` command description also advertises this option.
+See [routing and troubleshooting](docs/product/troubleshooting.md) if context reaches the wrong console or falls back to the clipboard.
 
-### Experimental Linux terminal focus routing
+## Update
 
-On Linux, focus routing is enabled by default. Set **Claim IDE context on focus** to `false` in OMP **Settings → Plugins → omp-send-context** to disable it, or start OMP with `--claim-ide-context-on-focus` to force it on for a process. This setting does nothing outside Linux.
-
-This feature requires OMP `16.5.1` or newer.
-
-Changing this setting starts or stops focus reporting in every running Linux OMP instance; no reload or restart is required. `--claim-ide-context-on-focus` remains a per-process override.
-
-The plugin enables xterm focus reporting (DECSET 1004). Focus-in (`CSI I`) selects that console. A first focus-out (`CSI O`) also selects it: the console may already have been focused when it started, and moving back to Devin is its first report. Later focus-outs do not steal another console's selection. Typing or navigation input selects the console even without a new focus report; terminal probe replies do not. New-session creation reattaches the input listener.
-
-OMP may clear terminal-input listeners before a cancellable session change. The plugin reattaches them in `session_before_switch` as well as after a successful switch. If an earlier plugin cancels the event, OMP skips later handlers, including this recovery hook; run `/ide` in the affected terminal to restore enabled autofocus. This cancelled-transition gap was not covered by the 2.7.0 session-switch fix.
-
-Hover is not enough: focus or terminal interaction must be observable. With a multiplexer, forward xterm focus reports to support focus-only selection; keyboard interaction and `/ide` remain available otherwise. An unavailable latest owner is not treated as dead merely because a health request times out: VS Code copies the packet to the clipboard rather than guessing another target. Automatic delivery retries a fresh discovery only after an explicit authentication or stale-selection rejection, never after an ambiguous paste failure.
-
-After updating this plugin, restart or reload **every** OMP console and reload the Devin/VS Code window. Existing processes retain the extension code loaded earlier.
-
-## Settings
-
-- `ompContext.insertMode`: primary shortcut mode. `agentHandoff` (default) sends the bounded handoff packet; `editorContext` keeps `Ctrl+Alt+K` / `Cmd+Alt+K` on the minimal file/selection prompt.
-- `ompContext.contentMode`: selected-text format used by both modes. `inline` (default) includes the reference plus selected text as a fenced code block; `reference` sends only `@file#LxCy-LxCy`.
-- `ompContext.handoffIncludeDiagnostics`: include VS Code diagnostics in handoff packets. Default: `false`.
-- Advanced settings:
-  - `ompContext.endpoint`: optional pinned loopback endpoint (`http://127.0.0.1:<port>`). Empty uses live-console discovery. An override stays pinned and uses that console's discovered credentials; no fallback to an arbitrary default port.
-  - `ompContext.handoffMaxBytes`: maximum bytes inserted by the handoff packet. Default: `20000`.
-  - `ompContext.handoffMaxDiagnostics`: maximum VS Code diagnostics included when `ompContext.handoffIncludeDiagnostics` is enabled. Default: `20`.
-
-Use the default `agentHandoff` + `inline` pair for hands-off agent work. Use `editorContext` for a lower-overhead packet shape, `reference` for lower selected-text token use, or both for the smallest file-reference-only fallback. The separate handoff command remains available as a one-off override.
-
-Privacy boundary: the handoff packet is explicit and local, but it may include selected text, local paths, and diagnostics when `ompContext.handoffIncludeDiagnostics` is enabled. Obvious `token=`, `secret=`, `password=`, `apiKey=`, and `authorization=` diagnostic values are redacted; review the inserted prompt before submitting if the workspace contains sensitive data.
-
-## Feature workflow
-
-For user-facing feature work, a request to follow the feature release pattern means completing this whole sequence, not stopping at the pull request:
-
-1. Create a GitHub issue with the user story and acceptance criteria.
-2. Create a branch named for the issue.
-3. Open a pull request linked to the issue.
-4. Review the diff and run the smallest tests that cover the change.
-5. Merge only after the PR is reviewed and checks pass.
-6. For published changes, merge first, then bump the package version and changelog on `main`.
-7. Publish, then poll the Marketplace (`npx vsce show klondikemarlen.omp-send-context --json`) until the new version appears.
-8. Reinstall from the remote source and verify the installed version.
-9. For a GNOME extension version, provide the GNOME submission brief and obtain explicit user confirmation before any upload; no generic publish or release instruction authorizes that submission.
-
-## Publish
-
-Marketplace publishing uses `@vscode/vsce`.
-
-Before publishing:
+Update the editor extension through its Extensions view and Firefox through its add-on manager. Update the OMP plugin with the same installation command:
 
 ```bash
-npm test
-npm run package:vsix
+omp plugin install github:klondikemarlen/omp-send-context
 ```
 
-Publish a new version:
+Restart every running OMP console and reload the editor window to use the updated code. If you still have the old `omp-vscode-context` package, follow the [migration instructions](docs/product/editor.md#install-or-update).
 
-```bash
-npm version minor --no-git-tag-version
-npm run publish:marketplace
-```
+## Privacy
 
-`npm run publish:marketplace` runs `vsce publish`, which runs `npm run vscode:prepublish` first. The prepublish step type-checks and bundles `dist/extension.cjs`.
+The bridge listens only on this machine and requires private authentication tokens. Source selections are captured only on an explicit command; Linux autofocus changes the receiving console, not what is captured. Context may include selected text, local paths, and optional editor diagnostics. Review it before sending it to your model.
 
-Authentication:
+Firefox does not persist page context or collect telemetry. Its opt-in debug log omits selected text, URLs, prompts, and bridge credentials. Read more about [Firefox privacy](docs/product/firefox.md#logging-and-privacy) and the [bridge security boundary](docs/architecture/context-bridge.md#security-and-privacy-boundaries).
 
-```bash
-npx vsce login klondikemarlen
-```
+## Learn more
 
-Use a Visual Studio Marketplace/Azure DevOps PAT with **Marketplace → Manage** scope. The publisher id is `klondikemarlen`; do not use an email address.
+- [Knowledge base](docs/README.md): product guides, architecture, developer workflows, and QA scenarios.
+- [Editor guide](docs/product/editor.md): packet modes, settings, and terminal routing.
+- [Firefox guide](docs/product/firefox.md): direct delivery, sandbox setup, and clipboard fallback.
+- [Contributing locally](docs/workflows/development.md): checkout setup and verification.
+- [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/klondikemarlen/omp-send-context/issues)
 
-If this machine is already logged in with `vsce`, no `VSCE_PAT` environment variable is needed; `npm run publish:marketplace` uses the stored credentials. Set `VSCE_PAT` only for CI/non-interactive publishing or a machine without `vsce login` state.
-
-After publishing, verify both directions:
-
-- GitHub README links to the Marketplace listing and publisher hub.
-- Marketplace listing links back to this GitHub repository through `repository` and `homepage` metadata.
-
-## Concepts
-
-See [CONCEPTS.md](./CONCEPTS.md) for the architecture, data contract, bridge security model, and known limits.
-
-## Security model
-
-- The OMP bridge binds only to `127.0.0.1`.
-- OMP writes random bearer tokens in `0600` state files; the per-console directory is `0700`.
-- The VS Code extension sends the selected token and instance identity on each automatic request. A bridge rejects a stale identity or selection before pasting.
-
-## Research notes
-
-- OpenCode's VS Code extension binds `Ctrl+Alt+K` on Linux/Windows and `Cmd+Alt+K` on macOS to insert an `@file#Lx-Ly` reference. Its TUI exposes `POST /tui/append-prompt` for prompt insertion.
-- Claude Code's current documented shortcut is `Alt+K` on Linux/Windows and `Option+K` on macOS for **Insert @-Mention Reference**. Its extension also sees selected text automatically.
-- OMP has extension UI methods including `pasteToEditor` and `sendUserMessage`, but no built-in VS Code selection bridge. This repo supplies that missing bridge.
+If this project helps you, you can optionally support maintenance with a [Ko-fi tip](https://ko-fi.com/klondikemarlen).
