@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Simplify the README around released editor and Firefox setup, and organize detailed product, architecture, development, release, and QA knowledge under `docs/`.
+- Move unreleased desktop companion guidance and submission safeguards beside its source instead of presenting it as core product documentation.
+
 ## 2.7.2
 
 - Expose `/ide status` in the command description and argument autocomplete so the loaded plugin version and bridge endpoint are discoverable in the TUI.
