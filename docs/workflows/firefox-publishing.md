@@ -18,6 +18,14 @@ Official references:
 - The Linux Firefox native messaging host manifest must allowlist that exact extension ID. Never change the ID casually; an ID change requires a coordinated host manifest update and a new AMO installation path.
 - The Linux native messaging host is not uploaded to AMO. Ubuntu 26.04 (Resolute) users can install the packaged, statically linked Go host from `ppa:klondikemarlen/omp-send-context`; the package does not depend on Node.js. Source-checkout installation remains available for other distributions and development.
 
+## Refresh listing documentation without a new add-on
+
+For a description or documentation-link change, update `docs/firefox-amo-metadata.json`, review and merge that change, then edit only the existing listing metadata. AMO's [metadata edit API](https://mozilla.github.io/addons-server/topics/api/addons.html#edit) supports an authenticated `PATCH /api/v5/addons/addon/omp-send-context/` with translated `summary`, `description`, and `developer_comments` fields.
+
+Use the existing local credential setup; never print credentials or generated authorization tokens. Do not send the metadata file's `version` block, sign/upload an unchanged XPI, or publish the native-host package for a listing-only edit. After the update, read the public listing back, verify its documentation links and concise copy, and confirm the add-on version is unchanged.
+
+Keep current user-facing instructions in the product guide and link to it from the listing. Historical version release notes remain historical.
+
 ## Before publishing
 
 1. Create a GitHub issue and issue-named branch.

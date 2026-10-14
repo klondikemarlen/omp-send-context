@@ -1,6 +1,6 @@
 # Release workflow
 
-Use this workflow when a change needs a published artifact. A documentation-only change is released through its reviewed, merged pull request: run the documentation formatting and Markdown link checks, but do not bump the package version or publish runtime artifacts solely for documentation.
+Use this workflow when a change needs a published artifact or a refreshed public listing. Repository-only documentation changes are delivered through their reviewed, merged pull request without a package release. The Marketplace description is different: it is embedded from `README.md` into the published VSIX, so updating the live description requires a new Marketplace version.
 
 User-facing changes follow the issue/branch/linked-PR/review workflow in [development](development.md). Confirm acceptance criteria, relevant tests, and review feedback are resolved before merging. Release approval and publication are separate steps; never claim publication or installation without observing it.
 
@@ -17,6 +17,8 @@ Do not publish an unchanged integration as a side effect of releasing another on
 ## VS Code Marketplace
 
 The root `package.json` is the Marketplace package manifest. Its `publish:marketplace` script invokes `vsce publish`, and `vscode:prepublish` runs the package build. The package build performs the TypeScript check and bundles `dist/extension.cjs`.
+
+For an explicitly requested Marketplace documentation refresh, use the smallest appropriate version increment, package the reduced README, and follow the same checks, publishing, live read-back, and remote-install verification as other Marketplace releases. Confirm relative documentation links are rewritten to existing repository pages; a repository README merge alone does not update the published description.
 
 Before publishing, run the project checks and prepare the VSIX:
 
@@ -50,4 +52,4 @@ Follow the dedicated [Firefox publishing workflow](firefox-publishing.md), which
 
 ## Documentation-only pull requests
 
-Documentation changes still receive a reviewed PR and must pass formatting and relative-link/heading-anchor checks. Update the changelog for the documentation change without implying a new runtime version. A documentation-path change may require updating the package file allowlist; check that linked documents are included. Do not publish runtime artifacts solely for documentation.
+Documentation changes still receive a reviewed PR and must pass formatting and relative-link/heading-anchor checks. Update the changelog without implying a new runtime version unless a Marketplace documentation release is required. A documentation-path change may require updating the package file allowlist; check that linked documents are included. For a requested public-listing refresh, verify each distribution surface independently. AMO supports metadata-only edits; do not upload an unchanged Firefox artifact or publish unrelated integrations.
