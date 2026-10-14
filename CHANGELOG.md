@@ -4,6 +4,7 @@
 
 - Simplify the README around released editor and Firefox setup, and organize detailed product, architecture, development, release, and QA knowledge under `docs/`.
 - Move unreleased desktop companion guidance and submission safeguards beside its source instead of presenting it as core product documentation.
+- Shorten Firefox listing copy and point setup/development links to the current knowledge-base pages.
 
 ## 2.7.2
 
