@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.7.3
 
 - Simplify the README around released editor and Firefox setup, and organize detailed product, architecture, development, release, and QA knowledge under `docs/`.
 - Move unreleased desktop companion guidance and submission safeguards beside its source instead of presenting it as core product documentation.
 - Shorten Firefox listing copy and point setup/development links to the current knowledge-base pages.
+- Refresh the Marketplace's bundled description from the reduced README; runtime behavior is unchanged.
 
 ## 2.7.2
 
