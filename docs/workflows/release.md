@@ -1,6 +1,6 @@
 # Release workflow
 
-Use this workflow when a change needs a published artifact or a refreshed public listing. Repository-only documentation changes are delivered through their reviewed, merged pull request without a package release. The Marketplace description is different: it is embedded from `README.md` into the published VSIX, so updating the live description requires a new Marketplace version.
+Use this workflow when a change needs a published artifact or a refreshed public listing. Repository-only documentation, tests, CI, or development-tooling changes that leave shipped runtime behavior unchanged are delivered through their reviewed, merged pull request without a package release. The Marketplace description is different: it is embedded from `README.md` into the published VSIX, so updating the live description requires a new Marketplace version.
 
 User-facing changes follow the issue/branch/linked-PR/review workflow in [development](development.md). Confirm acceptance criteria, relevant tests, and review feedback are resolved before merging. Release approval and publication are separate steps; never claim publication or installation without observing it.
 
@@ -54,6 +54,8 @@ The OMP package release and Marketplace VS Code release are distinct observation
 
 Follow the dedicated [Firefox publishing workflow](firefox-publishing.md), which covers its build/sign/distribution-specific release steps and evidence. Do not substitute Marketplace or OMP install evidence for Firefox artifact verification.
 
-## Documentation-only pull requests
+## Repository-only pull requests
 
-Documentation changes still receive a reviewed PR and must pass formatting and relative-link/heading-anchor checks. Update the changelog without implying a new runtime version unless a Marketplace documentation release is required. A documentation-path change may require updating the package file allowlist; check that linked documents are included. For a requested public-listing refresh, verify each distribution surface independently. AMO supports metadata-only edits; do not upload an unchanged Firefox artifact or publish unrelated integrations.
+Documentation and tooling changes still receive a reviewed PR. Require current-head `Quality` CI results for Node and the Go native host, scoped whitespace checks, and relative-link/heading-anchor checks for changed docs. Exercise changed developer commands directly, including failure propagation and process isolation when the test wrapper changes. A local check that cannot run is `BLOCKED` for that surface, not proof that another language's tests cover it.
+
+Update the changelog without implying a new runtime version unless a distributed artifact actually changes. A documentation-path change may require updating the package file allowlist; inspect the package contents for linked pages. For a requested public-listing refresh, verify each distribution surface independently. AMO supports metadata-only edits; do not upload an unchanged Firefox artifact or publish unrelated integrations.

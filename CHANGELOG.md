@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
+- Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.
+- Add Node test/build and Go native-host CI jobs, explicit verifier configuration, and test-authoring guidance.
+- Document runtime/language ownership and the distinction between repository-only quality releases and changed product artifacts.
+
 ## 2.7.4
 
 - Preserve enabled Linux autofocus after another plugin cancels a session change before Send Context receives any switch hook; subsequent focus or keyboard input reconnects automatically without `/ide`.

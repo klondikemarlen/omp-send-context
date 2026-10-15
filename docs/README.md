@@ -15,7 +15,7 @@ Start with the [project README](../README.md) to install a released client and s
 
 ## Develop and release
 
-- [Local development](workflows/development.md): repository ownership, checkout setup, and verification commands.
+- [Local development](workflows/development.md): repository ownership, checkout setup, isolated Node/TypeScript checks, native-host verification, and test-authoring guidance.
 - [Release workflow](workflows/release.md): issue/PR discipline, Marketplace publishing, and fresh-process installation checks.
 - [Firefox publishing](workflows/firefox-publishing.md): AMO signing, native-host PPA packaging, and observed post-publish verification.
 

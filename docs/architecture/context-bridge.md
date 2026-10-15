@@ -10,6 +10,20 @@ This page records the product-level concepts and the architecture boundaries con
 
 These are intended design boundaries. The code and its tests describe what the current implementation does; where they differ from this model, use the corresponding source and tests rather than treating this page as implementation evidence.
 
+## Runtime and language boundaries
+
+The integrations share a wire contract, not one execution environment. Keep source language and build ownership aligned with the host:
+
+| Surface             | Execution environment                                                                | Language and build boundary                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Editor client       | VS Code-compatible extension host                                                    | TypeScript is checked by `tsc` and bundled to CommonJS by esbuild.                                                                                                |
+| OMP bridge          | OMP extension process; Node-compatible APIs                                          | ESM JavaScript loads directly. The adjacent discovery declaration describes the TypeScript client's view; it does not type-check the JavaScript implementation.   |
+| Firefox add-on      | Browser extension background/content contexts                                        | JavaScript is staged into the add-on with source-commit provenance; browser behavior still needs browser QA.                                                      |
+| Firefox native host | Node for source-checkout installation; standalone executable for Debian installation | The JavaScript and Go hosts serve different installation paths. Both must preserve the envelope/framing contract; neither implementation's tests prove the other. |
+| Desktop companion   | GNOME Shell's GJS environment                                                        | JavaScript imports GNOME APIs. Node-based lifecycle tests do not replace a real GNOME activation check.                                                           |
+
+A single-language rewrite would not remove these host APIs or distribution boundaries. The current split avoids adding a compiler to directly loaded integrations while keeping a standalone native host for packaged installs. Change a boundary when an observed correctness, type-safety, or maintenance problem justifies the migration and its installed-artifact checks, not merely to make the repository uniform.
+
 ## Request path
 
 1. A user invokes a client action.
