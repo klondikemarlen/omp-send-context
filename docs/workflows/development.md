@@ -29,7 +29,7 @@ npm run package:vsix
 omp plugin link "$PWD"
 ```
 
-Install the generated VSIX in the editor under development. The package command writes to `/tmp/omp-send-context-<version>.vsix`, outside the checkout. OMP source edits take effect after restarting OMP or running `/reload-plugins`; VS Code extension edits require rebuilding and reinstalling the VSIX, then reloading the editor window. An already-running OMP process or editor window retains its loaded extension code.
+Install the generated VSIX in the editor under development. The package command writes to `/tmp/omp-send-context-<version>.vsix`, outside the checkout. Restart OMP after source edits; on OMP 18.11.1, `/reload-plugins` refreshes resources and MCP state, not the loaded extension module. VS Code extension edits require rebuilding and reinstalling the VSIX, then reloading the editor window. An already-running OMP process or editor window retains its loaded extension code.
 
 For an installed product rather than a linked checkout, follow the [user installation instructions](../product/editor.md).
 

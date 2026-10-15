@@ -29,7 +29,7 @@ Load explicit extensions with `--no-extensions -e /path/to/cancel.js -e /path/to
 ## Opt-out and reload cleanup
 
 1. Disable autofocus using the plugin setting. Attempt a cancelled `/new`, focus and type in that console, and confirm it does not claim automatically. Bare `/ide` may select it once but must not turn autofocus back on. Respect the documented per-process command-line override when choosing the QA setup.
-2. Re-enable autofocus, reload the plugin, then focus B before refocusing A. A must not steal B's newer activity merely by reloading, and must accept context when actually refocused.
+2. Re-enable autofocus, run `/reload-plugins`, then focus B before refocusing A. A must not steal B's newer activity merely by refreshing resources, and must accept context when actually refocused. On OMP 18.11.1 this command does not replace loaded extension modules; use the behavioral regression suite to exercise shutdown/module-replacement cleanup, and a fresh OMP process to validate new runtime code.
 3. Repeat reload and session transitions. Closing A must not leave an input guard that revives its closed bridge, interferes with B, or throws on later input.
 
 ## Evidence and cleanup
