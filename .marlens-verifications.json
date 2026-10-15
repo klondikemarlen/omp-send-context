@@ -1,0 +1,11 @@
+{
+  "typescriptRuntimeEntrypoints": {
+    "commands": [
+      {
+        "name": "Isolated TypeScript test suite",
+        "command": ["./bin/test", "--typescript"]
+      }
+    ],
+    "declarations": [{ "path": "omp/bridge-discovery.d.ts", "kind": "local" }]
+  }
+}
