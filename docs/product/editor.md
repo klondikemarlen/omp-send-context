@@ -33,7 +33,7 @@ omp plugin uninstall omp-vscode-context
 omp plugin install github:klondikemarlen/omp-send-context
 ```
 
-After changing the OMP plugin, restart OMP or run `/reload-plugins`. The supported OMP runtime floor is 16.3.7; Linux focus routing requires OMP 16.5.1 or newer.
+After changing the OMP plugin, restart every running OMP console. On OMP 18.11.1, `/reload-plugins` refreshes plugin resources but does not replace this extension's loaded JavaScript module. The supported OMP runtime floor is 16.3.7; Linux focus routing requires OMP 16.5.1 or newer.
 
 ## Choose what the shortcut sends
 
@@ -65,9 +65,9 @@ Use `/ide status` to display the loaded plugin version and endpoint. In the TUI,
 
 On Linux, **Claim IDE context on focus** in OMP **Settings → Plugins → omp-send-context** is enabled by default. Set it to `false` to disable focus routing, or launch OMP with `--claim-ide-context-on-focus` to force it on for that process. The setting affects Linux only. Changing it starts or stops focus reporting in running Linux OMP instances without a reload; the command-line override is per process.
 
-Focus-in selects a console; the first focus-out can also select it because a newly started console may have been focused before reporting was enabled. Later focus-outs do not steal another console's selection. Keyboard input also selects a console, but terminal probe replies do not. With a multiplexer, forward xterm focus reports if focus-only routing is needed; otherwise keyboard interaction and `/ide` remain available. A cancelled session transition can prevent OMP's listener-recovery hook from running; run `/ide` in that terminal to restore enabled autofocus.
+Focus-in selects a console; the first focus-out can also select it because a newly started console may have been focused before reporting was enabled. Later focus-outs do not steal another console's selection. Keyboard input also selects a console, but terminal probe replies do not. Enabled autofocus automatically restores its input subscription after a cancelled session transition, even when another plugin cancels before Send Context receives any switch hook. With a multiplexer, forward xterm focus reports if focus-only routing is needed; otherwise keyboard interaction and `/ide` remain available.
 
-After updating the extension or OMP plugin, restart or reload every OMP console and reload the editor window so existing processes do not continue using code loaded before the update.
+After updating the extension or OMP plugin, restart every OMP console and reload the editor window so existing processes do not continue using code loaded before the update.
 
 ## Privacy and delivery
 

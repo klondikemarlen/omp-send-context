@@ -29,7 +29,7 @@ npm run package:vsix
 omp plugin link "$PWD"
 ```
 
-Install the generated VSIX in the editor under development. The package command writes to `/tmp/omp-send-context-<version>.vsix`, outside the checkout. OMP source edits take effect after restarting OMP or running `/reload-plugins`; VS Code extension edits require rebuilding and reinstalling the VSIX, then reloading the editor window. An already-running OMP process or editor window retains its loaded extension code.
+Install the generated VSIX in the editor under development. The package command writes to `/tmp/omp-send-context-<version>.vsix`, outside the checkout. Restart OMP after source edits; on OMP 18.11.1, `/reload-plugins` refreshes resources and MCP state, not the loaded extension module. VS Code extension edits require rebuilding and reinstalling the VSIX, then reloading the editor window. An already-running OMP process or editor window retains its loaded extension code.
 
 For an installed product rather than a linked checkout, follow the [user installation instructions](../product/editor.md).
 
@@ -45,6 +45,8 @@ Keep Firefox-only tooling and installation details with those workflows rather t
 ## Checks
 
 The root `npm test` script runs formatting check, TypeScript type-checking, and the Node test suite. Run focused tests for a behavior change during development, then run the documented full checks before proposing the change. The package scripts include `check-format`, `check-types`, `package`, and `package:vsix`; `vscode:prepublish` invokes the production package build.
+
+Focus lifecycle regressions must include loss of the input subscription with **neither** session hook delivered, not only successful switches or cancellation after this plugin's hook runs. Model Node stdin dispatch before OMP input listeners so a repair that happens too late cannot pass. Follow the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) for real-runtime delivery evidence; keep the temporary cancellation harness out of the shipped package.
 
 For documentation-only changes, run `npm run check-format`, `git diff --check`, and verify relative Markdown paths and heading anchors from their new locations. When moving packaged documents, also inspect `npm pack --dry-run --json` for the linked pages. These checks do not require installing or publishing a runtime artifact.
 

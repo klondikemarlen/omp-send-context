@@ -41,9 +41,17 @@ Discovery is bounded to 1.5 seconds, with a 500 ms limit per health probe. These
 
 ## Session and reload boundaries
 
-OMP sessions can coexist, so selecting a console is a routing decision, not just a port lookup. Starting a background session should not steal the selected live console; explicit session changes and local terminal activity can select the current one. Closing a console removes only its own state and can promote a live survivor. Reloading a plugin replaces module code in the same process, so lifecycle and activity state may need to survive module replacement; a new process is different and receives new endpoint credentials.
+OMP sessions can coexist, so selecting a console is a routing decision, not just a port lookup. Starting a background session should not steal the selected live console; explicit session changes and local terminal activity can select the current one. Closing a console removes only its own state and can promote a live survivor. The bridge preserves activity if its module is replaced in the same process; a new process is different and receives new endpoint credentials.
 
-A plugin reload does not update code already loaded by other OMP processes or a VS Code window. For runtime-release QA, start a fresh OMP process and reload/restart the client before concluding that the installed artifact is exercised. See the [release workflow](../workflows/release.md).
+### Terminal input ownership
+
+An enabled Linux console keeps a process-lifetime stdin guard as well as OMP's `onTerminalInput` subscription. The guard runs before OMP's stdin handler and reattaches the UI subscription for each incoming chunk. It does not read, consume, or classify input, select a console, or poll. The existing UI handler remains the only input parser and activity-claim path; reattachment preserves partial focus reports and prior focus observation.
+
+This boundary matters because OMP can remove extension input listeners before a cancellable session transition. If an earlier extension cancels, Send Context receives neither its before-switch hook nor a completed switch event. A saved unsubscribe function therefore does not prove that OMP still has the listener. The guard is removed on opt-out and shutdown, including module replacement during reload; `/ide` can still explicitly rearm focus reporting and select the console without pinning it.
+
+The runtime ordering is evidenced in OMP 18.11.1's [session preparation](https://github.com/can1357/oh-my-pi/blob/v18.11.1/packages/coding-agent/src/modes/interactive-mode.ts), [cancellable event dispatch](https://github.com/can1357/oh-my-pi/blob/v18.11.1/packages/coding-agent/src/extensibility/extensions/runner.ts), and [terminal stdin handling](https://github.com/can1357/oh-my-pi/blob/v18.11.1/packages/tui/src/terminal.ts). Recheck that ordering when upgrading OMP; see [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md).
+
+On OMP 18.11.1, [`/reload-plugins`](https://github.com/can1357/oh-my-pi/blob/v18.11.1/packages/coding-agent/src/slash-commands/builtin-marketplace.ts) refreshes plugin resources and MCP state but does not replace loaded extension modules. Its success notification is not evidence of new runtime code, even in the console where it was invoked. For runtime-release QA, start a fresh OMP process and reload/restart the client before concluding that the installed artifact is exercised. See the [release workflow](../workflows/release.md).
 
 ## Security and privacy boundaries
 

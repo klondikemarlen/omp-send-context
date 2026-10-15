@@ -22,6 +22,7 @@ Start with the [project README](../README.md) to install a released client and s
 ## Verify behavior
 
 - [Firefox QA scenarios](qa-scenarios/firefox.md): fresh-profile, selection, metadata, native delivery, fallback, and multiple-session checks.
+- [OMP focus lifecycle QA](/docs/qa-scenarios/omp-focus.md): successful and cancelled session changes, hook ordering, multi-console delivery, opt-out, and reload cleanup.
 
 ## Authority and enrichment
 
