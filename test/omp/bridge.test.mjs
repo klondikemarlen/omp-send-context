@@ -412,7 +412,7 @@ test("focus routing can be disabled explicitly on Linux", async () => {
       }
       await handlers.get("session_start")({}, context)
       await commands.get("ide").handler("", context)
-      await handlers.get("session_before_switch")({ reason: "new" }, context)
+      process.stdin.emit("data", "\x1b[I")
 
       assert.equal(subscribed, false)
     },
@@ -537,7 +537,7 @@ test("focus routing is disabled outside Linux by default", async () => {
       }
       await handlers.get("session_start")({}, context)
       await commands.get("ide").handler("", context)
-      await handlers.get("session_before_switch")({ reason: "new" }, context)
+      process.stdin.emit("data", "\x1b[I")
 
       assert.equal(subscribed, false)
       assert.deepEqual(terminalWrites, [])
@@ -726,7 +726,7 @@ test("session switch restores the input subscription cleared by OMP", async () =
   })
 })
 
-test("cancelled session changes retain focus routing without selecting the cancelling console", async () => {
+test("keyboard activity restores routing after a cancelled session without claiming on rearm", async () => {
   await withBridge(BASE_PORT + 34, async ({ commands, handlers, stateFile }) => {
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
@@ -749,11 +749,11 @@ test("cancelled session changes retain focus routing without selecting the cance
       await handlers.get("session_start")({}, context)
       // OMP clears listeners before its cancellable session_before_switch event.
       inputHandler = undefined
-      await handlers.get("session_before_switch")({ reason: "new" }, context)
+      process.stdin.emit("data", "draft")
       await commands.get("ide").handler("status", context)
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
 
-      inputHandler("\x1b[I")
+      inputHandler("draft")
       await waitFor(
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
@@ -764,6 +764,57 @@ test("cancelled session changes retain focus routing without selecting the cance
         200
       )
       assert.equal(editorText, "cancelled-session-context ")
+    })
+  })
+})
+
+test("an earlier cancellation cannot strand autofocus when our session hooks are skipped", async (t) => {
+  await withBridge(BASE_PORT + 36, async ({ commands, handlers, stateFile }) => {
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+
+      const dispatchInput = (data) => inputHandler?.(data)
+      // Register the dispatcher without putting the test runner's stdin into flowing mode.
+      process.stdin.prependListener("data", dispatchInput)
+      t.after(() => process.stdin.removeListener("data", dispatchInput))
+
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {
+              inputHandler = undefined
+            }
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+
+      await handlers.get("session_start")({}, context)
+      process.stdin.emit("data", "\x1b[I")
+      await otherConsole.claim({ force: true })
+
+      // OMP clears input; an earlier cancellation skips both of our switch hooks.
+      inputHandler = undefined
+      // Node dispatches stdin before OMP delivers the report to its input listeners.
+      process.stdin.emit("data", "\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(selected, { prompt: "skipped-hook-context" })).status, 200)
+      assert.equal(editorText, "skipped-hook-context ")
+
+      await otherConsole.claim({ force: true })
+      process.stdin.emit("data", "\x1b[O")
+      await commands.get("ide").handler("status", context)
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
     })
   })
 })
@@ -820,12 +871,16 @@ test("plugin reload retains activity order without stealing newer console activi
   await withBridge(BASE_PORT + 32, async ({ commands, handlers, stateFile, reloadExtension }) => {
     await withOtherConsole(stateFile, async (otherConsole) => {
       let editorText = ""
+      let inputHandler
       const context = {
         hasUI: true,
         ui: {
           notify() {},
-          onTerminalInput() {
-            return () => {}
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {
+              inputHandler = undefined
+            }
           },
           async pasteToEditor(text) {
             editorText += text
@@ -844,9 +899,22 @@ test("plugin reload retains activity order without stealing newer console activi
       assert.equal((await postContext(reloaded, { prompt: "after-reload" })).status, 200)
       assert.equal(editorText, "after-reload ")
 
-      await reloadExtension(() => otherConsole.claim({ force: true }))
+      await reloadExtension(() => {
+        process.stdin.emit("data", "\x1b[I")
+        return otherConsole.claim({ force: true })
+      })
       await handlers.get("session_start")({}, context)
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+
+      process.stdin.emit("data", "\x1b[I")
+      inputHandler("\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal((await postContext(selected, { prompt: "refocused-after-reload" })).status, 200)
+      assert.equal(editorText, "after-reload refocused-after-reload ")
     })
   })
 })

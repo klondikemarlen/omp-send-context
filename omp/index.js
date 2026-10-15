@@ -92,12 +92,6 @@ export default function ompSendContextExtension(pi) {
     watchFocusSettings(pi)
   })
 
-  pi.on("session_before_switch", async (_event, ctx) => {
-    activeContext = ctx
-    // OMP has already cleared listeners; cancellation skips session_switch.
-    await refreshFocusClaiming(pi, { rebind: true })
-  })
-
   pi.on("session_switch", async (_event, ctx) => {
     const switchClaimedAt = performance.timeOrigin + performance.now()
     activeContext = ctx
@@ -214,13 +208,23 @@ function enableFocusClaiming(ctx, force = false) {
   }
 
   focusUnsubscribe = ctx.ui.onTerminalInput(handleFocusInput)
+  // OMP can clear its listeners without delivering any of our session hooks.
+  // Rearm before its stdin handler runs; parsing and claiming stay on the UI path.
+  process.stdin.removeListener("data", restoreFocusInputSubscription)
+  process.stdin.prependListener("data", restoreFocusInputSubscription)
   process.stdout.write("\x1b[?1004h")
+}
+
+function restoreFocusInputSubscription() {
+  focusUnsubscribe?.()
+  focusUnsubscribe = activeContext.ui.onTerminalInput(handleFocusInput)
 }
 
 function disableFocusClaiming() {
   focusSettingsGeneration += 1
   pendingFocusInput = ""
   terminalFocusObserved = false
+  process.stdin.removeListener("data", restoreFocusInputSubscription)
   if (focusUnsubscribe === undefined) {
     return
   }
