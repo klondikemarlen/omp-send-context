@@ -44,7 +44,15 @@ Keep Firefox-only tooling and installation details with those workflows rather t
 
 ## Checks
 
-The root `npm test` script runs formatting check, TypeScript type-checking, and the Node test suite. Run focused tests for a behavior change during development, then run the documented full checks before proposing the change. The package scripts include `check-format`, `check-types`, `package`, and `package:vsix`; `vscode:prepublish` invokes the production package build.
+Use the Node version in `.tool-versions`, install with `npm ci`, and run `npm test`. The command checks formatting and TypeScript, then invokes `bin/test`: a finite wrapper around Node's native test runner with a separate process per test file. JavaScript and TypeScript scenarios can change process-local HOME/platform/stdout without leaking those changes into another file. Do not replace this isolation with a dynamic-import collector.
+
+`npm test` supports dirty development checkouts. Release signing still requires clean source provenance; ordinary tests must not invoke a signing command against the contributor's checkout merely to assert forwarded arguments. Use isolated fixtures for clean/dirty source behavior and real artifact assertions for packaged provenance.
+
+`npm run test:typescript` (or `./bin/test --typescript`) runs only the TypeScript tests through the actual `tsx` loader. `.marlens-verifications.json` points the installed TypeScript runtime verifier at this tracked executable; it is a runtime check, not a substitute for `npm run check-types`. The compiler configuration checks editor TypeScript and TypeScript tests, not all JavaScript or the Go host. See [runtime and language boundaries](/docs/architecture/context-bridge.md#runtime-and-language-boundaries).
+
+Run `npm run test:firefox-native-host` for the Go implementation with Go installed. The `Quality` GitHub Actions workflow runs the Node and native-host commands as separate jobs for every pull request and push to `main`; it has no path filters. Node comes from `.tool-versions`, and the native-host job uses the current stable Go toolchain.
+
+The package scripts also include `check-format`, `check-types`, `package`, and `package:vsix`; `vscode:prepublish` invokes the production package build. Test-authoring conventions live beside the tests in [`test/README.md`](https://github.com/klondikemarlen/omp-send-context/blob/main/test/README.md).
 
 Focus lifecycle regressions must include loss of the input subscription with **neither** session hook delivered, not only successful switches or cancellation after this plugin's hook runs. Model Node stdin dispatch before OMP input listeners so a repair that happens too late cannot pass. Follow the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) for real-runtime delivery evidence; keep the temporary cancellation harness out of the shipped package.
 
