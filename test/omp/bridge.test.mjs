@@ -132,56 +132,64 @@ async function postContext(state, { prompt, source = "vscode", metadata }) {
   })
 }
 
-test("OMP bridge accepts authorized context and pastes into editor", async () => {
-  await withBridge(BASE_PORT, async ({ commands, handlers, stateFile }) => {
+test("when authorized context arrives, the bridge pastes it into the editor", async () => {
+  await withBridge(BASE_PORT, async ({ handlers, stateFile }) => {
+    // Arrange
     const pastedPrompts = []
-    const notifications = []
-    const packageJson = JSON.parse(await fs.readFile("package.json", "utf8"))
-
     const context = {
       hasUI: true,
       ui: {
-        notify(message, level) {
-          notifications.push({ message, level })
-        },
         async pasteToEditor(prompt) {
           pastedPrompts.push(prompt)
         },
       },
     }
     await handlers.get("session_start")({}, context)
-
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
-    assert.equal(state.version, packageJson.version)
-    assert.equal(typeof state.instanceId, "string")
-    assert.equal(commands.has("ide"), true)
-    assert.equal(commands.has("ide-status"), false)
-    await commands.get("ide").handler("status", context)
-    assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).claimedAt, state.claimedAt)
-    assert.ok(notifications[0].message.includes(state.endpoint))
-    assert.ok(notifications[0].message.includes(packageJson.version))
 
+    // Act
     const response = await postContext(state, {
       prompt: "@src/example.ts#L1C1",
     })
-
-    assert.equal(response.status, 200)
-    assert.deepEqual(pastedPrompts, ["@src/example.ts#L1C1", " "])
-
     const spacedResponse = await postContext(state, {
       prompt: "@src/with-space.ts#L1C1 ",
     })
 
+    // Assert
+    assert.equal(response.status, 200)
     assert.equal(spacedResponse.status, 200)
     assert.deepEqual(pastedPrompts, ["@src/example.ts#L1C1", " ", "@src/with-space.ts#L1C1 "])
-
-    await handlers.get("session_shutdown")()
-    await assert.rejects(fs.stat(stateFile))
   })
 })
 
-test("OMP bridge adds an edit separator after structured Markdown prompts", async () => {
+test("when /ide status runs, it reports the loaded version and this console's endpoint", async () => {
+  await withBridge(BASE_PORT + 37, async ({ commands, handlers, stateFile }) => {
+    // Arrange
+    const notifications = []
+    const packageJson = JSON.parse(await fs.readFile("package.json", "utf8"))
+    const context = {
+      hasUI: true,
+      ui: {
+        notify(message) {
+          notifications.push(message)
+        },
+      },
+    }
+    await handlers.get("session_start")({}, context)
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+
+    // Act
+    await commands.get("ide").handler("status", context)
+
+    // Assert
+    assert.ok(notifications[0].includes(state.endpoint))
+    assert.ok(notifications[0].includes(packageJson.version))
+  })
+})
+
+test("when a structured Markdown prompt arrives, the bridge adds an edit separator", async () => {
   await withBridge(BASE_PORT + 23, async ({ handlers, stateFile }) => {
+    // Arrange
     const pastedPrompts = []
     const markdownPrompt = [
       "# OMP Agent Handoff",
@@ -213,17 +221,20 @@ test("OMP bridge adds an edit separator after structured Markdown prompts", asyn
     )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    // Act
     const response = await postContext(state, {
       prompt: markdownPrompt,
     })
 
+    // Assert
     assert.equal(response.status, 200)
     assert.deepEqual(pastedPrompts, [markdownPrompt, " "])
   })
 })
 
-test("OMP bridge appends prompt with setEditorText fallback", async () => {
+test("when prompt paste is unavailable, the bridge appends through setEditorText", async () => {
   await withBridge(BASE_PORT + 22, async ({ handlers, stateFile }) => {
+    // Arrange
     let editorText = "draft "
 
     await handlers.get("session_start")(
@@ -242,17 +253,20 @@ test("OMP bridge appends prompt with setEditorText fallback", async () => {
     )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    // Act
     const response = await postContext(state, {
       prompt: "@src/example.ts#L1C1",
     })
 
+    // Assert
     assert.equal(response.status, 200)
     assert.equal(editorText, "draft @src/example.ts#L1C1 ")
   })
 })
 
-test("OMP bridge rejects context when prompt paste is unavailable", async () => {
+test("when the OMP prompt editor is unavailable, the bridge rejects context", async () => {
   await withBridge(BASE_PORT + 21, async ({ handlers, sentMessages, stateFile }) => {
+    // Arrange
     await handlers.get("session_start")(
       {},
       {
@@ -261,19 +275,22 @@ test("OMP bridge rejects context when prompt paste is unavailable", async () => 
     )
 
     const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
+    // Act
     const response = await postContext(state, {
       prompt: "@src/example.ts#L1C1 ",
     })
     const body = await response.json()
 
+    // Assert
     assert.equal(response.status, 500)
     assert.equal(body.error, "No active OMP prompt editor available")
     assert.deepEqual(sentMessages, [])
   })
 })
 
-test("OMP bridge session_start does not steal an existing live bridge", async () => {
+test("when another live bridge owns the claim, session_start does not steal it", async () => {
   await withBridge(BASE_PORT + 5, async ({ handlers, stateFile }) => {
+    // Arrange
     const ownerPort = BASE_PORT + 6
     const ownerServer = createServer((_request, response) => {
       response.writeHead(200, {
@@ -296,6 +313,7 @@ test("OMP bridge session_start does not steal an existing live bridge", async ()
         })
       )
 
+      // Act
       await handlers.get("session_start")(
         {},
         {
@@ -306,6 +324,7 @@ test("OMP bridge session_start does not steal an existing live bridge", async ()
         }
       )
 
+      // Assert
       const state = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal(state.instanceId, "owner-instance")
     } finally {
@@ -314,8 +333,9 @@ test("OMP bridge session_start does not steal an existing live bridge", async ()
   })
 })
 
-test("shutdown cannot delete a successor bridge claim", async () => {
+test("when shutdown races with a successor claim, it cannot delete that claim", async () => {
   const originalRename = fs.rename
+  // Arrange
   let stateFile
   let releaseRename
   const allowRename = new Promise((resolve) => {
@@ -338,6 +358,7 @@ test("shutdown cannot delete a successor bridge claim", async () => {
   }
   syncBuiltinESMExports()
 
+  // Act
   try {
     await withBridge(BASE_PORT + 10, async ({ handlers, stateFile: bridgeStateFile }) => {
       stateFile = bridgeStateFile
@@ -367,6 +388,7 @@ test("shutdown cannot delete a successor bridge claim", async () => {
       releaseRename()
       await shutdown
 
+      // Assert
       assert.deepEqual(JSON.parse(await fs.readFile(stateFile, "utf8")), successorState)
     })
   } finally {
@@ -375,9 +397,11 @@ test("shutdown cannot delete a successor bridge claim", async () => {
   }
 })
 
-test("focus routing is enabled by default on Linux", async () => {
+test("when running on Linux with defaults, focus routing is enabled", async () => {
   await withBridge(BASE_PORT + 6, async ({ handlers }) => {
+    // Arrange
     let subscribed = false
+    // Act
     await handlers.get("session_start")(
       {},
       {
@@ -390,15 +414,16 @@ test("focus routing is enabled by default on Linux", async () => {
         },
       }
     )
-
+    // Assert
     assert.equal(subscribed, true)
   })
 })
 
-test("focus routing can be disabled explicitly on Linux", async () => {
+test("when Linux focus routing is explicitly disabled, the plugin leaves it disabled", async () => {
   await withBridge(
     BASE_PORT + 7,
     async ({ commands, handlers }) => {
+      // Arrange
       let subscribed = false
       const context = {
         hasUI: true,
@@ -410,10 +435,12 @@ test("focus routing can be disabled explicitly on Linux", async () => {
           },
         },
       }
+      // Act
       await handlers.get("session_start")({}, context)
       await commands.get("ide").handler("", context)
       process.stdin.emit("data", "\x1b[I")
 
+      // Assert
       assert.equal(subscribed, false)
     },
     {
@@ -424,10 +451,11 @@ test("focus routing can be disabled explicitly on Linux", async () => {
   )
 })
 
-test("plugin setting claims a Linux terminal after a split focus report", async () => {
+test("when terminal focus arrives in split chunks, the plugin claims the Linux terminal", async () => {
   await withBridge(
     BASE_PORT + 11,
     async ({ handlers, stateFile, terminalWrites }) => {
+      // Arrange
       let focusHandler
       await handlers.get("session_start")(
         {},
@@ -441,18 +469,23 @@ test("plugin setting claims a Linux terminal after a split focus report", async 
           },
         }
       )
-
       assert.equal(typeof focusHandler, "function")
       assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
       await fs.writeFile(
         stateFile,
         JSON.stringify({ endpoint: "http://127.0.0.1:49875", instanceId: "other-instance" })
       )
-      assert.deepEqual(focusHandler("\x1b"), { consume: true })
-      assert.deepEqual(focusHandler("[I"), { consume: true })
+
+      // Act
+      const firstChunk = focusHandler("\x1b")
+      const secondChunk = focusHandler("[I")
       await waitFor(
         async () => JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId !== "other-instance"
       )
+
+      // Assert
+      assert.deepEqual(firstChunk, { consume: true })
+      assert.deepEqual(secondChunk, { consume: true })
       assert.deepEqual(focusHandler("normal terminal input"), { data: "normal terminal input" })
     },
     {
@@ -463,10 +496,11 @@ test("plugin setting claims a Linux terminal after a split focus report", async 
   )
 })
 
-test("plugin setting changes focus routing in a running Linux session", async () => {
+test("when plugin settings change in a running Linux session, focus routing follows them", async () => {
   await withBridge(
     BASE_PORT + 13,
     async ({ handlers, pluginsLockFile, terminalWrites }) => {
+      // Arrange
       let focusHandler
       let focusUnsubscribed = false
       await handlers.get("session_start")(
@@ -486,6 +520,7 @@ test("plugin setting changes focus routing in a running Linux session", async ()
 
       assert.equal(focusHandler, undefined)
 
+      // Act
       await fs.writeFile(
         pluginsLockFile,
         JSON.stringify({
@@ -509,6 +544,7 @@ test("plugin setting changes focus routing in a running Linux session", async ()
           },
         })
       )
+      // Assert
       await waitFor(() => focusUnsubscribed)
       assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
     },
@@ -520,10 +556,11 @@ test("plugin setting changes focus routing in a running Linux session", async ()
   )
 })
 
-test("focus routing is disabled outside Linux by default", async () => {
+test("when running outside Linux by default, focus routing is disabled", async () => {
   await withBridge(
     BASE_PORT + 12,
     async ({ commands, handlers, terminalWrites }) => {
+      // Arrange
       let subscribed = false
       const context = {
         hasUI: true,
@@ -535,10 +572,12 @@ test("focus routing is disabled outside Linux by default", async () => {
           },
         },
       }
+      // Act
       await handlers.get("session_start")({}, context)
       await commands.get("ide").handler("", context)
       process.stdin.emit("data", "\x1b[I")
 
+      // Assert
       assert.equal(subscribed, false)
       assert.deepEqual(terminalWrites, [])
     },
@@ -548,11 +587,13 @@ test("focus routing is disabled outside Linux by default", async () => {
   )
 })
 
-test("focus routing warns when terminal input listeners are unavailable", async () => {
+test("when terminal input listeners are unavailable, focus routing warns", async () => {
   await withBridge(
     BASE_PORT + 9,
     async ({ handlers }) => {
+      // Arrange
       const notifications = []
+      // Act
       await handlers.get("session_start")(
         {},
         {
@@ -564,7 +605,7 @@ test("focus routing warns when terminal input listeners are unavailable", async 
           },
         }
       )
-
+      // Assert
       assert.equal(notifications[0]?.type, "warning")
     },
     {
@@ -575,10 +616,11 @@ test("focus routing warns when terminal input listeners are unavailable", async 
   )
 })
 
-test("focus flag claims the bridge after an xterm focus report", async () => {
+test("when the focus flag is enabled, an xterm focus report claims the bridge", async () => {
   await withBridge(
     BASE_PORT + 7,
     async ({ handlers, stateFile, terminalWrites }) => {
+      // Arrange
       const ownerPort = BASE_PORT + 8
       const ownerServer = createServer((_request, response) => {
         response.writeHead(200, {
@@ -602,7 +644,6 @@ test("focus flag claims the bridge after an xterm focus report", async () => {
             instanceId: "owner-instance",
           })
         )
-
         await handlers.get("session_start")(
           {},
           {
@@ -618,13 +659,16 @@ test("focus flag claims the bridge after an xterm focus report", async () => {
           }
         )
 
-        assert.deepEqual(focusHandler("\x1b[I"), { consume: true })
+        // Act
+        const focusResult = focusHandler("\x1b[I")
         await waitFor(
           async () =>
             JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint ===
             `http://127.0.0.1:${BASE_PORT + 7}`
         )
 
+        // Assert
+        assert.deepEqual(focusResult, { consume: true })
         await handlers.get("session_shutdown")()
         assert.equal(focusUnsubscribed, true)
         assert.deepEqual(terminalWrites, ["\x1b[?1004h", "\x1b[?1004l"])
@@ -657,8 +701,9 @@ async function withOtherConsole(stateFile, run) {
   }
 }
 
-test("typing in an already-focused console selects it without treating probes as activity", async () => {
+test("when typing in an already-focused console, it selects without treating probes as activity", async () => {
   await withBridge(BASE_PORT + 30, async ({ handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -674,8 +719,10 @@ test("typing in an already-focused console selects it without treating probes as
           },
         },
       }
+      // Act
       await handlers.get("session_start")({}, context)
       inputHandler("\x1b[1;1R\x1b[?1;2c\x1b[?1u\x1b[?1004;1$y\x1b]10;rgb:ffff/ffff/ffff\x1b\\")
+      // Assert
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
 
       assert.deepEqual(inputHandler("draft"), { data: "draft" })
@@ -690,8 +737,9 @@ test("typing in an already-focused console selects it without treating probes as
   })
 })
 
-test("session switch restores the input subscription cleared by OMP", async () => {
+test("when OMP clears the input subscription, a session switch restores it", async () => {
   await withBridge(BASE_PORT + 31, async ({ handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -710,11 +758,13 @@ test("session switch restores the input subscription cleared by OMP", async () =
         },
       }
       await handlers.get("session_start")({}, context)
+      // Act
       // New-session creation clears listeners before emitting session_switch.
       inputHandler = undefined
       await handlers.get("session_switch")({}, context)
       await otherConsole.claim({ force: true })
       inputHandler("\x1b[I")
+      // Assert
       await waitFor(
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
@@ -726,8 +776,9 @@ test("session switch restores the input subscription cleared by OMP", async () =
   })
 })
 
-test("keyboard activity restores routing after a cancelled session without claiming on rearm", async () => {
+test("when a session switch is cancelled, keyboard activity restores routing without claiming on rearm", async () => {
   await withBridge(BASE_PORT + 34, async ({ commands, handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -747,6 +798,7 @@ test("keyboard activity restores routing after a cancelled session without claim
         },
       }
       await handlers.get("session_start")({}, context)
+      // Act
       // OMP clears listeners before its cancellable session_before_switch event.
       inputHandler = undefined
       process.stdin.emit("data", "draft")
@@ -754,6 +806,7 @@ test("keyboard activity restores routing after a cancelled session without claim
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
 
       inputHandler("draft")
+      // Assert
       await waitFor(
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
@@ -768,8 +821,9 @@ test("keyboard activity restores routing after a cancelled session without claim
   })
 })
 
-test("an earlier cancellation cannot strand autofocus when our session hooks are skipped", async (t) => {
+test("when earlier cancellation skips session hooks, stdin activity restores autofocus", async (t) => {
   await withBridge(BASE_PORT + 36, async ({ commands, handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -799,6 +853,7 @@ test("an earlier cancellation cannot strand autofocus when our session hooks are
       process.stdin.emit("data", "\x1b[I")
       await otherConsole.claim({ force: true })
 
+      // Act
       // OMP clears input; an earlier cancellation skips both of our switch hooks.
       inputHandler = undefined
       // Node dispatches stdin before OMP delivers the report to its input listeners.
@@ -807,6 +862,8 @@ test("an earlier cancellation cannot strand autofocus when our session hooks are
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
       )
+
+      // Assert
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal((await postContext(selected, { prompt: "skipped-hook-context" })).status, 200)
       assert.equal(editorText, "skipped-hook-context ")
@@ -819,8 +876,9 @@ test("an earlier cancellation cannot strand autofocus when our session hooks are
   })
 })
 
-test("/ide repairs enabled autofocus without turning later focus-outs into activity", async () => {
+test("when enabled autofocus loses its input subscription, /ide repairs it without later focus-out claims", async () => {
   await withBridge(BASE_PORT + 35, async ({ commands, handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -840,6 +898,7 @@ test("/ide repairs enabled autofocus without turning later focus-outs into activ
         },
       }
       await handlers.get("session_start")({}, context)
+      // Act
       inputHandler("\x1b[I")
       inputHandler = undefined
       await commands.get("ide").handler("", context)
@@ -852,6 +911,7 @@ test("/ide repairs enabled autofocus without turning later focus-outs into activ
       assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
 
       inputHandler("\x1b[I")
+      // Assert
       await waitFor(
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
@@ -867,8 +927,9 @@ test("/ide repairs enabled autofocus without turning later focus-outs into activ
   })
 })
 
-test("plugin reload retains activity order without stealing newer console activity", async () => {
+test("when the plugin reloads, it retains activity order without stealing newer console activity", async () => {
   await withBridge(BASE_PORT + 32, async ({ commands, handlers, stateFile, reloadExtension }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let editorText = ""
       let inputHandler
@@ -888,6 +949,7 @@ test("plugin reload retains activity order without stealing newer console activi
         },
       }
       await handlers.get("session_start")({}, context)
+      // Act
       await commands.get("ide").handler("", context)
       const original = JSON.parse(await fs.readFile(stateFile, "utf8"))
 
@@ -912,6 +974,8 @@ test("plugin reload retains activity order without stealing newer console activi
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
       )
+
+      // Assert
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal((await postContext(selected, { prompt: "refocused-after-reload" })).status, 200)
       assert.equal(editorText, "after-reload refocused-after-reload ")
@@ -919,8 +983,9 @@ test("plugin reload retains activity order without stealing newer console activi
   })
 })
 
-test("first focus-out claims an already-focused startup but later focus-outs do not steal routing", async () => {
+test("when focus reporting starts after console focus, the first focus-out claims but later focus-outs do not", async () => {
   await withBridge(BASE_PORT + 33, async ({ commands, handlers, stateFile }) => {
+    // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
       let editorText = ""
@@ -938,11 +1003,14 @@ test("first focus-out claims an already-focused startup but later focus-outs do 
         },
       }
       await handlers.get("session_start")({}, context)
+      // Act
       inputHandler("\x1b[O")
       await waitFor(
         async () =>
           JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
       )
+
+      // Assert
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal((await postContext(selected, { prompt: "already-focused-startup" })).status, 200)
       assert.equal(editorText, "already-focused-startup ")

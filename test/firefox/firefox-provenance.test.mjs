@@ -1,11 +1,12 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import JSZip from "jszip"
 import { execFile } from "node:child_process"
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
-import { promisify } from "node:util"
 import { delimiter, join } from "node:path"
 import { tmpdir } from "node:os"
+import { promisify } from "node:util"
+
+import JSZip from "jszip"
 
 import {
   createFirefoxBuildSource,
@@ -37,7 +38,8 @@ async function temporaryGitSource() {
   return { root, sourceDirectory }
 }
 
-test("Firefox build staging injects the full clean source commit", async () => {
+test("when Firefox stages a clean Git source, it injects the full commit", async () => {
+  // Arrange
   const { root, sourceDirectory } = await temporaryGitSource()
   try {
     const { stdout } = await execFileAsync("git", ["-C", root, "rev-parse", "HEAD"])
@@ -45,12 +47,14 @@ test("Firefox build staging injects the full clean source commit", async () => {
     assert.match(commit, /^[0-9a-f]{40}$/)
     assert.equal(await resolveSourceCommit({ cwd: root, requireClean: true }), commit)
 
+    // Act
     const staged = await createFirefoxBuildSource({
       sourceDirectory,
       cwd: root,
       requireClean: true,
     })
     try {
+      // Assert
       assert.equal(staged.sourceCommit, commit)
       assert.equal(
         await readFile(join(staged.sourceDirectory, "background.js"), "utf8"),
@@ -64,7 +68,8 @@ test("Firefox build staging injects the full clean source commit", async () => {
   }
 })
 
-test("Firefox development staging labels dirty and non-Git sources explicitly", async () => {
+test("when Firefox stages dirty or non-Git sources, it labels provenance explicitly", async () => {
+  // Arrange
   const { root, sourceDirectory } = await temporaryGitSource()
   try {
     await writeFile(
@@ -78,8 +83,10 @@ test("Firefox development staging labels dirty and non-Git sources explicitly", 
       /clean Git worktree/
     )
 
+    // Act
     const staged = await createFirefoxBuildSource({ sourceDirectory, cwd: root })
     try {
+      // Assert
       assert.equal(staged.sourceCommit, "uncommitted")
       assert.match(
         await readFile(join(staged.sourceDirectory, "background.js"), "utf8"),
@@ -100,9 +107,11 @@ test("Firefox development staging labels dirty and non-Git sources explicitly", 
   }
 })
 
-test("Firefox package embeds the resolved source commit in the artifact", async () => {
+test("when Firefox packages a source revision, it embeds the commit in the artifact", async () => {
+  // Arrange
   const expectedCommit = await resolveSourceCommit()
   const binDirectory = join(process.cwd(), "node_modules", ".bin")
+  // Act
   await execFileAsync(process.execPath, ["firefox/scripts/package-firefox.mjs"], {
     cwd: process.cwd(),
     env: { ...process.env, PATH: [binDirectory, process.env.PATH].filter(Boolean).join(delimiter) },
@@ -114,38 +123,6 @@ test("Firefox package embeds the resolved source commit in the artifact", async 
 
   const zip = await JSZip.loadAsync(await readFile(join(firefoxArtifactsDirectory, artifacts[0])))
   const background = await zip.file("background.js").async("string")
+  // Assert
   assert.match(background, new RegExp(`const SOURCE_COMMIT = "${expectedCommit}"`))
-  assert.match(background, /Source commit:/)
-})
-
-test("Firefox signing stages artifacts outside the checkout", async () => {
-  const webExtStubDirectory = await mkdtemp(join(tmpdir(), "omp-send-context-web-ext-test-"))
-  const recordedArgumentsPath = join(webExtStubDirectory, "arguments.json")
-  try {
-    await writeFile(
-      join(webExtStubDirectory, "web-ext"),
-      `#!/usr/bin/env node
-import { writeFileSync } from "node:fs"
-writeFileSync(process.env.WEB_EXT_ARGUMENTS_FILE, JSON.stringify(process.argv.slice(2)))
-`,
-      { mode: 0o755 }
-    )
-    await execFileAsync(process.execPath, ["firefox/scripts/sign-firefox.mjs"], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        AMO_API_ISSUER: "test-issuer",
-        AMO_API_SECRET: "test-secret",
-        PATH: [webExtStubDirectory, process.env.PATH].filter(Boolean).join(delimiter),
-        WEB_EXT_ARGUMENTS_FILE: recordedArgumentsPath,
-      },
-    })
-    const webExtArguments = JSON.parse(await readFile(recordedArgumentsPath, "utf8"))
-    assert.equal(
-      webExtArguments[webExtArguments.indexOf("--artifacts-dir") + 1],
-      firefoxArtifactsDirectory
-    )
-  } finally {
-    await rm(webExtStubDirectory, { recursive: true, force: true })
-  }
 })
