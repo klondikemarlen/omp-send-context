@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.7.4
 
 - Preserve enabled Linux autofocus after another plugin cancels a session change before Send Context receives any switch hook; subsequent focus or keyboard input reconnects automatically without `/ide`.
 - Keep activity parsing and console selection on the existing input path, preserve prior focus observation, and remove the pre-input subscription guard on opt-out and shutdown.
 - Document terminal-input ownership and add cancellation-order, multi-console delivery, opt-out, and reload checks to focus lifecycle and installed-release QA.
+- Correct update instructions for OMP 18.11.1: `/reload-plugins` refreshes resources but does not replace the extension module; restart each console to activate a runtime update.
 
 ## 2.7.3
 
