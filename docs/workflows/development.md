@@ -46,6 +46,8 @@ Keep Firefox-only tooling and installation details with those workflows rather t
 
 The root `npm test` script runs formatting check, TypeScript type-checking, and the Node test suite. Run focused tests for a behavior change during development, then run the documented full checks before proposing the change. The package scripts include `check-format`, `check-types`, `package`, and `package:vsix`; `vscode:prepublish` invokes the production package build.
 
+Focus lifecycle regressions must include loss of the input subscription with **neither** session hook delivered, not only successful switches or cancellation after this plugin's hook runs. Model Node stdin dispatch before OMP input listeners so a repair that happens too late cannot pass. Follow the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) for real-runtime delivery evidence; keep the temporary cancellation harness out of the shipped package.
+
 For documentation-only changes, run `npm run check-format`, `git diff --check`, and verify relative Markdown paths and heading anchors from their new locations. When moving packaged documents, also inspect `npm pack --dry-run --json` for the linked pages. These checks do not require installing or publishing a runtime artifact.
 
 ## Change and review procedure

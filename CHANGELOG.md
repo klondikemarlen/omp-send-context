@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Preserve enabled Linux autofocus after another plugin cancels a session change before Send Context receives any switch hook; subsequent focus or keyboard input reconnects automatically without `/ide`.
+- Keep activity parsing and console selection on the existing input path, preserve prior focus observation, and remove the pre-input subscription guard on opt-out and shutdown.
+- Document terminal-input ownership and add cancellation-order, multi-console delivery, opt-out, and reload checks to focus lifecycle and installed-release QA.
+
 ## 2.7.3
 
 - Simplify the README around released editor and Firefox setup, and organize detailed product, architecture, development, release, and QA knowledge under `docs/`.

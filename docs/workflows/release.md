@@ -44,6 +44,10 @@ For a runtime change, uninstall the installed package with `omp plugin uninstall
 
 After the remote install, start a **fresh OMP process** and run `/ide status` to confirm the loaded plugin version and bridge endpoint. Existing OMP processes keep extension modules loaded from startup; a plugin reload alone is not sufficient evidence that the newly installed artifact is active. Exercise the changed behavior and `/ide status` argument autocomplete in that fresh process before describing the release as installed or working.
 
+For focus or session-lifecycle changes, run the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) against that installed artifact. Cover successful `/new` and cancellation by an extension loaded both before and after Send Context. Prove focus-only recovery and delivery **before** typing `/ide` or another command in the affected console; manual repair or command-entry activity can hide a broken subscription. Include last-active multi-console delivery, later focus-out non-stealing, explicit opt-out, and reload cleanup. Record the OMP version and whether input came from physical focus or injected PTY reports; never infer compositor/multiplexer forwarding from a PTY result.
+
+Before uninstalling, record only this plugin's autofocus preference and restore it after installation if uninstall removes it. Do not dump the full plugin lock file or credentials into release evidence.
+
 The OMP package release and Marketplace VS Code release are distinct observations. Verify each changed artifact from its actual distribution channel; do not infer that publishing one publishes the other.
 
 ## Firefox artifact
