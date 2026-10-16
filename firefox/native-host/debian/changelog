@@ -1,3 +1,11 @@
+omp-send-context-firefox-host (1.7.5~ppa1) resolute; urgency=medium
+
+  * Resolve the latest active live console from the per-instance registry.
+  * Verify bridge health and identity before authenticated context delivery.
+  * Reject ambiguous owners and redirects without replaying context.
+
+ -- Marlen Brunner <klondikemarlen@gmail.com>  Fri, 16 Oct 2026 08:33:27 -0700
+
 omp-send-context-firefox-host (1.7.4~ppa2) resolute; urgency=medium
 
   * Replace the Node.js host with a self-contained Go native host.
