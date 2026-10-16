@@ -129,12 +129,15 @@ Expected: no request is sent and a clear user-facing error appears in both cases
 
 ### 7. Multiple OMP sessions
 
-1. Start two OMP sessions.
-2. Explicitly claim one with `/ide`.
-3. Send a Firefox context packet.
-4. Switch the active OMP session and repeat.
+1. Start one plain `omp` console and one `ompi` console in an isolated test account or HOME. Keep ordinary user consoles untouched.
+2. Explicitly claim one with `/ide`, then send a unique harmless Firefox context packet.
+3. Without focusing or typing in the other console, start, stop, and restart background instances. Send a different marker after each lifecycle change.
+4. Run `/ide` in the other live console and send another marker. Repeat with the plain/wrapped roles reversed.
+5. Close the selected console, then send a marker to the surviving live console.
 
-Expected: each packet is inserted once into the currently claimed session. No packet is sent to both sessions.
+Expected: each packet appears once in the intended prompt, never in another console and never submitted automatically. Background lifecycle writes must not override newer activity; later actual focus or typing may legitimately change the target because `/ide` does not pin it.
+
+Exercise both host implementations when changing discovery: `node --test test/firefox/firefox-native-host.test.mjs` and `npm run test:firefox-native-host`. Their isolated fixtures cover stale pointers, dead/reused owners, selection changes before insertion, and ambiguous latest-owner failures. An ambiguous failure must return an error rather than deliver to an older console; do not replay that request. Include an actual framed native-message send to real OMP prompts, not only a pointer or health assertion.
 
 ## Result reporting
 

@@ -1,40 +1,44 @@
 #!/usr/bin/env node
 // Linux Firefox native messaging host. The protocol code is portable; registration is Linux-only for now.
-import { readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { resolveBridgeState } from "../../omp/bridge-discovery.js"
+
 const DEFAULT_STATE_FILE = join(homedir(), ".omp", "agent", "editor-context-bridge.json")
 const MAX_MESSAGE_BYTES = 2 * 1024 * 1024
+const POST_TIMEOUT_MILLISECONDS = 2_000
 
 export async function deliverEnvelope(
   envelope,
   { stateFile = process.env.OMP_CONTEXT_STATE_FILE ?? DEFAULT_STATE_FILE, fetchImpl = fetch } = {}
 ) {
   assertEnvelope(envelope)
-  const state = JSON.parse(await readFile(stateFile, "utf8"))
-  const endpoint = new URL(state.endpoint)
-  if (
-    endpoint.protocol !== "http:" ||
-    endpoint.hostname !== "127.0.0.1" ||
-    endpoint.port.length === 0 ||
-    typeof state.token !== "string" ||
-    state.token.length === 0
-  ) {
-    throw new Error("Invalid OMP bridge state")
+  const state = await resolveBridgeState(stateFile)
+  if (state === undefined) {
+    throw new Error("No healthy OMP bridge is available")
   }
 
-  const response = await fetchImpl(`${endpoint.origin}/context`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${state.token}`,
-    },
-    body: JSON.stringify(envelope),
-  })
-  if (!response.ok) {
-    throw new Error(`OMP bridge returned ${response.status}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), POST_TIMEOUT_MILLISECONDS)
+  try {
+    const response = await fetchImpl(`${state.endpoint}/context`, {
+      method: "POST",
+      redirect: "error",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.token}`,
+        "X-OMP-Instance-Id": state.instanceId,
+      },
+      body: JSON.stringify(envelope),
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      throw new Error(`OMP bridge returned ${response.status}`)
+    }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 

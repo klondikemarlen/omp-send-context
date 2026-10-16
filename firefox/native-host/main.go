@@ -9,19 +9,28 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 )
 
 const maxMessageBytes = 2 * 1024 * 1024
 
+var bridgeHTTPClient = &http.Client{
+	Timeout:   10 * time.Second,
+	Transport: &http.Transport{Proxy: nil},
+	CheckRedirect: func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
 type bridgeState struct {
-	Endpoint string `json:"endpoint"`
-	Token    string `json:"token"`
+	Endpoint   string `json:"endpoint"`
+	Token      string `json:"token"`
+	InstanceID string `json:"instanceId"`
+	PID        int    `json:"pid"`
+	// A missing timestamp is legacy state; an explicit zero is an inactive startup.
+	ClaimedAt *float64 `json:"claimedAt"`
+	UpdatedAt string   `json:"updatedAt"`
 }
 
 type contextEnvelope struct {
@@ -103,29 +112,19 @@ func deliverEnvelope(payload []byte) error {
 		return err
 	}
 
-	state, err := readBridgeState()
+	state, err := resolveBridgeState()
 	if err != nil {
 		return err
-	}
-	endpoint, err := parseBridgeEndpoint(state.Endpoint)
-	if err != nil {
-		return err
-	}
-	if strings.ContainsAny(state.Token, "\r\n") || state.Token == "" {
-		return fmt.Errorf("invalid OMP bridge state")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, endpoint+"/context", bytes.NewReader(payload))
+	req, err := http.NewRequest(http.MethodPost, state.Endpoint+"/context", bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create OMP bridge request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+state.Token)
-	client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: &http.Transport{Proxy: nil},
-	}
-	res, err := client.Do(req)
+	req.Header.Set("X-OMP-Instance-Id", state.InstanceID)
+	res, err := bridgeHTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to reach OMP bridge: %w", err)
 	}
@@ -162,36 +161,4 @@ func validateEnvelope(envelope contextEnvelope) error {
 		}
 	}
 	return nil
-}
-
-func readBridgeState() (bridgeState, error) {
-	statePath := os.Getenv("OMP_CONTEXT_STATE_FILE")
-	if statePath == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return bridgeState{}, fmt.Errorf("failed to find home directory: %w", err)
-		}
-		statePath = filepath.Join(home, ".omp", "agent", "editor-context-bridge.json")
-	}
-	content, err := os.ReadFile(statePath)
-	if err != nil {
-		return bridgeState{}, fmt.Errorf("failed to read OMP bridge state: %w", err)
-	}
-	var state bridgeState
-	if err := json.Unmarshal(content, &state); err != nil {
-		return bridgeState{}, fmt.Errorf("invalid OMP bridge state: %w", err)
-	}
-	return state, nil
-}
-
-func parseBridgeEndpoint(raw string) (string, error) {
-	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Scheme != "http" || parsed.Hostname() != "127.0.0.1" || parsed.Port() == "" || parsed.User != nil {
-		return "", fmt.Errorf("invalid OMP bridge state")
-	}
-	port, err := strconv.Atoi(parsed.Port())
-	if err != nil || port < 1 || port > 65535 {
-		return "", fmt.Errorf("invalid OMP bridge state")
-	}
-	return "http://127.0.0.1:" + parsed.Port(), nil
 }

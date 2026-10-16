@@ -55,7 +55,11 @@ dpkg-buildpackage -S -d -kYOUR_UPLOAD_KEY
 dput ppa:klondikemarlen/omp-send-context ../omp-send-context-firefox-host_*.changes
 ```
 
-Wait for Launchpad to build and publish `omp-send-context-firefox-host` for Ubuntu 26.04 (Resolute)/amd64 before publishing the matching AMO version. Verify the package's `InRelease` and package index are public, then test installation with `sudo apt install omp-send-context-firefox-host`.
+Wait for Launchpad to build and publish `omp-send-context-firefox-host` for Ubuntu 26.04 (Resolute)/amd64 before publishing a matching changed AMO version. Verify the package's `InRelease` and package index are public, then test installation with `sudo apt install omp-send-context-firefox-host`.
+
+For a native-host-only fix, leave the unchanged add-on and OMP/Marketplace versions alone. Update `firefox/native-host/package.json` and `firefox/native-host/debian/changelog` on the reviewed release branch after the implementation merge. Verify both the JavaScript source host and the compiled Go host, then run [multiple-session Firefox QA](/docs/qa-scenarios/firefox.md#7-multiple-omp-sessions) through Firefox's native-messaging API and inspect the actual destination prompt. The full capture/metadata/fallback cases remain required when the add-on changes.
+
+After publication, observe the exact package version in the signed PPA index and install from that channel. Check the installed package version and the host executable selected by Firefox's manifest, then repeat native-message delivery using that installed executable. A locally compiled candidate or extracted package is useful pre-install QA, but is not proof of an apt/system installation. Missing sudo authentication blocks installation, not publication; report these outcomes separately.
 
 ## Build the AMO upload artifact
 

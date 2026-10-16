@@ -47,6 +47,12 @@ The checkout installer creates `~/.local/share/omp-send-context/omp_send_context
 
 After host registration, start a fresh OMP process and restart Firefox if it has not picked up the registration. Native delivery requires both the Firefox add-on and this host. For troubleshooting delivery, see [Troubleshooting](troubleshooting.md).
 
+## Choose the OMP terminal
+
+Run `/ide` in the intended OMP terminal, then send the selected page context. This selects that console once; later real activity in another console can change the destination. Both native-host installation routes discover the most recently active live console, including across other `omp` or `ompi` instances starting, stopping, or restarting in the background.
+
+If Firefox still delivers to another terminal after `/ide`, update the **native host**, not only the OMP plugin or Firefox add-on. For the PPA installation, run `sudo apt update && sudo apt install --only-upgrade omp-send-context-firefox-host`; for the checkout installation, update the checkout used by its launcher. Restart Firefox if it retains an older host connection. See the [multiple-session QA scenario](/docs/qa-scenarios/firefox.md#7-multiple-omp-sessions) for the routing acceptance check.
+
 ## Clipboard fallback
 
 When the native host is unavailable or rejects delivery, the add-on copies the exact prompt packet to the clipboard and reports that native delivery was unavailable. This keeps context sending usable without the host, but does not establish that native delivery works. When native delivery is successful, the session debug log contains `native:succeeded`.

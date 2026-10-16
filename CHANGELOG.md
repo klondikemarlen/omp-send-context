@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep Firefox native delivery on the most recently active live OMP console even when background instance lifecycle writes leave the shared selection pointer stale.
+- Make the Node source host and packaged Go host verify registry ownership and instance identity before delivery, reject ambiguous owners without rerouting, and refuse redirects or automatic replay.
+- Add native-host lifecycle regressions and document Firefox-specific terminal selection, separate host upgrades, and published-host installation evidence.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.
 - Add Node test/build and Go native-host CI jobs, explicit verifier configuration, and test-authoring guidance.
