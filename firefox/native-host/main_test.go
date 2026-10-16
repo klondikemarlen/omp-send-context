@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -16,8 +17,15 @@ import (
 func TestDeliverEnvelopeUsesAuthenticatedLoopbackBridge(t *testing.T) {
 	var received []byte
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/health" {
+			_, _ = writer.Write([]byte(`{"instanceId":"test-instance"}`))
+			return
+		}
 		if got := request.Header.Get("Authorization"); got != "Bearer test-token" {
 			t.Errorf("authorization = %q", got)
+		}
+		if got := request.Header.Get("X-OMP-Instance-Id"); got != "test-instance" {
+			t.Errorf("instance id = %q", got)
 		}
 		var err error
 		received, err = io.ReadAll(request.Body)
@@ -29,7 +37,7 @@ func TestDeliverEnvelopeUsesAuthenticatedLoopbackBridge(t *testing.T) {
 	defer server.Close()
 
 	statePath := filepath.Join(t.TempDir(), "bridge.json")
-	state := `{"endpoint":"` + server.URL + `","token":"test-token"}`
+	state := `{"endpoint":"` + server.URL + `","token":"test-token","instanceId":"test-instance","pid":` + strconv.Itoa(os.Getpid()) + `,"claimedAt":1}`
 	if err := os.WriteFile(statePath, []byte(state), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +49,36 @@ func TestDeliverEnvelopeUsesAuthenticatedLoopbackBridge(t *testing.T) {
 	}
 	if string(received) != string(payload) {
 		t.Fatalf("bridge body = %s, want %s", received, payload)
+	}
+}
+
+func TestDeliverEnvelopeDoesNotFollowRedirects(t *testing.T) {
+	redirectTargetCalled := false
+	target := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		redirectTargetCalled = true
+	}))
+	defer target.Close()
+	source := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/health" {
+			_, _ = writer.Write([]byte(`{"instanceId":"redirect-instance"}`))
+			return
+		}
+		http.Redirect(writer, request, target.URL+"/context", http.StatusFound)
+	}))
+	defer source.Close()
+	statePath := filepath.Join(t.TempDir(), "bridge.json")
+	state := `{"endpoint":"` + source.URL + `","token":"test-token","instanceId":"redirect-instance","pid":` + strconv.Itoa(os.Getpid()) + `,"claimedAt":1}`
+	if err := os.WriteFile(statePath, []byte(state), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OMP_CONTEXT_STATE_FILE", statePath)
+
+	payload := []byte(`{"version":1,"source":"firefox","prompt":"selected text"}`)
+	if err := deliverEnvelope(payload); err == nil || !strings.Contains(err.Error(), "302") {
+		t.Fatalf("deliverEnvelope() error = %v, want bridge status 302", err)
+	}
+	if redirectTargetCalled {
+		t.Fatal("redirect destination received the context")
 	}
 }
 
