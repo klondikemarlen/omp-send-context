@@ -12,46 +12,58 @@ export function createEnvelope({ selectionText, application, windowTitle }) {
     throw new Error("Select text before sending context to OMP.")
   }
 
-  const text =
+  const boundedSelectionText =
     selectionText.length > MAX_SELECTION_LENGTH
       ? `${selectionText.slice(0, MAX_SELECTION_LENGTH)}\n[selection truncated]`
       : selectionText
-  const app = safeMetadata(application, "unknown application")
-  const title = safeMetadata(windowTitle, "untitled window")
+  const applicationName = sanitizeMetadata(application, "unknown application")
+  const sanitizedWindowTitle = sanitizeMetadata(windowTitle, "untitled window")
 
   return {
     version: 1,
     source: "ptyxis",
-    prompt: formatPrompt({ selectionText: text, application: app, windowTitle: title }),
+    prompt: formatPrompt({
+      selectionText: boundedSelectionText,
+      application: applicationName,
+      windowTitle: sanitizedWindowTitle,
+    }),
     metadata: {
-      application: app,
-      title,
+      application: applicationName,
+      title: sanitizedWindowTitle,
     },
   }
 }
 
-export function formatPrompt({ selectionText, application, windowTitle }) {
-  const fence = codeFence(selectionText)
+export function formatPrompt({ selectionText, application: applicationName, windowTitle }) {
+  const selectionFence = createSelectionFence(selectionText)
   return [
     "# OMP Agent Handoff",
     "## Ptyxis terminal",
-    `- Application: ${application}`,
+    `- Application: ${applicationName}`,
     `- Window: ${windowTitle}`,
     "## Selected text",
-    `${fence}\n${selectionText}\n${fence}`,
+    `${selectionFence}\n${selectionText}\n${selectionFence}`,
     "",
   ].join("\n\n")
 }
 
-function codeFence(text) {
-  const longestRun = (text.match(/`+/g) ?? []).reduce(
-    (length, run) => Math.max(length, run.length),
+function createSelectionFence(selectionText) {
+  const longestBacktickRun = (selectionText.match(/`+/g) ?? []).reduce(
+    (longestRun, backtickRun) => Math.max(longestRun, backtickRun.length),
     0
   )
-  return "`".repeat(Math.max(3, longestRun + 1))
+  return "`".repeat(Math.max(3, longestBacktickRun + 1))
 }
 
-function safeMetadata(value, fallback) {
-  const text = typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, " ").trim() : ""
-  return (text || fallback).slice(0, MAX_METADATA_LENGTH)
+function sanitizeMetadata(value, fallback) {
+  if (typeof value !== "string") {
+    return fallback
+  }
+
+  const cleanedText = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim()
+  if (!cleanedText) {
+    return fallback
+  }
+
+  return cleanedText.slice(0, MAX_METADATA_LENGTH)
 }

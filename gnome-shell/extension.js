@@ -5,7 +5,6 @@ import * as Main from "resource:///org/gnome/shell/ui/main.js"
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js"
 
 import { OmpBridgeClient } from "./bridge.js"
-
 import { createEnvelope, isPtyxisApplication } from "./context.js"
 
 const EXTENSION_NAME = "OMP Send Context"
@@ -81,8 +80,10 @@ export default class OmpSendContextExtension extends Extension {
   }
 
   reportFailure(captureSession, message) {
+    if (!this.isCurrentCaptureSession(captureSession)) return
+
     console.error(`${EXTENSION_NAME}: ${message}`)
-    this.notifyCurrentSession(captureSession, message)
+    Main.notify(EXTENSION_NAME, message)
   }
 }
 
