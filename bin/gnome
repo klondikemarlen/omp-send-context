@@ -1,0 +1,89 @@
+#!/usr/bin/env node
+import { mkdirSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
+
+const repositoryRoot = fileURLToPath(new URL("../", import.meta.url))
+const extensionDirectory = join(repositoryRoot, "gnome-shell")
+const packageDirectory = join(tmpdir(), `omp-send-context-gnome-${process.getuid()}`)
+const archivePath = join(
+  packageDirectory,
+  "omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
+)
+
+switch (process.argv[2]) {
+  case "package":
+    packageGnomeExtension()
+    break
+  case "install":
+    packageGnomeExtension()
+    runCommand("gnome-extensions", ["install", "--force", archivePath])
+    console.log("Installed OMP Send Context. Start a fresh GNOME session before enabling it.")
+    break
+  case "test":
+    testGnomeExtension()
+    break
+  default:
+    console.error("Usage: node bin/gnome <package|install|test>")
+    process.exit(2)
+}
+
+function packageGnomeExtension() {
+  mkdirSync(packageDirectory, { recursive: true })
+  runCommand(
+    "gnome-extensions",
+    [
+      "pack",
+      ".",
+      "--schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml",
+      "--extra-source=bridge.js",
+      "--extra-source=context.js",
+      "--extra-source=../LICENSE",
+      `--out-dir=${packageDirectory}`,
+      "--force",
+    ],
+    { cwd: extensionDirectory }
+  )
+  console.log(`GNOME candidate ZIP: ${archivePath}`)
+}
+
+function testGnomeExtension() {
+  runCommand("npm", ["run", "test:gnome-native"])
+  packageGnomeExtension()
+  const archiveEntries = runCommand("unzip", ["-Z1", archivePath], { stdio: "pipe" })
+  if (archiveEntries.split("\n").includes("schemas/gschemas.compiled")) {
+    console.error("The GNOME archive must not contain schemas/gschemas.compiled.")
+    process.exit(1)
+  }
+
+  runCommand("dbus-run-session", [
+    "--",
+    "gnome-shell-test-tool",
+    "--headless",
+    "--extension",
+    archivePath,
+    "test/gnome-shell/activation.js",
+  ])
+}
+
+function runCommand(command, argumentsList, options = {}) {
+  const result = spawnSync(command, argumentsList, {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    stdio: "inherit",
+    ...options,
+  })
+  if (result.error) {
+    console.error(`Unable to run ${command}: ${result.error.message}`)
+    process.exit(1)
+  }
+  if (result.status !== 0) {
+    if (result.stderr) process.stderr.write(result.stderr)
+
+    process.exit(result.status ?? 1)
+  }
+
+  return result.stdout
+}
