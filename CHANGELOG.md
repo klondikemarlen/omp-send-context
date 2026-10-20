@@ -11,6 +11,7 @@
 - Make GNOME bridge shutdown idempotent, reject delivery after close, and suppress stale capture failures after extension reload.
 - Use explanatory selection/session names, exercise cancellation and stale failures under GJS, and require native GJS coverage in CI.
 - Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
+- Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
 
 ## Firefox native host 1.7.5
 

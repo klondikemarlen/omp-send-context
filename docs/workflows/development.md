@@ -47,7 +47,7 @@ Keep Firefox-only tooling and installation details with those workflows rather t
 
 The extension runs in GJS and uses GNOME's GObject Introspection bindings, not Node or browser APIs. A Node test double is not evidence that the Shell runtime supports an API: GJS 1.88, for example, has no global `URL`. Use native APIs such as `GLib.Uri` for GJS code and exercise the consumer under GJS.
 
-The native bridge scenarios in `test/gnome-shell/bridge.test.mjs` are part of the general Node suite, but skip when `gjs` is unavailable. A green `npm test` with those skips does not establish native-runtime coverage. The `GNOME native bridge` Quality job installs GJS and Soup bindings and runs `node --test test/gnome-shell/*.test.mjs`, so the bridge scenarios execute in the actual runtime.
+The native GNOME scenarios in `test/gnome-shell/*.test.mjs` are part of the general Node suite, but their suites skip when `gjs` is unavailable. A green `npm test` with those skips does not establish native-runtime coverage. The `GNOME native bridge` Quality job installs GJS and Soup bindings and runs `npm run test:gnome-native`, which requires GJS before running the bridge and capture-lifecycle scenarios.
 
 `npm run test:gnome` fails immediately if GJS is missing, executes the native bridge regressions, packages the extension, checks that the ZIP excludes `schemas/gschemas.compiled`, and verifies `ACTIVE` in a disposable headless GNOME Shell. It also needs the GNOME Shell test tool and D-Bus session support. This is broader packaging/activation evidence, but it still does not prove delivery from a focused desktop Ptyxis window. Follow the [GNOME Shell QA guide](/docs/qa-scenarios/gnome-shell.md) for that separate surface.
 
