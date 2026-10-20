@@ -1,4 +1,4 @@
-import test from "node:test"
+import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { execFile, spawn, spawnSync } from "node:child_process"
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
@@ -53,10 +53,8 @@ function startClient(home, action) {
   return { child, completion }
 }
 
-test(
-  "when GJS reads valid bridge state, it delivers the authenticated selection",
-  { skip: !hasGjs },
-  async (t) => {
+describe("OmpBridgeClient in GJS", { skip: !hasGjs, timeout: 5000 }, () => {
+  test("when GJS reads valid bridge state, it delivers the authenticated selection", async (t) => {
     // Arrange
     const requests = []
     const server = createServer(async (request, response) => {
@@ -90,13 +88,9 @@ test(
         envelope: { version: 1, source: "ptyxis", prompt: "Native GJS bridge selection" },
       },
     ])
-  }
-)
+  })
 
-test(
-  "when GJS sends after closing its bridge client, it reports a closed-client error",
-  { skip: !hasGjs },
-  async (t) => {
+  test("when GJS sends after closing its bridge client, it reports a closed-client error", async (t) => {
     // Arrange
     const home = await writeBridgeState(t, {
       endpoint: "http://127.0.0.1:47687",
@@ -108,13 +102,9 @@ test(
 
     // Assert
     await assert.rejects(sending, (error) => error.stderr.includes("OMP bridge client is closed."))
-  }
-)
+  })
 
-test(
-  "when GJS closes after the bridge accepts a request, Soup cancels the send safely",
-  { skip: !hasGjs, timeout: 5000 },
-  async (t) => {
+  test("when GJS closes after the bridge accepts a request, Soup cancels the send safely", async (t) => {
     // Arrange
     let requestCount = 0
     let receiveRequest
@@ -157,13 +147,9 @@ test(
     assert.equal(result.code, 0, result.stderr)
     assert.equal(result.stdout.trim(), "send-cancelled")
     assert.equal(requestCount, 1)
-  }
-)
+  })
 
-test(
-  "when OMP returns an unsuccessful status, GJS reports the bridge error",
-  { skip: !hasGjs },
-  async (t) => {
+  test("when OMP returns an unsuccessful status, GJS reports the bridge error", async (t) => {
     // Arrange
     let requestCount = 0
     const server = createServer((request, response) => {
@@ -185,39 +171,39 @@ test(
     // Assert
     await assert.rejects(sending, (error) => error.stderr.includes("OMP bridge returned 503"))
     assert.equal(requestCount, 1)
-  }
-)
-
-for (const { condition, state } of [
-  {
-    condition: "the endpoint is not loopback",
-    state: { endpoint: "http://example.com:47687", token: "test-token" },
-  },
-  {
-    condition: "the endpoint is not HTTP",
-    state: { endpoint: "https://127.0.0.1:47687", token: "test-token" },
-  },
-  {
-    condition: "the endpoint has no explicit port",
-    state: { endpoint: "http://127.0.0.1", token: "test-token" },
-  },
-  {
-    condition: "the endpoint port is malformed",
-    state: { endpoint: "http://127.0.0.1:not-a-port", token: "test-token" },
-  },
-  {
-    condition: "the bridge token is missing",
-    state: { endpoint: "http://127.0.0.1:47687" },
-  },
-]) {
-  test(`when ${condition}, GJS rejects the bridge state`, { skip: !hasGjs }, async (t) => {
-    // Arrange
-    const home = await writeBridgeState(t, state)
-
-    // Act
-    const reading = runClient(home)
-
-    // Assert
-    await assert.rejects(reading, (error) => error.code === 1)
   })
-}
+
+  for (const { condition, state } of [
+    {
+      condition: "the endpoint is not loopback",
+      state: { endpoint: "http://example.com:47687", token: "test-token" },
+    },
+    {
+      condition: "the endpoint is not HTTP",
+      state: { endpoint: "https://127.0.0.1:47687", token: "test-token" },
+    },
+    {
+      condition: "the endpoint has no explicit port",
+      state: { endpoint: "http://127.0.0.1", token: "test-token" },
+    },
+    {
+      condition: "the endpoint port is malformed",
+      state: { endpoint: "http://127.0.0.1:not-a-port", token: "test-token" },
+    },
+    {
+      condition: "the bridge token is missing",
+      state: { endpoint: "http://127.0.0.1:47687" },
+    },
+  ]) {
+    test(`when ${condition}, GJS rejects the bridge state`, async (t) => {
+      // Arrange
+      const home = await writeBridgeState(t, state)
+
+      // Act
+      const reading = runClient(home)
+
+      // Assert
+      await assert.rejects(reading, (error) => error.code === 1)
+    })
+  }
+})

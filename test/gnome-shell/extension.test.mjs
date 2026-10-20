@@ -1,4 +1,4 @@
-import test from "node:test"
+import { describe, test } from "node:test"
 import assert from "node:assert/strict"
 import { spawn, spawnSync } from "node:child_process"
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url"
 
 const hasGjs = spawnSync("gjs", ["--version"]).status === 0
 const worker = fileURLToPath(new URL("./extension-client.js", import.meta.url))
-const extensionSource = fileURLToPath(new URL("../../gnome-shell/extension.js", import.meta.url))
+const extensionSource = fileURLToPath(import.meta.resolve("#root/gnome-shell/extension.js"))
 
 async function writeBridgeState(t, contents) {
   const home = await mkdtemp(join(tmpdir(), "omp-gnome-extension-"))
@@ -43,10 +43,8 @@ function startExtensionClient(home, action) {
   return { child, completion }
 }
 
-test(
-  "when bridge-state reading fails after re-enable, no stale failure is logged or shown",
-  { skip: !hasGjs, timeout: 5000 },
-  async (t) => {
+describe("OmpSendContextExtension in GJS", { skip: !hasGjs, timeout: 5000 }, () => {
+  test("when bridge-state reading fails after re-enable, no stale failure is logged or shown", async (t) => {
     // Arrange
     const home = await writeBridgeState(t, "not valid JSON")
     const { child, completion } = startExtensionClient(home, "stale-read-failure")
@@ -65,13 +63,9 @@ test(
       notifications: [],
       loggedErrors: [],
     })
-  }
-)
+  })
 
-test(
-  "when sending fails after re-enable, no stale failure is logged or shown",
-  { skip: !hasGjs, timeout: 5000 },
-  async (t) => {
+  test("when sending fails after re-enable, no stale failure is logged or shown", async (t) => {
     // Arrange
     let requestCount = 0
     let receiveRequest
@@ -120,5 +114,5 @@ test(
       loggedErrors: [],
     })
     assert.equal(requestCount, 1)
-  }
-)
+  })
+})

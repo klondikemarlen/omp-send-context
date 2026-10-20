@@ -1,11 +1,14 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
-import { createEnvelope, isPtyxisApplication } from "../gnome-shell/context.js"
+
+import { createEnvelope, isPtyxisApplication } from "#root/gnome-shell/context.js"
+
 const [bridgeSource, extensionSource] = await Promise.all([
-  readFile(new URL("../gnome-shell/bridge.js", import.meta.url), "utf8"),
-  readFile(new URL("../gnome-shell/extension.js", import.meta.url), "utf8"),
+  readFile(new URL(import.meta.resolve("#root/gnome-shell/bridge.js")), "utf8"),
+  readFile(new URL(import.meta.resolve("#root/gnome-shell/extension.js")), "utf8"),
 ])
+
 const loadExtension = Function(
   "Gio",
   "GLib",
@@ -23,7 +26,7 @@ const loadExtension = Function(
     .replace("export default class", "class")}\nreturn OmpSendContextExtension`
 )
 
-test("when capture completes after disable/re-enable, stale work is ignored", async () => {
+function createExtensionHarness(t) {
   // Arrange
   const notifications = []
   const messages = []
@@ -33,11 +36,14 @@ test("when capture completes after disable/re-enable, stale work is ignored", as
   let waitForBridgeStateRead = false
   let completeBridgeStateRead
   const state = JSON.stringify({ endpoint: "http://127.0.0.1:47687", token: "test-token" })
-  const window = {
-    get_gtk_application_id: () => "org.gnome.Ptyxis",
-    get_title: () => "Project terminal",
+  const previousDisplay = Object.getOwnPropertyDescriptor(global, "display")
+
+  global.display = {
+    focus_window: {
+      get_gtk_application_id: () => "org.gnome.Ptyxis",
+      get_title: () => "Project terminal",
+    },
   }
-  global.display = { focus_window: window }
 
   const Gio = {
     _promisify: () => {},
@@ -132,34 +138,86 @@ test("when capture completes after disable/re-enable, stale work is ignored", as
   )
   const extension = new ExtensionClass()
 
+  t.after(() => {
+    extension.disable()
+    if (previousDisplay) {
+      Object.defineProperty(global, "display", previousDisplay)
+    } else {
+      delete global.display
+    }
+  })
+
+  return {
+    extension,
+    messages,
+    notifications,
+    get shortcut() {
+      return shortcut
+    },
+    get clipboardCallback() {
+      return clipboardCallback
+    },
+    set replyToClipboard(value) {
+      replyToClipboard = value
+    },
+    set waitForBridgeStateRead(value) {
+      waitForBridgeStateRead = value
+    },
+    get completeBridgeStateRead() {
+      return completeBridgeStateRead
+    },
+  }
+}
+
+test("when enabled and a Ptyxis selection is sent, the bridge receives it", async (t) => {
+  // Arrange
+  const harness = createExtensionHarness(t)
+
   // Act
-  extension.enable()
-  shortcut()
+  harness.extension.enable()
+  harness.shortcut()
   await new Promise((resolve) => setImmediate(resolve))
 
   // Assert
-  assert.equal(messages.length, 1)
-  assert.equal(messages[0].uri, "http://127.0.0.1:47687/context")
-  assert.equal(notifications.length, 1)
-  replyToClipboard = false
-  shortcut()
-  const staleClipboardCallback = clipboardCallback
-  extension.disable()
-  extension.enable()
+  assert.equal(harness.messages.length, 1)
+  assert.equal(harness.messages[0].uri, "http://127.0.0.1:47687/context")
+  assert.equal(harness.notifications.length, 1)
+})
+
+test("when clipboard selection arrives after disable and re-enable, stale work is ignored", async (t) => {
+  // Arrange
+  const harness = createExtensionHarness(t)
+  harness.extension.enable()
+  harness.replyToClipboard = false
+  harness.shortcut()
+  const staleClipboardCallback = harness.clipboardCallback
+
+  // Act
+  harness.extension.disable()
+  harness.extension.enable()
   staleClipboardCallback(null, "late selection")
   await new Promise((resolve) => setImmediate(resolve))
-  assert.equal(messages.length, 1)
-  assert.equal(notifications.length, 1)
 
-  replyToClipboard = true
-  waitForBridgeStateRead = true
-  shortcut()
+  // Assert
+  assert.equal(harness.messages.length, 0)
+  assert.deepEqual(harness.notifications, [])
+})
+
+test("when bridge state arrives after disable and re-enable, stale work is ignored", async (t) => {
+  // Arrange
+  const harness = createExtensionHarness(t)
+  harness.extension.enable()
+  harness.waitForBridgeStateRead = true
+  harness.shortcut()
   await new Promise((resolve) => setImmediate(resolve))
-  extension.disable()
-  extension.enable()
-  completeBridgeStateRead()
+
+  // Act
+  harness.extension.disable()
+  harness.extension.enable()
+  harness.completeBridgeStateRead()
   await new Promise((resolve) => setImmediate(resolve))
-  assert.equal(messages.length, 1)
-  assert.equal(notifications.length, 1)
-  extension.disable()
+
+  // Assert
+  assert.equal(harness.messages.length, 0)
+  assert.deepEqual(harness.notifications, [])
 })
