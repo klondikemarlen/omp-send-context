@@ -28,12 +28,27 @@ npm ci
 omp plugin link "$PWD"
 npm run test:gnome
 
-ZIP="${TMPDIR:-/tmp}/omp-send-context-gnome-$(id -u)/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
+ZIP="$(node bin/gnome archive-path)"
 sha256sum "$ZIP"
 gnome-extensions install --force "$ZIP"
 ```
 
 `npm run test:gnome` writes the candidate ZIP at that path. `bin/gnome` isolates the output by user ID so a separate test account does not overwrite another account's archive. `npm run install:gnome` packages again before installing; do not use it when the goal is to accept the exact ZIP just checked. Record the ZIP's SHA-256 with the QA result. If source changes after that hash or check, package and test a new candidate, then install that new candidate.
+
+## Static archive review
+
+Before logging out, run these commands from the checkout in the same terminal where `ZIP` was set. Review the candidate that will receive desktop acceptance; do not rebuild it between checks.
+
+Use the repository's asdf Python when available. If `shexli` is not installed, install it with
+`python -m pip install -U shexli` using that interpreter.
+
+```bash
+unzip -l "$ZIP"
+shexli "$PWD/gnome-shell"
+shexli "$ZIP"
+```
+
+The archive must not contain `schemas/gschemas.compiled`. The `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is expected: PRIMARY selection is accessed only after the user-configured shortcut. Explain and resolve every other finding before any publication request. See the [release workflow](/docs/workflows/release.md#gnome-shell-companion-publication-remains-paused) for the separate approval gate.
 
 ## Fresh test-account desktop acceptance
 
@@ -65,21 +80,6 @@ The compositor owns the registered accelerator; there is no supported consume-an
 Open a fresh OMP process in the same test account after linking the checkout. OMP loads extension modules at process startup, so an existing process may retain the previously installed plugin even when the link is corrected. Confirm the process uses the checkout-linked plugin, not merely a matching plugin version, and confirm `~/.omp/agent/editor-context-bridge.json` exists without printing or copying its contents.
 
 With a harmless, non-sensitive selection in a focused Ptyxis window, invoke the configured shortcut once. **PASS** requires both the visible **Context sent to OMP.** notification and exactly one handoff insertion into that fresh OMP prompt. A headless `ACTIVE` state, successful bridge test, or one of the two desktop observations alone is not a pass. Do not repeat the shortcut just to capture additional evidence.
-
-## Static archive review
-
-Review the same candidate ZIP used for desktop acceptance; do not rebuild it between checks:
-
-Use the repository's asdf Python when available. If `shexli` is not installed, install it with
-`python -m pip install -U shexli` using that interpreter.
-
-```bash
-unzip -l "$ZIP"
-shexli "$PWD/gnome-shell"
-shexli "$ZIP"
-```
-
-The archive must not contain `schemas/gschemas.compiled`. The `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is expected: PRIMARY selection is accessed only after the user-configured shortcut. Explain and resolve every other finding before any publication request. See the [release workflow](/docs/workflows/release.md#gnome-shell-companion-publication-remains-paused) for the separate approval gate.
 
 ## Evidence and privacy
 
