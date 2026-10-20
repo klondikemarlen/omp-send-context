@@ -50,17 +50,18 @@ export class OmpBridgeClient {
 function parseBridgeState(contents) {
   try {
     const state = JSON.parse(new TextDecoder().decode(contents))
-    const endpoint = new URL(state.endpoint)
+    const endpoint = GLib.Uri.parse(state.endpoint, GLib.UriFlags.NONE)
+    const port = endpoint.get_port()
     if (
-      endpoint.protocol !== "http:" ||
-      endpoint.hostname !== HOST ||
-      !endpoint.port ||
+      endpoint.get_scheme() !== "http" ||
+      endpoint.get_host() !== HOST ||
+      port < 0 ||
       typeof state.token !== "string" ||
       !state.token
     ) {
       throw new Error("The active OMP session state is invalid.")
     }
-    return { endpoint: endpoint.origin, token: state.token }
+    return { endpoint: `http://${HOST}:${port}`, token: state.token }
   } catch {
     throw new Error("The active OMP session state is invalid.")
   }
