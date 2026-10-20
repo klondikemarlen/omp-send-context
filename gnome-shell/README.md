@@ -13,7 +13,7 @@ npm run test:gnome
 npm run install:gnome
 ```
 
-The headless test installs the ZIP into a disposable GNOME Shell and asserts `ACTIVE`. It does not change the running desktop or prove focused Ptyxis selection, shortcut handling, or OMP delivery.
+The check requires GJS and Soup introspection bindings. It first runs native GJS bridge-state and authenticated-delivery regressions against an isolated local receiver, then installs the ZIP into a disposable GNOME Shell and asserts `ACTIVE`. It does not change the running desktop or prove focused Ptyxis selection, shortcut handling, or delivery to the desktop's active OMP prompt.
 
 A locally installed ZIP is discovered by a fresh GNOME Shell session. Replacing an already discovered extension also leaves its imported code in memory; disabling/enabling does not unload it. On Wayland, start a fresh session before testing the new code.
 

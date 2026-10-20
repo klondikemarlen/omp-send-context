@@ -6,6 +6,7 @@
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.
 - Add Node test/build and Go native-host CI jobs, explicit verifier configuration, and test-authoring guidance.
 - Document runtime/language ownership and the distinction between repository-only quality releases and changed product artifacts.
+- Parse GNOME companion bridge state with GJS-native URI support, and cover valid authenticated delivery plus invalid-state rejection in the native runtime.
 
 ## Firefox native host 1.7.5
 
