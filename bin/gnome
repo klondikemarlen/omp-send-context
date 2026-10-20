@@ -14,6 +14,9 @@ const archivePath = join(
 )
 
 switch (process.argv[2]) {
+  case "archive-path":
+    console.log(archivePath)
+    break
   case "package":
     packageGnomeExtension()
     break
@@ -26,7 +29,7 @@ switch (process.argv[2]) {
     testGnomeExtension()
     break
   default:
-    console.error("Usage: node bin/gnome <package|install|test>")
+    console.error("Usage: node bin/gnome <archive-path|package|install|test>")
     process.exit(2)
 }
 
