@@ -28,12 +28,12 @@ npm ci
 omp plugin link "$PWD"
 npm run test:gnome
 
-ZIP=/tmp/omp-send-context-gnome/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip
+ZIP="${TMPDIR:-/tmp}/omp-send-context-gnome-$(id -u)/omp-send-context-gnome@klondikemarlen.github.io.shell-extension.zip"
 sha256sum "$ZIP"
 gnome-extensions install --force "$ZIP"
 ```
 
-`npm run test:gnome` writes the candidate ZIP at that path. `npm run install:gnome` packages again before installing; do not use it when the goal is to accept the exact ZIP just checked. Record the ZIP's SHA-256 with the QA result. If source changes after that hash or check, package and test a new candidate, then install that new candidate.
+`npm run test:gnome` writes the candidate ZIP at that path. `bin/gnome` isolates the output by user ID so a separate test account does not overwrite another account's archive. `npm run install:gnome` packages again before installing; do not use it when the goal is to accept the exact ZIP just checked. Record the ZIP's SHA-256 with the QA result. If source changes after that hash or check, package and test a new candidate, then install that new candidate.
 
 ## Fresh test-account desktop acceptance
 
