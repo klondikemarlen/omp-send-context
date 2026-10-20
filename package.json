@@ -38,6 +38,9 @@
     "Other"
   ],
   "main": "./dist/extension.cjs",
+  "imports": {
+    "#root/*": "./*"
+  },
   "files": [
     "dist/extension.cjs",
     "omp",
