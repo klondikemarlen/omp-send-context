@@ -1,6 +1,6 @@
 # GNOME Shell Companion QA
 
-This guide covers local development and review of the unreleased GNOME Shell companion. It is not a supported installation guide. Keep this QA in a separate local test account; do not copy credentials, OMP configuration, bridge state, or extension settings from the primary account.
+This guide covers contributor candidates and release review for the GNOME Shell companion. For approved releases, use the [product installation guide](/docs/product/gnome-shell.md). Keep candidate QA in a separate local test account; do not copy credentials, OMP configuration, bridge state, or extension settings from the primary account.
 
 ## Prerequisites
 
@@ -48,7 +48,7 @@ shexli "$PWD/gnome-shell"
 shexli "$ZIP"
 ```
 
-The archive must not contain `schemas/gschemas.compiled`. The `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is expected: PRIMARY selection is accessed only after the user-configured shortcut. Explain and resolve every other finding before any publication request. See the [release workflow](/docs/workflows/release.md#gnome-shell-companion-publication-remains-paused) for the separate approval gate.
+The archive must not contain `schemas/gschemas.compiled`. The `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is expected: PRIMARY selection is accessed only after the user-configured shortcut. Explain and resolve every other finding before any publication request. See the [release workflow](/docs/workflows/release.md#gnome-shell-companion) for the separate approval gate.
 
 ## Fresh test-account desktop acceptance
 
@@ -79,7 +79,7 @@ The compositor owns the registered accelerator; there is no supported consume-an
 
 Open a fresh OMP process in the same test account after linking the checkout. OMP loads extension modules at process startup, so an existing process may retain the previously installed plugin even when the link is corrected. Confirm the process uses the checkout-linked plugin, not merely a matching plugin version, and confirm `~/.omp/agent/editor-context-bridge.json` exists without printing or copying its contents.
 
-With a harmless, non-sensitive selection in a focused Ptyxis window, invoke the configured shortcut once. **PASS** requires both the visible **Context sent to OMP.** notification and exactly one handoff insertion into that fresh OMP prompt. A headless `ACTIVE` state, successful bridge test, or one of the two desktop observations alone is not a pass. Do not repeat the shortcut just to capture additional evidence.
+With a harmless, non-sensitive selection freshly made in a focused Ptyxis window, invoke the configured shortcut once and keep that window focused until delivery completes. **PASS** requires both the visible **Context sent to OMP.** notification and exactly one handoff insertion into that fresh OMP prompt. A headless `ACTIVE` state, successful bridge test, or one of the two desktop observations alone is not a pass. Do not repeat the shortcut just to capture additional evidence. This delivery check does not prove PRIMARY ownership; the released companion's [selection limits](/docs/product/gnome-shell.md#selection-and-privacy-limits) still apply.
 
 ## Evidence and privacy
 

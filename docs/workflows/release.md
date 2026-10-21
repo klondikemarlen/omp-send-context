@@ -11,12 +11,15 @@ This repository has separately distributed integrations. Release only the artifa
 - VS Code-compatible clients receive the Marketplace extension.
 - The OMP plugin is installed from this GitHub repository and includes the bridge runtime. A runtime release must be exercised from the published GitHub source, not only from a linked checkout.
 - Firefox publishing and artifact-specific checks are covered by the [Firefox publishing workflow](firefox-publishing.md).
+- GNOME Shell users receive the approved companion from GNOME Extensions; future submissions use the approval gate below.
 
 Do not publish an unchanged integration as a side effect of releasing another one.
 
-## GNOME Shell companion publication remains paused
+## GNOME Shell companion
 
-The GNOME companion is unreleased work in progress, not a supported installation path. `upload-gnome.mjs` remains deliberately disabled and stops before prompting for credentials or making network requests. Do not remove or bypass that safeguard as part of local QA or another integration's release.
+The Ptyxis-only companion is distributed through [GNOME Extensions](https://extensions.gnome.org/extension/10625/omp-send-context/). Version 8 was approved for GNOME Shell 50 on October 21, 2026; its [review record](https://extensions.gnome.org/review/76899) establishes approval, not just upload acceptance. Released installation and selection limits belong in the [product guide](/docs/product/gnome-shell.md).
+
+**Future uploads remain paused.** `upload-gnome.mjs` remains deliberately disabled and stops before prompting for upload credentials or making network requests. Approval of an existing version does not authorize another upload. Do not remove or bypass that safeguard as part of local QA or another integration's release.
 
 GNOME rejected version 7 because its ZIP included `schemas/gschemas.compiled`. Every future candidate must exclude that file; a prior public listing is not evidence that a changed ZIP is ready. Follow the [GNOME Shell QA guide](/docs/qa-scenarios/gnome-shell.md) and review the exact candidate ZIP that received desktop acceptance.
 
@@ -26,7 +29,7 @@ Before any GNOME upload is enabled or attempted, show the maintainer:
 2. Evidence for native GJS parsing and delivery, package/headless activation, fresh-session desktop delivery using that exact ZIP, and every `shexli` finding with its disposition.
 3. Relevant GNOME reviewer feedback, including the prior compiled-schema rejection and how the candidate addresses it.
 
-Only after this explanation, obtain the maintainer's explicit confirmation in the current conversation before any upload. A generic request to publish or release is not approval for a GNOME submission. External GNOME review and public listing acceptance remain separate, unverified outcomes.
+Only after this explanation, obtain the maintainer's explicit confirmation in the current conversation before any upload. A generic request to publish or release is not approval for a GNOME submission. Restore the uploader pause immediately after the authorized submission. Verify upload acceptance, external GNOME review, and active public listing separately for each new version; approval of version 8 does not establish any future candidate's status.
 
 ## VS Code Marketplace
 
