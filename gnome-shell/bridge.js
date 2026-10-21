@@ -9,12 +9,15 @@ export class OmpBridgeClient {
   constructor() {
     Gio._promisify(Gio.File.prototype, "load_contents_async")
     Gio._promisify(Soup.Session.prototype, "send_and_read_async", "send_and_read_finish")
-    this._session = new Soup.Session()
+    this.httpSession = new Soup.Session()
   }
 
   close() {
-    this._session.abort()
-    this._session = null
+    const httpSession = this.httpSession
+    if (!httpSession) return
+
+    this.httpSession = null
+    httpSession.abort()
   }
 
   async readState() {
@@ -30,9 +33,9 @@ export class OmpBridgeClient {
   }
 
   async send(state, envelope) {
-    const session = this._session
-    if (!session) {
-      return
+    const httpSession = this.httpSession
+    if (!httpSession) {
+      throw new Error("OMP bridge client is closed.")
     }
 
     const message = Soup.Message.new("POST", `${state.endpoint}/context`)
@@ -40,7 +43,7 @@ export class OmpBridgeClient {
     message.request_headers.append("Authorization", `Bearer ${state.token}`)
     const payload = new TextEncoder().encode(JSON.stringify(envelope))
     message.set_request_body_from_bytes("application/json", GLib.Bytes.new(payload))
-    await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null)
+    await httpSession.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null)
     if (message.status_code < 200 || message.status_code >= 300) {
       throw new Error(`OMP bridge returned ${message.status_code}`)
     }

@@ -14,6 +14,20 @@ This repository has separately distributed integrations. Release only the artifa
 
 Do not publish an unchanged integration as a side effect of releasing another one.
 
+## GNOME Shell companion publication remains paused
+
+The GNOME companion is unreleased work in progress, not a supported installation path. `upload-gnome.mjs` remains deliberately disabled and stops before prompting for credentials or making network requests. Do not remove or bypass that safeguard as part of local QA or another integration's release.
+
+GNOME rejected version 7 because its ZIP included `schemas/gschemas.compiled`. Every future candidate must exclude that file; a prior public listing is not evidence that a changed ZIP is ready. Follow the [GNOME Shell QA guide](/docs/qa-scenarios/gnome-shell.md) and review the exact candidate ZIP that received desktop acceptance.
+
+Before any GNOME upload is enabled or attempted, show the maintainer:
+
+1. A per-file diff between the exact candidate ZIP and the currently active submitted ZIP, explaining how each changed file affects user-visible behavior.
+2. Evidence for native GJS parsing and delivery, package/headless activation, fresh-session desktop delivery using that exact ZIP, and every `shexli` finding with its disposition.
+3. Relevant GNOME reviewer feedback, including the prior compiled-schema rejection and how the candidate addresses it.
+
+Only after this explanation, obtain the maintainer's explicit confirmation in the current conversation before any upload. A generic request to publish or release is not approval for a GNOME submission. External GNOME review and public listing acceptance remain separate, unverified outcomes.
+
 ## VS Code Marketplace
 
 The root `package.json` is the Marketplace package manifest. Its `publish:marketplace` script invokes `vsce publish`, and `vscode:prepublish` runs the package build. The package build performs the TypeScript check and bundles `dist/extension.cjs`.

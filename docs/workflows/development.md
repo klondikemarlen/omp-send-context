@@ -1,6 +1,6 @@
 # Development workflow
 
-This workflow is for contributors changing the VS Code client, OMP bridge, Firefox client, or shared protocol. Product intent belongs in the [product docs](../product/editor.md); architecture contracts are described in the [context bridge overview](../architecture/context-bridge.md). Source and tests remain authoritative for current behavior.
+This workflow is for contributors changing the VS Code client, OMP bridge, Firefox client, GNOME Shell companion, or shared protocol. Product intent belongs in the [product docs](../product/editor.md); architecture contracts are described in the [context bridge overview](../architecture/context-bridge.md). Source and tests remain authoritative for current behavior.
 
 ## Checkout and repository map
 
@@ -17,6 +17,7 @@ Main areas:
 - `omp/` — OMP bridge runtime and plugin entry point.
 - `protocol/` — versioned envelope schema and example.
 - `test/` — tests grouped around integrations and protocol.
+- `gnome-shell/` — native GJS extension for GNOME Shell and its local OMP bridge handoff.
 
 The root `package.json` owns the shared scripts and development dependencies. The Firefox package has its own scripts for Firefox-specific artifacts and host operations.
 
@@ -41,6 +42,14 @@ Firefox-specific packaging, temporary installation, native-host setup, and manua
 - [Firefox publishing workflow](firefox-publishing.md)
 
 Keep Firefox-only tooling and installation details with those workflows rather than duplicating the complete procedure here.
+
+## GNOME Shell development
+
+The extension runs in GJS and uses GNOME's GObject Introspection bindings, not Node or browser APIs. A Node test double is not evidence that the Shell runtime supports an API: GJS 1.88, for example, has no global `URL`. Use native APIs such as `GLib.Uri` for GJS code and exercise the consumer under GJS.
+
+The native GNOME scenarios in `test/gnome-shell/*.test.mjs` are part of the general Node suite, but their suites skip when `gjs` is unavailable. A green `npm test` with those skips does not establish native-runtime coverage. The `GNOME native bridge` Quality job installs GJS and Soup bindings and runs `npm run test:gnome-native`, which requires GJS before running the bridge and capture-lifecycle scenarios.
+
+`npm run test:gnome` fails immediately if GJS is missing, executes the native bridge regressions, packages the extension, checks that the ZIP excludes `schemas/gschemas.compiled`, and verifies `ACTIVE` in a disposable headless GNOME Shell. It also needs the GNOME Shell test tool and D-Bus session support. This is broader packaging/activation evidence, but it still does not prove delivery from a focused desktop Ptyxis window. Follow the [GNOME Shell QA guide](/docs/qa-scenarios/gnome-shell.md) for that separate surface.
 
 ## Checks
 

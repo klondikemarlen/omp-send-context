@@ -10,6 +10,12 @@ Use the repository's `node:test` and `node:assert/strict` conventions. Commands 
 - Do not pin implementation source, CSS literals, incidental UI copy, mock argument forwarding, or copies of catalog defaults. Delete such checks rather than updating their strings. Generated artifact identity and provenance are output contracts, not incidental implementation text.
 - Preserve local, explicit scenario inputs. Shared helpers may own stable temporary HOME/state/server setup, but must not hide varying actions or expected outcomes.
 
+## GNOME Runtime Scenarios
+
+Group native GNOME scenarios in a descriptive `describe` suite. Declare the shared GJS availability and timeout at that boundary, while keeping each scenario's asynchronous setup, action, assertions, and cleanup inside its own test.
+
+Node-side GNOME tests use the package's `#root/…` import map for cross-module subjects and source paths. Resolve absolute runtime filenames with `fileURLToPath(import.meta.resolve("#root/…"))`, not a machine-specific home path or the launch directory. Keep short relative references for co-located fixtures. GJS workers use native module resolution, not Node's package-import aliases.
+
 ## Isolation and Cleanup
 
 `bin/test` uses native Node per-file process isolation. Within a file, still restore process globals and dispose real servers, listeners, timers, subprocesses, and temporary directories. Do not rely on another test's cleanup or mutate the contributor's actual configuration.

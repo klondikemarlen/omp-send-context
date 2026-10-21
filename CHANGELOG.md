@@ -7,6 +7,11 @@
 - Add Node test/build and Go native-host CI jobs, explicit verifier configuration, and test-authoring guidance.
 - Document runtime/language ownership and the distinction between repository-only quality releases and changed product artifacts.
 - Parse GNOME companion bridge state with GJS-native URI support, and cover valid authenticated delivery plus invalid-state rejection in the native runtime.
+- Clarify GNOME runtime ownership, native-test coverage boundaries, exact-ZIP desktop QA, and the explicit publication-approval gate.
+- Make GNOME bridge shutdown idempotent, reject delivery after close, and suppress stale capture failures after extension reload.
+- Use explanatory selection/session names, exercise cancellation and stale failures under GJS, and require native GJS coverage in CI.
+- Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
+- Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
 
 ## Firefox native host 1.7.5
 
