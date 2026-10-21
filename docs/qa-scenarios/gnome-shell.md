@@ -21,6 +21,8 @@ The `GNOME native bridge` Quality job installs GJS and Soup bindings and runs th
 
 Use an independent checkout and account for local desktop QA. Fast User Switching allows the test account's GNOME session to run while the primary account remains signed in. Keep the test account's `HOME`, OMP state, and extension settings separate; never copy provider credentials or bridge files between accounts.
 
+Changing `HOME` or `XDG_DATA_HOME` alone does not isolate Shell-management commands. `gnome-extensions uninstall` talks to the desktop's running Shell over D-Bus and can remove that account's live extension even when installation used a disposable directory. Run enable, disable, and uninstall checks only in the separate test account's desktop session, not from a temporary-HOME shell in the primary session.
+
 From the repository checkout in the test account, link the local OMP plugin, run the native/package check, then install the exact ZIP it produced:
 
 ```bash
