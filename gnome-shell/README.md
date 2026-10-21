@@ -1,8 +1,8 @@
-# GNOME Shell Companion — Work in Progress
+# GNOME Shell Companion
 
-This companion is unreleased work in progress, not a supported installation path for OMP Send Context. These notes are for local development and review only. They are intentionally excluded from the project's core user documentation.
+This directory owns the native GNOME Shell companion for Ptyxis context handoffs. Released installation, shortcut configuration, selection limits, and updates belong in the [GNOME product guide](/docs/product/gnome-shell.md).
 
-The prototype reads the focused Ptyxis window's PRIMARY selection and sends it through the active OMP bridge. It does not patch or inject into Ptyxis; Ptyxis has no supported plugin ABI for this integration. The current metadata targets GNOME Shell 50.
+The companion reads global PRIMARY selection while a recognized Ptyxis window is focused and sends it through the active OMP bridge. The focus check does not establish selection ownership. It does not patch or inject into Ptyxis; Ptyxis has no supported plugin ABI for this integration. The current metadata targets GNOME Shell 50.
 
 ## Architecture and runtime
 

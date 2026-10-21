@@ -6,6 +6,7 @@ Start with the [project README](../README.md) to install a released client and s
 
 - [Editor context](product/editor.md): VS Code and Devin Desktop installation, packet settings, updates, and OMP console selection.
 - [Firefox context](product/firefox.md): supported pages, native-host installation, sandbox registration, clipboard fallback, and privacy.
+- [GNOME Shell: Ptyxis context](product/gnome-shell.md): approved companion installation, explicit shortcut setup, PRIMARY selection limits, and updates.
 - [Troubleshooting](product/troubleshooting.md): delivery failures, stale installs, and selecting the right console.
 
 ## Understand the system
@@ -23,7 +24,7 @@ Start with the [project README](../README.md) to install a released client and s
 
 - [Firefox QA scenarios](qa-scenarios/firefox.md): fresh-profile, selection, metadata, native delivery, fallback, and multiple-session checks.
 - [OMP focus lifecycle QA](/docs/qa-scenarios/omp-focus.md): successful and cancelled session changes, hook ordering, multi-console delivery, opt-out, and reload cleanup.
-- [GNOME Shell companion QA (unreleased development only)](/docs/qa-scenarios/gnome-shell.md): native GJS checks, exact-ZIP desktop acceptance, and separate-session boundaries; this is not a supported installation guide.
+- [GNOME Shell companion QA](/docs/qa-scenarios/gnome-shell.md): native GJS checks, exact-ZIP desktop acceptance, and separate-session boundaries for contributor candidates.
 
 ## Authority and enrichment
 
