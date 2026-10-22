@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve standalone Escape and bracketed-paste contents by classifying OMP's completed terminal events without a second input buffer.
+- Remove pending-prefix state and lifecycle resets; verify raw focus fragmentation through OMP rather than injecting incomplete bytes into extension listeners.
 - Document the approved GNOME Shell version 8 installation path, explicit shortcut configuration, and PRIMARY selection limits; retain the approval gate for future uploads.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.

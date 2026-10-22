@@ -451,51 +451,6 @@ test("when Linux focus routing is explicitly disabled, the plugin leaves it disa
   )
 })
 
-test("when terminal focus arrives in split chunks, the plugin claims the Linux terminal", async () => {
-  await withBridge(
-    BASE_PORT + 11,
-    async ({ handlers, stateFile, terminalWrites }) => {
-      // Arrange
-      let focusHandler
-      await handlers.get("session_start")(
-        {},
-        {
-          hasUI: true,
-          ui: {
-            onTerminalInput(handler) {
-              focusHandler = handler
-              return () => {}
-            },
-          },
-        }
-      )
-      assert.equal(typeof focusHandler, "function")
-      assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
-      await fs.writeFile(
-        stateFile,
-        JSON.stringify({ endpoint: "http://127.0.0.1:49875", instanceId: "other-instance" })
-      )
-
-      // Act
-      const firstChunk = focusHandler("\x1b")
-      const secondChunk = focusHandler("[I")
-      await waitFor(
-        async () => JSON.parse(await fs.readFile(stateFile, "utf8")).instanceId !== "other-instance"
-      )
-
-      // Assert
-      assert.deepEqual(firstChunk, { consume: true })
-      assert.deepEqual(secondChunk, { consume: true })
-      assert.deepEqual(focusHandler("normal terminal input"), { data: "normal terminal input" })
-    },
-    {
-      pluginSettings: {
-        claimIdeContextOnFocus: true,
-      },
-    }
-  )
-})
-
 test("when plugin settings change in a running Linux session, focus routing follows them", async () => {
   await withBridge(
     BASE_PORT + 13,

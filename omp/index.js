@@ -5,7 +5,7 @@ import { performance } from "node:perf_hooks"
 import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
-import { createTerminalActivityTracker } from "./terminal-activity.js"
+import { classifyTerminalActivity } from "./terminal-activity.js"
 
 const PLUGIN_NAME = "omp-send-context"
 const PLUGINS_LOCK_FILE = join(process.env.HOME ?? "", ".omp", "plugins", "omp-plugins.lock.json")
@@ -21,7 +21,6 @@ let bridge
 let focusUnsubscribe
 let focusSettingsWatcher
 let focusSettingsRefreshTimer
-let readTerminalActivity = createTerminalActivityTracker()
 let startupClaimedAt = 0
 let pendingClaimedAt = 0
 let focusSettingsGeneration = 0
@@ -130,7 +129,6 @@ async function refreshFocusClaiming(pi, { rebind = false } = {}) {
     if (rebind) {
       focusUnsubscribe?.()
       focusUnsubscribe = undefined
-      readTerminalActivity = createTerminalActivityTracker()
     }
     enableFocusClaiming(activeContext, force)
   } else if (setting === false) {
@@ -219,7 +217,6 @@ function restoreFocusInputSubscription() {
 
 function disableFocusClaiming() {
   focusSettingsGeneration += 1
-  readTerminalActivity = createTerminalActivityTracker()
   process.stdin.removeListener("data", restoreFocusInputSubscription)
   if (focusUnsubscribe === undefined) {
     return
@@ -230,7 +227,7 @@ function disableFocusClaiming() {
 }
 
 function handleFocusInput(data) {
-  const activity = readTerminalActivity(data)
+  const activity = classifyTerminalActivity(data)
   if (activity.hasActivity) {
     if (bridge?.endpoint === undefined) {
       pendingClaimedAt = performance.timeOrigin + performance.now()
