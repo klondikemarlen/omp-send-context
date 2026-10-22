@@ -2,8 +2,6 @@
 
 ## Unreleased
 
-- Preserve standalone Escape and bracketed-paste contents by classifying OMP's completed terminal events without a second input buffer.
-- Remove pending-prefix state and lifecycle resets; verify raw focus fragmentation through OMP rather than injecting incomplete bytes into extension listeners.
 - Document the approved GNOME Shell version 8 installation path, explicit shortcut configuration, and PRIMARY selection limits; retain the approval gate for future uploads.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.
@@ -15,6 +13,11 @@
 - Use explanatory selection/session names, exercise cancellation and stale failures under GJS, and require native GJS coverage in CI.
 - Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
 - Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
+
+## 2.7.6
+
+- Preserve standalone Escape and bracketed-paste contents by classifying OMP's completed terminal events without a second input buffer.
+- Remove pending-prefix state and lifecycle resets; verify raw focus fragmentation through OMP rather than injecting incomplete bytes into extension listeners.
 
 ## 2.7.5
 
