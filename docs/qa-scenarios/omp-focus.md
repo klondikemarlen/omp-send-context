@@ -17,6 +17,36 @@ export default function cancelSessionChanges(pi) {
 
 Load explicit extensions with `--no-extensions -e /path/to/cancel.js -e /path/to/omp/index.js` to establish earlier cancellation, then reverse their order for later cancellation. Use an isolated HOME and session directory so this helper cannot affect ordinary sessions. Do not install the cancellation helper as a normal user plugin.
 
+## Escape and input framing
+
+Use a fresh process with autofocus enabled. To open a reproducible standard selector, load this temporary extension alongside Send Context in the isolated QA environment:
+
+```js
+export default function focusSelectorQa(pi) {
+  pi.registerCommand("focus-qa-select", {
+    handler: async (_args, ctx) => {
+      const choice = await ctx.ui.select("Focus QA selector", [
+        "Keep editing",
+        "Choose another option",
+      ])
+      if (choice === undefined) {
+        ctx.ui.notify("Focus QA selection cancelled.", "info")
+        return
+      }
+
+      ctx.ui.notify(`Focus QA selected: ${choice}`, "info")
+    },
+  })
+}
+```
+
+1. Run `/focus-qa-select`, wait until its selector is visible, then press Escape once. The selector must close and report cancellation without another key. Type ordinary draft text next; no buffered Escape may change it.
+2. Paste multiline text and verify the prompt preserves it without submission. Classifier coverage also checks that focus-like escape text inside bracketed paste remains opaque to this plugin.
+3. Select another live console. In the tested console's real PTY, write `ESC`, `[`, and `I` in separate writes within OMP's input-framing interval. Deliver a unique context marker before any command entry. Only the tested console receives it, with no report bytes inserted into its prompt.
+4. Repeat complete focus-in/focus-out, capability-reply, and mouse-report checks. Only genuine keyboard or focus-in activity may change the target.
+
+OMP owns raw-byte assembly and standalone-Escape timing. Calling `onTerminalInput` directly with incomplete bytes tests an invented extension contract and can hide duplicate buffering. Keep permanent classifier tests at the complete-event boundary and record split-byte evidence from the actual runtime.
+
 ## Session transitions and delivery
 
 1. Select A by focusing it, then select B. Deliver a unique harmless context marker. Only B's editor should contain the marker; it must not be submitted.
