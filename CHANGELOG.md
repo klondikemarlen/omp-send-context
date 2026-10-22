@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep context on the last genuinely focused or keyboard-active console across independent OMP/`ompi` restarts; do not treat capability replies, mouse reports, first focus-out, or session reconnection as new activity.
+- Separate terminal-event classification from session/bridge lifecycle, remove duplicated session activation, and document nine-console restart QA and wrapper isolation boundaries.
 - Document the approved GNOME Shell version 8 installation path, explicit shortcut configuration, and PRIMARY selection limits; retain the approval gate for future uploads.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.

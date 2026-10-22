@@ -5,6 +5,7 @@ import { performance } from "node:perf_hooks"
 import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
+import { createTerminalActivityTracker } from "./terminal-activity.js"
 
 const PLUGIN_NAME = "omp-send-context"
 const PLUGINS_LOCK_FILE = join(process.env.HOME ?? "", ".omp", "plugins", "omp-plugins.lock.json")
@@ -20,11 +21,10 @@ let bridge
 let focusUnsubscribe
 let focusSettingsWatcher
 let focusSettingsRefreshTimer
-let pendingFocusInput = ""
+let readTerminalActivity = createTerminalActivityTracker()
 let startupClaimedAt = 0
 let pendingClaimedAt = 0
 let focusSettingsGeneration = 0
-let terminalFocusObserved = false
 
 export default function ompSendContextExtension(pi) {
   const reloadActivity = globalThis[RELOAD_ACTIVITY_KEY]
@@ -78,31 +78,11 @@ export default function ompSendContextExtension(pi) {
   })
 
   pi.on("session_start", async (_event, ctx) => {
-    activeContext = ctx
-    disableFocusClaiming()
-    await refreshFocusClaiming(pi)
-    await ensureServer()
-    if (pendingClaimedAt > 0) {
-      const claimedAt = pendingClaimedAt
-      pendingClaimedAt = 0
-      await claimCurrentConsole(claimedAt)
-    } else {
-      await bridge.claim()
-    }
-    watchFocusSettings(pi)
+    await connectSession(pi, ctx)
   })
 
   pi.on("session_switch", async (_event, ctx) => {
-    const switchClaimedAt = performance.timeOrigin + performance.now()
-    activeContext = ctx
-    // OMP clears terminal-input listeners when creating a new session.
-    disableFocusClaiming()
-    await refreshFocusClaiming(pi)
-    await ensureServer()
-    const claimedAt = Math.max(switchClaimedAt, pendingClaimedAt)
-    pendingClaimedAt = 0
-    await claimCurrentConsole(claimedAt)
-    watchFocusSettings(pi)
+    await connectSession(pi, ctx)
   })
 
   pi.on("session_shutdown", async () => {
@@ -116,6 +96,23 @@ export default function ompSendContextExtension(pi) {
     activeContext = undefined
     await closeServer()
   })
+}
+
+async function connectSession(pi, ctx) {
+  activeContext = ctx
+  // OMP clears terminal-input listeners when creating a new session.
+  // Reconnecting is not activity: only input observed locally may claim.
+  disableFocusClaiming()
+  await refreshFocusClaiming(pi)
+  await ensureServer()
+  if (pendingClaimedAt > 0) {
+    const claimedAt = pendingClaimedAt
+    pendingClaimedAt = 0
+    await claimCurrentConsole(claimedAt)
+  } else {
+    await bridge.claim()
+  }
+  watchFocusSettings(pi)
 }
 
 async function refreshFocusClaiming(pi, { rebind = false } = {}) {
@@ -133,7 +130,7 @@ async function refreshFocusClaiming(pi, { rebind = false } = {}) {
     if (rebind) {
       focusUnsubscribe?.()
       focusUnsubscribe = undefined
-      pendingFocusInput = ""
+      readTerminalActivity = createTerminalActivityTracker()
     }
     enableFocusClaiming(activeContext, force)
   } else if (setting === false) {
@@ -222,8 +219,7 @@ function restoreFocusInputSubscription() {
 
 function disableFocusClaiming() {
   focusSettingsGeneration += 1
-  pendingFocusInput = ""
-  terminalFocusObserved = false
+  readTerminalActivity = createTerminalActivityTracker()
   process.stdin.removeListener("data", restoreFocusInputSubscription)
   if (focusUnsubscribe === undefined) {
     return
@@ -234,23 +230,8 @@ function disableFocusClaiming() {
 }
 
 function handleFocusInput(data) {
-  const input = `${pendingFocusInput}${data}`
-  pendingFocusInput = input.match(/\x1b(?:\[)?$/)?.[0] ?? ""
-
-  let focused = false
-  const forwarded = input
-    .slice(0, input.length - pendingFocusInput.length)
-    .replace(/\x1b\[([IO])/g, (_report, state) => {
-      // A first focus-out proves this console was already focused at startup.
-      // Later focus-outs must not steal a console that just gained focus.
-      if (state === "I" || !terminalFocusObserved) {
-        focused = true
-      }
-      terminalFocusObserved = true
-      return ""
-    })
-
-  if (focused || hasUserInput(forwarded)) {
+  const activity = readTerminalActivity(data)
+  if (activity.hasActivity) {
     if (bridge?.endpoint === undefined) {
       pendingClaimedAt = performance.timeOrigin + performance.now()
     } else {
@@ -262,16 +243,7 @@ function handleFocusInput(data) {
       })
     }
   }
-  return forwarded.length > 0 ? { data: forwarded } : { consume: true }
-}
-
-function hasUserInput(input) {
-  // Startup probes are terminal responses, not evidence of user activity.
-  const withoutResponses = input
-    .replace(/\x1b\[[0-9;:?=>$]*[Rcnty]/g, "")
-    .replace(/\x1b\[\?[0-9;]*u/g, "")
-    .replace(/\x1b(?:\]|P|_|^)[\s\S]*?(?:\x07|\x1b\\)/g, "")
-  return withoutResponses.length > 0
+  return activity.data.length > 0 ? { data: activity.data } : { consume: true }
 }
 
 async function ensureServer() {

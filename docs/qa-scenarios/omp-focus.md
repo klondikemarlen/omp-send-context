@@ -22,9 +22,23 @@ Load explicit extensions with `--no-extensions -e /path/to/cancel.js -e /path/to
 1. Select A by focusing it, then select B. Deliver a unique harmless context marker. Only B's editor should contain the marker; it must not be submitted.
 2. In A without the cancelling extension, run `/new`. Focus B, then A. Deliver another marker: only A receives it. Repeat a successful switch to catch subscription loss across multiple transitions.
 3. Restart A with the cancelling extension **before** Send Context. Run `/new`, then focus B and refocus A. Do not run `/ide` or `/ide status` between cancellation and delivery: typing either is terminal activity and could mask the failed focus-only path. Only A receives the next marker without a manual reconnect.
-4. Focus B, then send A a later focus-out. B must remain selected. Type ordinary draft text in A; A must become selected and receive the next context marker. Terminal probe replies alone must not select A.
+4. Focus B, then send A a later focus-out, including A's first focus-out after startup. B must remain selected. Type ordinary draft text in A; A must become selected and receive the next context marker. Terminal capability replies and mouse reports alone must not select A.
 5. Repeat cancellation with the extension **after** Send Context. Recovery must not depend on handler ordering or on a successful `session_switch` event.
 6. Run `/ide` in A, then focus B and A again. Manual selection must not pin routing or duplicate subscriptions. Confirm `/ide ` plus Tab offers `status`.
+
+## Independent terminal restarts
+
+Use several terminals, including both direct OMP and actual `ompi` launchers; nine terminals exercises the reported workload. Keep HOME, the OMP agent/config directories, and `XDG_RUNTIME_DIR` isolated from personal sessions. The configuration ancestors must not be group/world-writable. Use a short private runtime path: the wrapper's Unix-socket path must fit the platform limit.
+
+Do not pass `--no-extensions` to a wrapped launch: `ompi` treats that as ordinary OMP passthrough without launcher management. An isolated HOME lets normal wrapped launches load only explicit QA extensions and the wrapper's own adapter. Confirm `ompi instances list --json` sees the expected online QA children before restarting anything. Use OMP's real session persistence to create resumable QA sessions; do not fabricate transcripts.
+
+1. Focus a target console, then externally restart a different wrapped child with `ompi instances restart --instance FULL_INSTANCE_ID`. Confirm the replacement reports the predecessor identity; disappearance alone is not completion.
+2. Without typing in the target, deliver through the actual context producer and inspect every prompt. Only the target should contain the unique marker.
+3. After restart, send background consoles a SIXEL reply (`ESC [ ? 2 ; 0 ; 256 S`), mouse motion (`ESC [ < 35 ; 12 ; 5 M`), and focus-out. These reports must not take ownership. Send another marker and inspect all prompts again.
+4. Focus the restarted console and send a marker; it should now receive context. Repeat with different restarted and target consoles, leaving the other processes untouched.
+5. Repeat a direct OMP process restart, then verify focus-only selection in an untouched survivor. Do not use `/ide`, `/restart`, or command entry in that survivor as preparation for the assertion.
+
+Injected reports establish dispatch and routing, not compositor forwarding. Record actual Ptyxis/window-focus coverage separately. Stop only the verified QA launcher/child identities and remove their private state after observation.
 
 ## Opt-out and reload cleanup
 
@@ -34,6 +48,6 @@ Load explicit extensions with `--no-extensions -e /path/to/cancel.js -e /path/to
 
 ## Evidence and cleanup
 
-Record the loaded artifact/version, OMP version, cancellation ordering, input source (physical focus or injected PTY), HTTP result when applicable, and the observed destination prompt in the owning PR. A successful command notification or pointer update alone is not delivery proof. Run the focused behavioral regressions with `node --test test/omp/bridge.test.mjs`, then the documented `npm test` gate.
+Record the loaded artifact/version, OMP and wrapper versions, cancellation ordering, input source (physical focus or injected PTY), native/HTTP result when applicable, and the observed destination prompt in the owning evidence record. A successful command notification or pointer update alone is not delivery proof. Run the focused behavioral regressions with `node --test test/omp/*.test.mjs`, then the documented `npm test` gate.
 
 Stop only QA-owned processes and remove the temporary cancellation extension and isolated state. Preserve ordinary user consoles. A user-reported recurrence remains evidence even when one reproduced cause passes; distinguish unobserved terminal/multiplexer forwarding from verified OMP subscription behavior.

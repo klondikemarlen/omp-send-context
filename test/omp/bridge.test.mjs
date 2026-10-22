@@ -983,12 +983,11 @@ test("when the plugin reloads, it retains activity order without stealing newer 
   })
 })
 
-test("when focus reporting starts after console focus, the first focus-out claims but later focus-outs do not", async () => {
-  await withBridge(BASE_PORT + 33, async ({ commands, handlers, stateFile }) => {
+test("when a background restart receives capability and mouse reports, the active console keeps delivery", async () => {
+  await withBridge(BASE_PORT + 37, async ({ commands, handlers, stateFile }) => {
     // Arrange
     await withOtherConsole(stateFile, async (otherConsole) => {
       let inputHandler
-      let editorText = ""
       const context = {
         hasUI: true,
         ui: {
@@ -997,29 +996,73 @@ test("when focus reporting starts after console focus, the first focus-out claim
             inputHandler = handler
             return () => {}
           },
-          async pasteToEditor(text) {
-            editorText += text
+        },
+      }
+      await handlers.get("session_start")({}, context)
+
+      // Act
+      inputHandler("\x1b[?2;0;256S")
+      inputHandler("\x1b[<35;12;5M")
+      inputHandler("\x1b[<0;12;5m")
+      await commands.get("ide").handler("status", context)
+
+      // Assert
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal(selected.endpoint, otherConsole.endpoint)
+    })
+  })
+})
+
+test("when a background session finishes switching, newer terminal activity keeps ownership", async () => {
+  await withBridge(BASE_PORT + 38, async ({ handlers, stateFile }) => {
+    // Arrange
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      const context = {
+        hasUI: true,
+        ui: {
+          onTerminalInput() {
+            return () => {}
           },
         },
       }
       await handlers.get("session_start")({}, context)
+
       // Act
-      inputHandler("\x1b[O")
-      await waitFor(
-        async () =>
-          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
-      )
+      await otherConsole.claim({ force: true })
+      await handlers.get("session_switch")({}, context)
 
       // Assert
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
-      assert.equal((await postContext(selected, { prompt: "already-focused-startup" })).status, 200)
-      assert.equal(editorText, "already-focused-startup ")
+      assert.equal(selected.endpoint, otherConsole.endpoint)
+    })
+  })
+})
 
+test("when a restarted console sends its first focus-out after another focus-in, it does not steal delivery", async () => {
+  await withBridge(BASE_PORT + 33, async ({ commands, handlers, stateFile }) => {
+    // Arrange
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {}
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
       await otherConsole.claim({ force: true })
+
+      // Act
       inputHandler("\x1b[O")
-      // Drain this runtime's queued work without adding another activity event.
       await commands.get("ide").handler("status", context)
-      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+
+      // Assert
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      assert.equal(selected.endpoint, otherConsole.endpoint)
     })
   })
 })
