@@ -6,8 +6,9 @@ import path from "node:path"
 import { createServer } from "node:http"
 import { pathToFileURL } from "node:url"
 import { syncBuiltinESMExports } from "node:module"
+import { performance } from "node:perf_hooks"
 
-import { createBridgeRuntime } from "../../omp/bridge-runtime.js"
+import { createBridgeRuntime } from "#root/omp/bridge-runtime.js"
 
 const BASE_PORT = 48731
 
@@ -688,6 +689,45 @@ test("when typing in an already-focused console, it selects without treating pro
       const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
       assert.equal((await postContext(selected, { prompt: "typed-console-context" })).status, 200)
       assert.equal(editorText, "typed-console-context ")
+    })
+  })
+})
+
+test("when an older process resumes after suspend, focus selects it over a restarted console", async (t) => {
+  await withBridge(BASE_PORT + 39, async ({ handlers, stateFile }) => {
+    // Arrange
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let editorText = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {}
+          },
+          async pasteToEditor(text) {
+            editorText += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      await otherConsole.claim({ force: true, claimedAt: Date.now() - 1000 })
+      const originalNow = performance.now.bind(performance)
+      t.mock.method(performance, "now", () => originalNow() - 28_027_833)
+
+      // Act
+      inputHandler("\x1b[I")
+      await waitFor(
+        async () =>
+          JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint !== otherConsole.endpoint
+      )
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      const response = await postContext(selected, { prompt: "resumed-console-context" })
+
+      // Assert
+      assert.equal(response.status, 200)
+      assert.equal(editorText, "resumed-console-context ")
     })
   })
 })

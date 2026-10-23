@@ -1,7 +1,6 @@
 import { unwatchFile, watch, watchFile } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { dirname, basename, join } from "node:path"
-import { performance } from "node:perf_hooks"
 import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
@@ -52,7 +51,7 @@ export default function ompSendContextExtension(pi) {
       ]
     },
     handler: async (args, ctx) => {
-      const claimedAt = performance.timeOrigin + performance.now()
+      const claimedAt = Date.now()
       activeContext = ctx
       await ensureServer()
       if (args.trim() === "status") {
@@ -230,7 +229,7 @@ function handleFocusInput(data) {
   const activity = classifyTerminalActivity(data)
   if (activity.hasActivity) {
     if (bridge?.endpoint === undefined) {
-      pendingClaimedAt = performance.timeOrigin + performance.now()
+      pendingClaimedAt = Date.now()
     } else {
       void claimCurrentConsole().catch((error) => {
         activeContext?.ui.notify(
@@ -257,7 +256,7 @@ async function ensureServer() {
   startupClaimedAt = 0
 }
 
-async function claimCurrentConsole(claimedAt = performance.timeOrigin + performance.now()) {
+async function claimCurrentConsole(claimedAt = Date.now()) {
   return bridge?.claim({ force: true, claimedAt }) ?? false
 }
 

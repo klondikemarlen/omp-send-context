@@ -6,8 +6,9 @@ import path from "node:path"
 import { createServer } from "node:http"
 import { performance } from "node:perf_hooks"
 
-import { resolveBridgeState } from "../../omp/bridge-discovery.js"
-import { createBridgeRuntime } from "../../omp/bridge-runtime.js"
+import { resolveBridgeState } from "#root/omp/bridge-discovery.js"
+
+import { createBridgeRuntime } from "#root/omp/bridge-runtime.js"
 
 const PACKAGE_FILE = path.resolve("package.json")
 const ENVELOPE = {
@@ -566,6 +567,96 @@ test("bridge falls back to an OS-assigned port after the preferred range is exha
   } finally {
     await runtime.close()
     await Promise.all(reserved.servers.map(closeServer))
+    await fixture.cleanup()
+  }
+})
+
+test("when installed files change, health still identifies the running plugin without credentials", async () => {
+  // Arrange
+  const fixture = await createStateDirectory()
+  const packageFile = path.join(fixture.directory, "package.json")
+  await fs.writeFile(packageFile, JSON.stringify({ version: "3.0.0" }))
+  const runtime = createBridgeRuntime({
+    deliverPrompt() {},
+    notify() {},
+    packageFile,
+    stateFile: fixture.stateFile,
+    defaultPort: 0,
+  })
+
+  try {
+    await runtime.start()
+    const state = await resolveBridgeState(fixture.stateFile)
+    await fs.writeFile(packageFile, JSON.stringify({ version: "4.0.0" }))
+
+    // Act
+    const response = await fetch(`${runtime.endpoint}/health`)
+    const health = await response.json()
+
+    // Assert
+    assert.equal(response.status, 200)
+    assert.deepEqual(health, {
+      ok: true,
+      instanceId: state.instanceId,
+      endpoint: runtime.endpoint,
+      pid: process.pid,
+      version: "3.0.0",
+      protocolVersion: 1,
+    })
+  } finally {
+    await runtime.close()
+    await fixture.cleanup()
+  }
+})
+
+test("when compatible package versions coexist after suspend, later activity receives context", async (t) => {
+  // Arrange
+  const fixture = await createStateDirectory()
+  const packageFile = path.join(fixture.directory, "package.json")
+  const olderPrompts = []
+  await fs.writeFile(packageFile, JSON.stringify({ version: "3.0.0" }))
+  const older = createBridgeRuntime({
+    deliverPrompt(prompt) {
+      olderPrompts.push(prompt)
+    },
+    notify() {},
+    packageFile,
+    stateFile: fixture.stateFile,
+    defaultPort: 0,
+  })
+  const newerPrompts = []
+  const newer = createBridgeRuntime({
+    deliverPrompt(prompt) {
+      newerPrompts.push(prompt)
+    },
+    notify() {},
+    packageFile,
+    stateFile: fixture.stateFile,
+    defaultPort: 0,
+  })
+
+  try {
+    await older.start()
+    await fs.writeFile(packageFile, JSON.stringify({ version: "4.0.0" }))
+    await newer.start()
+    await newer.claim({ force: true, claimedAt: Date.now() - 1000 })
+    const originalNow = performance.now.bind(performance)
+    t.mock.method(performance, "now", () => originalNow() - 28_027_833)
+
+    // Act
+    await older.claim({ force: true })
+    const selected = await resolveBridgeState(fixture.stateFile)
+    const response = await postContext(selected, {
+      instanceId: selected.instanceId,
+      prompt: "cross-version-context",
+    })
+
+    // Assert
+    assert.equal(response.status, 200)
+    assert.deepEqual(olderPrompts, ["cross-version-context"])
+    assert.deepEqual(newerPrompts, [])
+  } finally {
+    await Promise.all([older.close(), newer.close()])
     await fixture.cleanup()
   }
 })
