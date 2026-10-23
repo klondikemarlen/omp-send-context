@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep genuine terminal activity comparable across Linux suspend and partial OMP/`ompi` restarts by recording epoch wall time rather than process-relative performance time.
+- Expose loaded plugin version, routing protocol, and PID in read-only health metadata; document mixed-version compatibility and coordinate instance-controller version visibility.
 - Document the approved GNOME Shell version 8 installation path, explicit shortcut configuration, and PRIMARY selection limits; retain the approval gate for future uploads.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.

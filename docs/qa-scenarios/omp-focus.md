@@ -60,13 +60,15 @@ OMP owns raw-byte assembly and standalone-Escape timing. Calling `onTerminalInpu
 
 Use several terminals, including both direct OMP and actual `ompi` launchers; nine terminals exercises the reported workload. Keep HOME, the OMP agent/config directories, and `XDG_RUNTIME_DIR` isolated from personal sessions. The configuration ancestors must not be group/world-writable. Use a short private runtime path: the wrapper's Unix-socket path must fit the platform limit.
 
-Do not pass `--no-extensions` to a wrapped launch: `ompi` treats that as ordinary OMP passthrough without launcher management. An isolated HOME lets normal wrapped launches load only explicit QA extensions and the wrapper's own adapter. Confirm `ompi instances list --json` sees the expected online QA children before restarting anything. Use OMP's real session persistence to create resumable QA sessions; do not fabricate transcripts.
+Do not pass `--no-extensions` to a wrapped launch: `ompi` treats that as ordinary OMP passthrough without launcher management. An isolated HOME lets normal wrapped launches load only explicit QA extensions and the wrapper's own adapter. Confirm `ompi control list --json` sees the expected online QA children before restarting anything. Use OMP's real session persistence to create resumable QA sessions; do not fabricate transcripts.
 
-1. Focus a target console, then externally restart a different wrapped child with `ompi instances restart --instance FULL_INSTANCE_ID`. Confirm the replacement reports the predecessor identity; disappearance alone is not completion.
+1. Focus a target console, then externally restart a different wrapped child with `ompi control restart FULL_INSTANCE_ID`. Confirm the replacement reports the predecessor identity; disappearance alone is not completion.
 2. Without typing in the target, deliver through the actual context producer and inspect every prompt. Only the target should contain the unique marker.
 3. After restart, send background consoles a SIXEL reply (`ESC [ ? 2 ; 0 ; 256 S`), mouse motion (`ESC [ < 35 ; 12 ; 5 M`), and focus-out. These reports must not take ownership. Send another marker and inspect all prompts again.
 4. Focus the restarted console and send a marker; it should now receive context. Repeat with different restarted and target consoles, leaving the other processes untouched.
 5. Repeat a direct OMP process restart, then verify focus-only selection in an untouched survivor. Do not use `/ide`, `/restart`, or command entry in that survivor as preparation for the assertion.
+6. Exercise a suspend-spanning survivor alongside a post-resume replacement. A process-local performance-clock offset can reproduce the ordering boundary without suspending the workstation. Focus the survivor and deliver before command entry: its later activity must win. This simulation does not establish physical suspend or compositor behavior.
+7. Query live `/health` metadata without terminal input. Verify each identity and loaded version independently of installed files; polling metadata must not change the selected console. Repeat with different package versions implementing the same routing protocol. This proves protocol compatibility, not arbitrary future-version correctness.
 
 Injected reports establish dispatch and routing, not compositor forwarding. Record actual Ptyxis/window-focus coverage separately. Stop only the verified QA launcher/child identities and remove their private state after observation.
 

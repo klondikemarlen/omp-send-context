@@ -63,11 +63,13 @@ Terminal focus-in and keyboard activity on Linux can select the current console.
 
 Use `/ide status` to display the loaded plugin version and endpoint. In the TUI, type `/ide ` and press Tab to complete `status`.
 
+Read-only `GET /health` metadata also exposes the running bridge's loaded version, PID, and routing protocol for instance controllers. This does not select a terminal, unlike typing a command in its editor. Version-list integration is tracked in [omp-instance-control #58](https://github.com/klondikemarlen/omp-instance-control/issues/58); `/ide status` remains available in both native and wrapped consoles.
+
 On Linux, **Claim IDE context on focus** in OMP **Settings → Plugins → omp-send-context** is enabled by default. Set it to `false` to disable focus routing, or launch OMP with `--claim-ide-context-on-focus` to force it on for that process. The setting affects Linux only. Changing it starts or stops focus reporting in running Linux OMP instances without a reload; the command-line override is per process.
 
 Focus-in selects a console; focus-out never selects it, including the first report after startup. Keyboard input also selects a console, but terminal capability replies and mouse reports do not: hovering over an unfocused terminal is not keyboard focus. Enabled autofocus automatically restores its input subscription after a cancelled session transition, even when another plugin cancels before Send Context receives any switch hook. A terminal already focused before reporting begins needs keyboard input or a subsequent focus-in to establish activity. With a multiplexer, forward xterm focus reports if focus-only routing is needed; otherwise keyboard interaction and `/ide` remain available.
 
-`ompi` restarts replace the OMP child in the same terminal. Its instance-control identity and this plugin's bridge identity are separate; restarting one must not require reconnecting other terminals. Use fresh processes after a plugin update so every console runs the same routing rules. Updating `ompi`, the Firefox add-on, or the native host does not replace this OMP plugin.
+`ompi` restarts replace the OMP child in the same terminal. Its instance-control identity and this plugin's bridge identity are separate; restarting one must not require reconnecting other terminals. Upgrade every existing console once to Send Context 2.8.0 or newer: older processes can use an activity clock that falls behind after suspend. After that baseline, different package versions can coexist when they preserve routing protocol 1; matching package versions are not required. Updating `ompi`, the Firefox add-on, or the native host does not replace this OMP plugin.
 
 After updating the extension or OMP plugin, restart every OMP console and reload the editor window so existing processes do not continue using code loaded before the update.
 
