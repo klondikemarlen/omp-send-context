@@ -17,3 +17,17 @@ Use this quick reference to choose the next action. Product setup and behavior a
 | Firefox shortcut is intercepted or differs on this system               | Check **about:addons → Manage Extension Shortcuts**; the suggested defaults are `Ctrl+Alt+K` (Linux/Windows) and `Command+Alt+K` (macOS). Use the context-menu command as an alternative.                                                                                                                                                                                                             |
 | Firefox debug log is empty or lacks recent events                       | Enable logging from the toolbar popup before reproducing. Logging is session-only and is cleared when Firefox restarts.                                                                                                                                                                                                                                                                               |
 | GitHub packet lacks diff details                                        | Confirm the page is a GitHub pull request and the selection is within the visible diff. The page URL remains available when optional diff metadata cannot be extracted.                                                                                                                                                                                                                               |
+
+## Suspend and partial restarts
+
+Send Context 2.8.0 replaces a process-relative activity clock that could fall hours behind after Linux suspend. Install the update and restart every pre-2.8.0 OMP process once, including `ompi` children. Later protocol-compatible versions can coexist; restarting one does not require restarting its already-updated peers.
+
+To inspect a bridge without claiming terminal focus, query its loopback health endpoint:
+
+```bash
+curl -fsS http://127.0.0.1:PORT/health
+```
+
+Replace `PORT` with the endpoint reported by that console's `/ide status`. Health reports the running plugin's `version`, `protocolVersion`, PID, and instance identity, without its bearer token. Older plugins may omit the new metadata; missing means unknown, not updated. `/ide status` itself is read-only, but typing in a console is activity, so collect endpoints before a focus-only reproduction. Do not share private registry records: they contain credentials.
+
+If routing still fails after every process reaches the fixed baseline, preserve the distinction between physical focus forwarding and delivery: follow the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) without running `/ide` to repair the target first.

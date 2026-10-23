@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto"
 import { createServer } from "node:http"
 import { chmod, mkdir, readFile, rename, rm, writeFile, link } from "node:fs/promises"
 import { homedir } from "node:os"
-import { performance } from "node:perf_hooks"
 import { dirname, join } from "node:path"
 
 import { resolveBridgeState } from "./bridge-discovery.js"
@@ -101,7 +100,7 @@ export function createBridgeRuntime({
       let activityTime
       if (force) {
         const hasRequestedActivity = Number.isFinite(requestedClaimedAt) && requestedClaimedAt >= 0
-        activityTime = hasRequestedActivity ? requestedClaimedAt : currentActivityTime()
+        activityTime = hasRequestedActivity ? requestedClaimedAt : Date.now()
         if (server !== undefined) {
           claimedAt = Math.max(claimedAt, activityTime)
         }
@@ -178,6 +177,9 @@ export function createBridgeRuntime({
         ok: true,
         instanceId: requestInstanceId,
         endpoint: requestEndpoint,
+        pid: process.pid,
+        version: packageVersion,
+        protocolVersion: 1,
       })
       return
     }
@@ -265,6 +267,7 @@ export function createBridgeRuntime({
       pid: process.pid,
       instanceId,
       version: packageVersion,
+      protocolVersion: 1,
       updatedAt: new Date().toISOString(),
       claimedAt,
     }
@@ -424,10 +427,6 @@ async function readPackageVersion(packageFile) {
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, { "Content-Type": "application/json" })
   response.end(JSON.stringify(body))
-}
-
-function currentActivityTime() {
-  return performance.timeOrigin + performance.now()
 }
 
 function normalizeClaimedAt(value) {
