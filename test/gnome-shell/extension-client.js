@@ -1,7 +1,7 @@
 import Gio from "gi://Gio"
 import GLib from "gi://GLib"
 import { OmpBridgeClient } from "../../gnome-shell/bridge.js"
-import { createEnvelope, isPtyxisApplication } from "../../gnome-shell/context.js"
+import { createEnvelope, isApplicationBlocked } from "../../gnome-shell/context.js"
 
 const action = ARGV[0]
 const [, extensionSourceBytes] = GLib.file_get_contents(ARGV[1])
@@ -11,12 +11,12 @@ const createExtension = Function(
   "console",
   "Meta",
   "Shell",
-  "St",
+  "SelectionCapture",
   "Main",
   "Extension",
   "OmpBridgeClient",
   "createEnvelope",
-  "isPtyxisApplication",
+  "isApplicationBlocked",
   `${extensionSource
     .replace(/^import .*$/gm, "")
     .replace("export default class", "class")}\nreturn OmpSendContextExtension`
@@ -29,14 +29,21 @@ const extensionConsole = {
 }
 let keybindingCallback
 const Meta = { KeyBindingFlags: { NONE: 0 } }
-const Shell = { ActionMode: { ALL: 0 } }
-const St = {
-  ClipboardType: { PRIMARY: "primary" },
-  Clipboard: {
+const Shell = {
+  ActionMode: { NORMAL: 0 },
+  WindowTracker: {
     get_default: () => ({
-      get_text: (_type, callback) => callback(null, "selected terminal text"),
+      get_window_app: () => ({
+        get_id: () => "org.gnome.TextEditor.desktop",
+      }),
     }),
   },
+}
+class SelectionCapture {
+  async capture() {
+    return "selected document text"
+  }
+  close() {}
 }
 const Main = {
   wm: {
@@ -49,16 +56,18 @@ const Main = {
 }
 class Extension {
   getSettings() {
-    return {}
+    return { get_strv: () => [] }
   }
 }
 
 const shellGlobal = {
   display: {
     focus_window: {
-      get_gtk_application_id: () => "org.gnome.Ptyxis",
+      get_pid: () => 123,
       get_title: () => "Project terminal",
     },
+    connect: () => 1,
+    disconnect: () => {},
   },
 }
 
@@ -67,12 +76,12 @@ const ExtensionClass = createExtension(
   extensionConsole,
   Meta,
   Shell,
-  St,
+  SelectionCapture,
   Main,
   Extension,
   OmpBridgeClient,
   createEnvelope,
-  isPtyxisApplication
+  isApplicationBlocked
 )
 const extension = new ExtensionClass()
 
