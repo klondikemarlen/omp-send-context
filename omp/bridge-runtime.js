@@ -451,7 +451,8 @@ export function isContextEnvelope(value) {
     candidate.version !== 1 ||
     (candidate.source !== "vscode" &&
       candidate.source !== "firefox" &&
-      candidate.source !== "ptyxis") ||
+      candidate.source !== "ptyxis" &&
+      candidate.source !== "gnome") ||
     typeof candidate.prompt !== "string" ||
     candidate.prompt.length === 0
   ) {

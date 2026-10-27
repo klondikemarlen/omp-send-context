@@ -3,8 +3,13 @@
   <schema id="org.gnome.shell.extensions.omp-send-context" path="/org/gnome/shell/extensions/omp-send-context/">
     <key name="desktop-shortcut" type="as">
       <default>[]</default>
-      <summary>Send desktop selection to OMP</summary>
-      <description>Shortcut for the focused desktop selection integration.</description>
+      <summary>Send selected desktop text to OMP</summary>
+      <description>Global shortcut for an explicit focused-application handoff. No shortcut is assigned by default.</description>
+    </key>
+    <key name="blocked-applications" type="as">
+      <default>['firefox.desktop', 'firefox-esr.desktop', 'firefox_firefox.desktop', 'org.mozilla.firefox.desktop', 'code.desktop', 'code_code.desktop', 'com.visualstudio.code.desktop', 'devin-desktop.desktop']</default>
+      <summary>Applications excluded from context handoffs</summary>
+      <description>Exact canonical GNOME desktop IDs excluded from generic selection handoffs. Applications without a recognized identity are blocked.</description>
     </key>
   </schema>
 </schemalist>

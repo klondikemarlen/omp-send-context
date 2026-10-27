@@ -1,26 +1,35 @@
 import Meta from "gi://Meta"
 import Shell from "gi://Shell"
-import St from "gi://St"
 import * as Main from "resource:///org/gnome/shell/ui/main.js"
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js"
 
 import { OmpBridgeClient } from "./bridge.js"
-import { createEnvelope, isPtyxisApplication } from "./context.js"
+import { createEnvelope, isApplicationBlocked } from "./context.js"
+import { SelectionCapture } from "./selection.js"
 
 const EXTENSION_NAME = "OMP Send Context"
 
 export default class OmpSendContextExtension extends Extension {
   enable() {
     const settings = this.getSettings()
-    const captureSession = { bridge: new OmpBridgeClient() }
+    const captureSession = {
+      bridge: new OmpBridgeClient(),
+      selection: new SelectionCapture(this.path),
+      settings,
+      focusGeneration: 0,
+      busy: false,
+    }
+    captureSession.focusSignal = global.display.connect("notify::focus-window", () => {
+      captureSession.focusGeneration += 1
+    })
 
     this.captureSession = captureSession
     Main.wm.addKeybinding(
       "desktop-shortcut",
       settings,
       Meta.KeyBindingFlags.NONE,
-      Shell.ActionMode.ALL,
-      () => this.captureFocusedPtyxisSelection(captureSession)
+      Shell.ActionMode.NORMAL,
+      () => this.captureFocusedSelection(captureSession)
     )
   }
 
@@ -29,43 +38,57 @@ export default class OmpSendContextExtension extends Extension {
 
     this.captureSession = null
     Main.wm.removeKeybinding("desktop-shortcut")
+    if (captureSession) global.display.disconnect(captureSession.focusSignal)
+    captureSession?.selection.close()
     captureSession?.bridge.close()
   }
 
-  async captureFocusedPtyxisSelection(captureSession) {
-    const ptyxisContext = findFocusedPtyxisContext()
-    if (!ptyxisContext) {
-      Main.notify(EXTENSION_NAME, "Focus a Ptyxis terminal to send terminal context.")
+  async captureFocusedSelection(captureSession) {
+    if (!this.isCurrentCaptureSession(captureSession)) return
+    if (captureSession.busy) {
+      this.notifyCurrentSession(captureSession, "A selection capture is already in progress.")
       return
     }
 
-    const selectionText = await getPrimarySelectionText()
-    if (!this.isCurrentCaptureSession(captureSession)) {
-      return
-    }
-    if (!selectionText || selectionText.trim().length === 0) {
-      Main.notify(EXTENSION_NAME, "No selected text in the focused application.")
-      return
-    }
-
-    const envelope = createEnvelope({ selectionText, ...ptyxisContext })
-    let bridgeState
+    captureSession.busy = true
     try {
-      bridgeState = await captureSession.bridge.readState()
-    } catch (error) {
-      this.reportFailure(captureSession, error.message)
-      return
-    }
+      const window = global.display.focus_window
+      const app = window && Shell.WindowTracker.get_default().get_window_app(window)
+      const application = app?.get_id()
+      if (!window || !application?.endsWith(".desktop")) {
+        throw new Error("The focused application could not be identified. Nothing was captured.")
+      }
+      if (
+        isApplicationBlocked(application, captureSession.settings.get_strv("blocked-applications"))
+      ) {
+        throw new Error(
+          "This application is blocked. Use its own Send Context integration or adjust the GNOME blocklist."
+        )
+      }
 
-    if (!this.isCurrentCaptureSession(captureSession)) {
-      return
-    }
+      const generation = captureSession.focusGeneration
+      const windowTitle = window.get_title() || ""
+      const selectionText = await captureSession.selection.capture(window.get_pid(), windowTitle)
+      if (!this.isCurrentCaptureSession(captureSession)) return
+      this.requireUnchangedFocus(captureSession, window, generation)
 
-    try {
+      const envelope = createEnvelope({ selectionText, application, windowTitle })
+      const bridgeState = await captureSession.bridge.readState()
+      if (!this.isCurrentCaptureSession(captureSession)) return
+      this.requireUnchangedFocus(captureSession, window, generation)
+
       await captureSession.bridge.send(bridgeState, envelope)
       this.notifyCurrentSession(captureSession, "Context sent to OMP.")
     } catch (error) {
-      this.reportFailure(captureSession, `Unable to send context: ${error.message}`)
+      this.reportFailure(captureSession, error.message)
+    } finally {
+      captureSession.busy = false
+    }
+  }
+
+  requireUnchangedFocus(captureSession, window, generation) {
+    if (global.display.focus_window !== window || captureSession.focusGeneration !== generation) {
+      throw new Error("Focus changed during capture. Nothing was sent; select text and try again.")
     }
   }
 
@@ -85,30 +108,4 @@ export default class OmpSendContextExtension extends Extension {
     console.error(`${EXTENSION_NAME}: ${message}`)
     Main.notify(EXTENSION_NAME, message)
   }
-}
-
-function findFocusedPtyxisContext() {
-  const focusWindow = global.display.focus_window
-  if (!focusWindow) {
-    return null
-  }
-
-  const application =
-    focusWindow.get_gtk_application_id() || focusWindow.get_wm_class() || "unknown application"
-  if (!isPtyxisApplication(application)) {
-    return null
-  }
-
-  return {
-    application,
-    windowTitle: focusWindow.get_title() || "untitled window",
-  }
-}
-
-function getPrimarySelectionText() {
-  return new Promise((resolve) => {
-    St.Clipboard.get_default().get_text(St.ClipboardType.PRIMARY, (_clipboard, text) => {
-      resolve(text)
-    })
-  })
 }

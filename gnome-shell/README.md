@@ -1,17 +1,18 @@
 # GNOME Shell Companion
 
-This directory owns the native GNOME Shell companion for Ptyxis context handoffs. Released installation, shortcut configuration, selection limits, and updates belong in the [GNOME product guide](/docs/product/gnome-shell.md).
+This directory owns the native GNOME Shell companion. Released installation and shortcut configuration belong in the [GNOME product guide](/docs/product/gnome-shell.md).
 
-The companion reads global PRIMARY selection while a recognized Ptyxis window is focused and sends it through the active OMP bridge. The focus check does not establish selection ownership. It does not patch or inject into Ptyxis; Ptyxis has no supported plugin ABI for this integration. The current metadata targets GNOME Shell 50.
+The approved version 8 is Ptyxis-only and reads PRIMARY selection. Candidate version 9 adds an explicit, generic handoff based only on the focused application's AT-SPI Text selection; it never reads PRIMARY or CLIPBOARD. Version 9 remains unapproved and unlisted, and requires OMP plugin 2.10.0 or newer.
 
 ## Architecture and runtime
 
-This directory contains a native GNOME Shell extension. It runs in GJS because GNOME Shell exposes the window, clipboard, shortcut, and notification interfaces through its own `resource:///` modules and `gi://` libraries; a Node or browser runtime cannot load those shell APIs directly. Keep the extension on those native interfaces rather than adding a second process or translating shell objects across a runtime boundary.
+This directory contains a native GNOME Shell extension. It runs in GJS because GNOME Shell exposes window, shortcut, and notification interfaces through its own `resource:///` modules and `gi://` libraries; a Node or browser runtime cannot load those shell APIs directly.
 
-The implementation keeps three responsibilities separate:
+The implementation keeps responsibilities separate:
 
-- `extension.js` owns GNOME Shell lifecycle and focused-window interaction, including the user-invoked shortcut and notification.
-- `context.js` recognizes Ptyxis and shapes bounded selection and window metadata into the context envelope.
+- `extension.js` owns Shell lifecycle, focused-window interaction, the user-invoked shortcut, and notifications.
+- `context.js` applies exact canonical desktop-ID blocklist policy and shapes bounded selected text and window metadata into the generic GNOME envelope.
+- `selection.js` captures the focused application's AT-SPI Text selection in a bounded, short-lived worker without using desktop selection buffers.
 - `bridge.js` reads and validates OMP bridge state, then sends the authenticated envelope using GJS's Gio, GLib, and Soup APIs.
 
 Each asynchronous capture is scoped to the Shell-side session that started it. Once that session is invalidated, later completions and errors are ignored rather than notifying or logging stale work. Closing the bridge client is idempotent and aborts in-flight HTTP requests; it cannot retract a handoff the local OMP bridge has already accepted.

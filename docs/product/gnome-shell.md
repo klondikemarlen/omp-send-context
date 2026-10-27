@@ -1,10 +1,10 @@
-# GNOME Shell: Ptyxis context
+# GNOME Shell context handoffs
 
-The [OMP Send Context GNOME extension](https://extensions.gnome.org/extension/10625/omp-send-context/) sends PRIMARY selections while a Ptyxis window is focused. The approved version 8 targets **GNOME Shell 50**; its [GNOME review record](https://extensions.gnome.org/review/76899) records approval on October 21, 2026. GNOME's extension version is independent of the OMP plugin version.
+The [OMP Send Context GNOME extension](https://extensions.gnome.org/extension/10625/omp-send-context/) is approved as version 8 for **GNOME Shell 50**; its [GNOME review record](https://extensions.gnome.org/review/76899) records approval on October 21, 2026. Version 8 remains the released, Ptyxis-only companion and reads the desktop PRIMARY selection.
 
-This is a Ptyxis-only companion, not a general desktop capture tool. Keep the Firefox and VS Code/Devin clients for their richer browser and editor context.
+Version 9 is a candidate for generic application selection, not an approved or listed release. It requires OMP plugin **2.10.0 or newer** before installing the candidate ZIP. Keep the approved version 8 installed until version 9 has passed desktop QA and the maintainer approves any listing submission. Do not upload the candidate to GNOME Extensions.
 
-## Install
+## Install the released companion
 
 1. Install the OMP plugin in the same desktop account:
 
@@ -29,7 +29,13 @@ This is a Ptyxis-only companion, not a general desktop capture tool. Keep the Fi
 
 Use the published ZIP, not `npm run install:gnome`, for a released installation. The repository command builds a local development candidate.
 
-## Configure your shortcut
+## Candidate version 9: generic application selection
+
+Version 9 is not released. Its single-invocation fallback is intended to send only text exposed as a selected range by the focused application's AT-SPI Text interface. The capture is scoped to that application's process; it does not read the desktop PRIMARY or CLIPBOARD selection. If accessibility services are unavailable, the application exposes no supported focused Text selection, or focus changes during capture, the handoff fails visibly instead of using stale or unrelated text.
+
+The candidate sends a generic `gnome` handoff containing bounded selected text, the canonical application ID, and the window title. It does not add a browser URL, editor file path, workspace, line range, or diagnostics. It does not replace the Firefox or VS Code/Devin integrations.
+
+### Configure the shortcut and blocklist
 
 There is **no default shortcut**. Choose an unused accelerator; the following example uses **Ctrl+Alt+Shift+K**:
 
@@ -45,26 +51,42 @@ GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
 ```
 
-GNOME grabs this shortcut globally. It does not pass through to Firefox or your editor when those applications are focused, even though the companion refuses capture there. Keep it distinct from their embedded integration shortcuts.
+GNOME grabs this shortcut globally. If a focused application is blocked, the extension refuses capture but the accelerator still does **not** pass through to that application. Use a distinct shortcut for the Firefox or editor integration; do not try to replay the intercepted key.
 
-## Send context
+The candidate's `blocked-applications` setting is a list of exact canonical desktop IDs, including `.desktop`. Its defaults cover these verified package identities:
 
-1. Leave a fresh OMP prompt open in the same account. With multiple consoles, run `/ide` in the intended receiving console; later supported terminal activity can change that selection. See [terminal routing](/docs/product/troubleshooting.md).
-2. Focus Ptyxis and freshly select harmless terminal text with the mouse. Keep that window focused until delivery completes.
-3. Press your configured shortcut once.
-4. Confirm the **Context sent to OMP.** notification and one handoff in the intended OMP prompt. Review the text before submitting it to your model.
+| Application/package                | Blocked desktop ID              |
+| ---------------------------------- | ------------------------------- |
+| Firefox native package             | `firefox.desktop`               |
+| Firefox ESR                        | `firefox-esr.desktop`           |
+| Firefox Snap                       | `firefox_firefox.desktop`       |
+| Firefox Flatpak                    | `org.mozilla.firefox.desktop`   |
+| Visual Studio Code native package  | `code.desktop`                  |
+| Visual Studio Code Snap            | `code_code.desktop`             |
+| Visual Studio Code Flathub package | `com.visualstudio.code.desktop` |
+| Devin Desktop Linux package        | `devin-desktop.desktop`         |
 
-The handoff includes application identity, window title, and bounded selected text. It does not invent file paths, browser URLs, diagnostics, or line ranges. Delivery failures produce a notification; unlike the editor and Firefox clients, the GNOME companion does **not** copy a fallback packet to CLIPBOARD.
+The list is exact, not substring-based. Windows without a canonical desktop-file identity are blocked. To inspect the list in a candidate installation:
 
-## Selection and privacy limits
+```bash
+GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
+  gsettings get org.gnome.shell.extensions.omp-send-context blocked-applications
+```
 
-PRIMARY is the desktop selection buffer, not the ordinary copy/paste CLIPBOARD. This version checks that Ptyxis is focused, but the global PRIMARY API does not prove which application owns the text. A previous selection can survive a focus change. Always make a new selection in the focused Ptyxis window immediately before invoking the shortcut, and inspect the inserted handoff; do not rely on the focus check as a selection-provenance guarantee.
+For identity evidence, see the [Ubuntu Firefox package file list](https://packages.ubuntu.com/jammy/amd64/firefox/filelist), [Debian Firefox ESR package file list](https://packages.debian.org/bookworm/amd64/firefox-esr/filelist), [Canonical's Firefox Snap manifest](https://github.com/canonical/firefox-snap/blob/stable/snapcraft.yaml), the [Snap desktop-file naming rules](https://snapcraft.io/docs/reference/development/yaml-schemas/the-snap-format/), and the [Flathub Firefox app record](https://flathub.org/apps/org.mozilla.firefox) with the [Flatpak desktop-file convention](https://docs.flatpak.org/en/latest/conventions.html#desktop-files). VS Code's [Microsoft Linux installation guide](https://code.visualstudio.com/docs/setup/linux) and [desktop-file template](https://github.com/microsoft/vscode/blob/main/resources/linux/code.desktop) verify the native ID; its [official Snap listing](https://snapcraft.io/code) and the Snap naming rules verify the Snap app identity, while the [community Flathub manifest](https://github.com/flathub/com.visualstudio.code/blob/master/com.visualstudio.code.yaml) verifies the Flatpak ID. Devin's [Linux installation guide](https://docs.devin.ai/desktop/install) identifies the official package, and its [RPM repository file inventory](https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/yum/repo/repodata/0d6f329541389922e3abc6b120f2a8cfe5fe6cb29ef5882d54bc541fd57ccd06-filelists.xml.gz) includes `devin-desktop.desktop`.
 
-The companion reads PRIMARY only when you invoke its shortcut in a recognized Ptyxis window. It does not monitor selections in the background or substitute CLIPBOARD content. Selected text and window titles can contain secrets; use non-sensitive content and review the handoff before sending it to a model. Delivery uses the same account's authenticated local OMP bridge.
+### Send a candidate handoff
+
+1. Update the OMP plugin to **2.10.0 or newer**, then start a fresh OMP process in the same desktop account. With multiple consoles, run `/ide` in the intended receiving console; see [terminal routing](/docs/product/troubleshooting.md).
+2. Focus a permitted application and select harmless text. The app must expose a focused AT-SPI Text accessible with a selected range.
+3. Keep that application focused and press the configured fallback shortcut once.
+4. Confirm the visible success notification and exactly one generic handoff in the intended OMP prompt. Review the handoff before submitting it to a model.
+
+Blocked apps, apps without a supported accessible selection, and focus changes during capture fail visibly and send no handoff. The fallback does not monitor selections in the background and never substitutes PRIMARY or CLIPBOARD. Selected text and window titles can contain secrets; use non-sensitive content and review the inserted text before sending it.
 
 ## Update or remove
 
-Use GNOME Extensions to obtain compatible approved updates. For a downloaded replacement ZIP, use `gnome-extensions install --force /path/to/downloaded.shell-extension.zip`, then log out and back in before exercising the new code. Verify the installed version and state with `gnome-extensions info` as above. Update the OMP plugin separately and restart its consoles.
+For the released version, use GNOME Extensions to obtain compatible approved updates. For a downloaded replacement ZIP, use `gnome-extensions install --force /path/to/downloaded.shell-extension.zip`, then log out and back in before exercising the new code. Verify the installed version and state with `gnome-extensions info` as above. Update the OMP plugin separately and restart its consoles.
 
 To remove the companion:
 
@@ -72,4 +94,4 @@ To remove the companion:
 gnome-extensions uninstall omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-For contributor candidates, native-runtime checks, and separate-account desktop acceptance, use the [GNOME QA guide](/docs/qa-scenarios/gnome-shell.md). Future uploads still require the [maintainer approval gate](/docs/workflows/release.md#gnome-shell-companion).
+For candidate packaging and separate-account desktop acceptance, use the [GNOME QA guide](/docs/qa-scenarios/gnome-shell.md). Future uploads still require the [maintainer approval gate](/docs/workflows/release.md#gnome-shell-companion).

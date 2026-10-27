@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 2.10.0
+
+- Accept generic GNOME context envelopes in the authenticated OMP bridge while retaining legacy Ptyxis envelopes.
+- Prepare GNOME companion version 9 with an exact application blocklist, bounded application-local accessibility capture, and focus-change rejection; retain the separate shortcut and paused GNOME submission gate.
+
 - Document the approved GNOME Shell version 8 installation path, explicit shortcut configuration, and PRIMARY selection limits; retain the approval gate for future uploads.
 - Run test files in isolated Node processes and expose a finite TypeScript runtime check through the repository-owned test wrapper.
 - Remove source/copy-pinning and signing-argument tests; keep behavioral coverage while allowing the development suite to run from dirty checkouts.

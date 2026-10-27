@@ -1,10 +1,12 @@
 const MAX_SELECTION_LENGTH = 128 * 1024
 const MAX_METADATA_LENGTH = 256
 
-export function isPtyxisApplication(application) {
-  return String(application ?? "")
-    .toLowerCase()
-    .includes("ptyxis")
+export function isApplicationBlocked(application, blocklist) {
+  if (typeof application !== "string" || !application.endsWith(".desktop")) {
+    return true
+  }
+
+  return Array.isArray(blocklist) && blocklist.includes(application)
 }
 
 export function createEnvelope({ selectionText, application, windowTitle }) {
@@ -21,7 +23,7 @@ export function createEnvelope({ selectionText, application, windowTitle }) {
 
   return {
     version: 1,
-    source: "ptyxis",
+    source: "gnome",
     prompt: formatPrompt({
       selectionText: boundedSelectionText,
       application: applicationName,
@@ -38,7 +40,7 @@ export function formatPrompt({ selectionText, application: applicationName, wind
   const selectionFence = createSelectionFence(selectionText)
   return [
     "# OMP Agent Handoff",
-    "## Ptyxis terminal",
+    "## GNOME desktop application",
     `- Application: ${applicationName}`,
     `- Window: ${windowTitle}`,
     "## Selected text",

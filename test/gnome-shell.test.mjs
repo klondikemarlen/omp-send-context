@@ -1,39 +1,61 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 
-import { createEnvelope, formatPrompt, isPtyxisApplication } from "#root/gnome-shell/context.js"
+import { createEnvelope, formatPrompt, isApplicationBlocked } from "#root/gnome-shell/context.js"
 
-test("when creating a Ptyxis envelope, selected text and window metadata are included", () => {
+test("when creating a GNOME envelope, selected text and window metadata are included", () => {
   // Arrange
   const context = {
-    selectionText: "selected terminal text",
-    application: "org.gnome.Ptyxis",
-    windowTitle: "Project terminal",
+    selectionText: "selected application text",
+    application: "org.example.Editor.desktop",
+    windowTitle: "Project document",
   }
 
   // Act
   const envelope = createEnvelope(context)
 
   // Assert
+  assert.equal(envelope.version, 1)
+  assert.equal(envelope.source, "gnome")
   assert.deepEqual(envelope.metadata, {
-    application: "org.gnome.Ptyxis",
-    title: "Project terminal",
+    application: "org.example.Editor.desktop",
+    title: "Project document",
   })
-  assert.match(envelope.prompt, /selected terminal text/)
+  assert.equal("url" in envelope.metadata, false)
+  assert.match(envelope.prompt, /GNOME desktop application/)
+  assert.match(envelope.prompt, /selected application text/)
 })
 
-test("when checking an application name, Ptyxis is recognized and other terminals are not", () => {
+test("when checking a canonical desktop identity, only exact blocklist IDs are blocked", () => {
   // Arrange
-  const ptyxisApplication = "org.gnome.Ptyxis"
-  const otherTerminalApplication = "org.gnome.Terminal"
+  const blocklist = ["org.mozilla.firefox.desktop", "code.desktop"]
 
   // Act
-  const isPtyxis = isPtyxisApplication(ptyxisApplication)
-  const isOtherTerminalPtyxis = isPtyxisApplication(otherTerminalApplication)
+  const blockedFirefox = isApplicationBlocked("org.mozilla.firefox.desktop", blocklist)
+  const blockedCode = isApplicationBlocked("code.desktop", blocklist)
+  const unblockedFirefoxLikeApp = isApplicationBlocked("org.example.firefox.desktop", blocklist)
+  const unblockedCodeLikeApp = isApplicationBlocked("org.example.code.desktop", blocklist)
 
   // Assert
-  assert.equal(isPtyxis, true)
-  assert.equal(isOtherTerminalPtyxis, false)
+  assert.equal(blockedFirefox, true)
+  assert.equal(blockedCode, true)
+  assert.equal(unblockedFirefoxLikeApp, false)
+  assert.equal(unblockedCodeLikeApp, false)
+})
+
+test("when an application identity is missing or not a desktop ID, it is blocked", () => {
+  // Arrange
+  const blocklist = []
+
+  // Act
+  const missingIdentity = isApplicationBlocked(null, blocklist)
+  const unknownIdentity = isApplicationBlocked("unknown application", blocklist)
+  const missingDesktopSuffix = isApplicationBlocked("org.example.App", blocklist)
+
+  // Assert
+  assert.equal(missingIdentity, true)
+  assert.equal(unknownIdentity, true)
+  assert.equal(missingDesktopSuffix, true)
 })
 
 test("when creating an envelope with an empty selection, a selection error is thrown", () => {

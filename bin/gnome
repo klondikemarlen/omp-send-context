@@ -43,6 +43,8 @@ function packageGnomeExtension() {
       "--schema=schemas/org.gnome.shell.extensions.omp-send-context.gschema.xml",
       "--extra-source=bridge.js",
       "--extra-source=context.js",
+      "--extra-source=selection.js",
+      "--extra-source=selection-worker.js",
       "--extra-source=../LICENSE",
       `--out-dir=${packageDirectory}`,
       "--force",
