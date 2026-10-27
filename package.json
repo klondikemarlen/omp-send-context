@@ -2,7 +2,7 @@
   "name": "omp-send-context",
   "displayName": "Oh My Pi Send Context",
   "description": "Send VS Code selections to Oh My Pi with Ctrl+Alt+K.",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "publisher": "klondikemarlen",
   "type": "module",
   "license": "MIT",
@@ -59,6 +59,11 @@
         "type": "boolean",
         "default": true,
         "description": "On Linux, route context to the last OMP console reporting focus or receiving keyboard input."
+      },
+      "diagnostics": {
+        "type": "boolean",
+        "default": false,
+        "description": "Passively record local routing diagnostics for this OMP console."
       }
     }
   },
