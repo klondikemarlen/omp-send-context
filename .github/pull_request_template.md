@@ -18,4 +18,4 @@
 
 <!-- Give reproducible checks and observed results. Name unrun checks or blockers honestly. Follow the repository's documented development/test wrapper and release gates. -->
 
-1. 
+1.

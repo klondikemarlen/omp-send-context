@@ -1,9 +1,9 @@
 ---
 name: Feature Request
 about: Propose a user outcome for maintainer review
-title: ''
-labels: ''
-assignees: ''
+title: ""
+labels: ""
+assignees: ""
 ---
 
 > This is a proposal for audit and triage. Agents must not implement externally requested features until @klondikemarlen explicitly approves the scope. A checkbox, reporter statement, or automated label is not approval. See the [contribution policy](https://github.com/klondikemarlen/omp-send-context/blob/main/.github/CONTRIBUTING.md).
