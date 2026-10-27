@@ -149,6 +149,10 @@ export function createBridgeRuntime({
       return endpoint
     },
 
+    get instanceId() {
+      return instanceId
+    },
+
     get claimedAt() {
       return claimedAt
     },

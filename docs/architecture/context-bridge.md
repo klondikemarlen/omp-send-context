@@ -82,6 +82,12 @@ The runtime ordering is evidenced in OMP 18.11.1's [session preparation](https:/
 
 On OMP 18.11.1, [`/reload-plugins`](https://github.com/can1357/oh-my-pi/blob/v18.11.1/packages/coding-agent/src/slash-commands/builtin-marketplace.ts) refreshes plugin resources and MCP state but does not replace loaded extension modules. Its success notification is not evidence of new runtime code, even in the console where it was invoked. For runtime-release QA, start a fresh OMP process and reload/restart the client before concluding that the installed artifact is exercised. See the [release workflow](../workflows/release.md).
 
+### Passive diagnostics
+
+The global plugin `diagnostics` setting is independent of autofocus. Every interactive console watches it, including consoles with autofocus disabled or forced on by a flag. A diagnostics-only setting change must not rebind input listeners, emit terminal mode controls, start a missing bridge, or claim selection. Headless contexts do not start diagnostic watchers.
+
+`omp/routing-diagnostics.js` owns allowlisted event/snapshot serialization, private per-registration JSON Lines files, bounded rotation, and timer/write cleanup. It samples local metadata and receives categories from the existing input path; it adds no stdin listener, UI input subscription, terminal query, health probe, or recovery path. A stored subscription handle indicates registration, not proof that OMP still retains its callback. Diagnostic I/O failures must not interrupt routing, and arbitrary error messages must not enter the log. Operator controls and retention belong in [Troubleshooting](/docs/product/troubleshooting.md#global-routing-diagnostics).
+
 ## Security and privacy boundaries
 
 - Bind the bridge only to loopback; do not expose it on a network interface.

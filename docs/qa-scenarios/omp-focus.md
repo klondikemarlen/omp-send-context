@@ -78,6 +78,18 @@ Injected reports establish dispatch and routing, not compositor forwarding. Reco
 2. Re-enable autofocus, run `/reload-plugins`, then focus B before refocusing A. A must not steal B's newer activity merely by refreshing resources, and must accept context when actually refocused. On OMP 18.11.1 this command does not replace loaded extension modules; use the behavioral regression suite to exercise shutdown/module-replacement cleanup, and a fresh OMP process to validate new runtime code.
 3. Repeat reload and session transitions. Closing A must not leave an input guard that revives its closed bridge, interferes with B, or throws on later input.
 
+## Passive diagnostic capture
+
+Use two isolated fresh consoles with Send Context 2.9.0 or newer. Test the global `diagnostics` setting through `omp plugin config set omp-send-context diagnostics true`, with the QA HOME selected for that command as well as the consoles. Do not enable it in the maintainer's personal fleet as incidental QA.
+
+1. Start with diagnostics off: no capture directory should be created. Select B, then enable diagnostics globally. Both consoles should create distinct private capture files; B must remain selected without any new input or focus-mode output from diagnostics.
+2. Leave both consoles idle across multiple snapshot intervals. No terminal query or generated input should appear. Deliver a unique harmless marker through the real producer and verify only B's prompt contains it. Neither that marker nor the bridge bearer token may appear in any capture file.
+3. Disable globally and wait for queued writes to settle. Capture files must stop changing while normal focus and delivery continue working. Re-enable without restarting; both consoles must resume capture. Repeat with autofocus disabled and with a per-process autofocus flag.
+4. Exercise a session transition, later focus-out, and an independent restart. Verify diagnostics does not become a new routing/recovery path, and new consoles inherit the setting. `/ide diagnostics` and its autocomplete should show state/path without creating a missing bridge; run this after focus-only assertions because command entry itself is activity.
+5. Close the QA consoles and observe final events and settled files. Run logger regressions for privacy, bounded rotation, write failure, concurrent toggles, and independent registration files; integration regressions must cover a diagnostics-only toggle with a lost subscription so a hidden rebind cannot pass.
+
+Record diagnostic behavior separately from routing reliability. A healthy capture or successful delivery during this scenario does not resolve an intermittent failure that has not been reproduced.
+
 ## Evidence and cleanup
 
 Record the loaded artifact/version, OMP and wrapper versions, cancellation ordering, input source (physical focus or injected PTY), native/HTTP result when applicable, and the observed destination prompt in the owning evidence record. A successful command notification or pointer update alone is not delivery proof. Run the focused behavioral regressions with `node --test test/omp/*.test.mjs`, then the documented `npm test` gate.

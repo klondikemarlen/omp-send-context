@@ -452,6 +452,107 @@ test("when Linux focus routing is explicitly disabled, the plugin leaves it disa
   )
 })
 
+test("when diagnostics toggles with forced focus, capture changes without repairing a lost subscription", async () => {
+  await withBridge(
+    BASE_PORT + 31,
+    async ({ handlers, homeDirectory, pluginsLockFile, stateFile, terminalWrites }) => {
+      // Arrange
+      const inputHandlers = new Set()
+      const context = {
+        hasUI: true,
+        ui: {
+          onTerminalInput(handler) {
+            inputHandlers.add(handler)
+            return () => inputHandlers.delete(handler)
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+      inputHandlers.clear()
+      const originalState = await fs.readFile(stateFile, "utf8")
+      const logsDirectory = path.join(homeDirectory, ".omp", "agent", "send-context-diagnostics")
+      let logPath
+
+      // Act
+      await fs.writeFile(
+        pluginsLockFile,
+        JSON.stringify({
+          settings: {
+            "omp-send-context": { claimIdeContextOnFocus: false, diagnostics: true },
+          },
+        })
+      )
+      await waitFor(async () => {
+        const files = await fs.readdir(logsDirectory).catch(() => [])
+        logPath = files[0] === undefined ? undefined : path.join(logsDirectory, files[0])
+        return (
+          logPath !== undefined &&
+          (await fs.readFile(logPath, "utf8")).includes('"event":"enabled"')
+        )
+      })
+      await fs.writeFile(
+        pluginsLockFile,
+        JSON.stringify({
+          settings: {
+            "omp-send-context": { claimIdeContextOnFocus: false, diagnostics: false },
+          },
+        })
+      )
+      await waitFor(async () => (await fs.readFile(logPath, "utf8")).includes('"event":"disabled"'))
+
+      // Assert
+      assert.equal(inputHandlers.size, 0)
+      assert.deepEqual(terminalWrites, ["\x1b[?1004h"])
+      assert.equal(await fs.readFile(stateFile, "utf8"), originalState)
+    },
+    {
+      flags: { "claim-ide-context-on-focus": true },
+      pluginSettings: { claimIdeContextOnFocus: false },
+    }
+  )
+})
+
+test("when diagnostics is enabled with autofocus opted out, capture starts without terminal controls", async () => {
+  await withBridge(
+    BASE_PORT + 32,
+    async ({ handlers, homeDirectory, pluginsLockFile, terminalWrites }) => {
+      // Arrange
+      await handlers.get("session_start")({}, { hasUI: true, ui: {} })
+      const logsDirectory = path.join(homeDirectory, ".omp", "agent", "send-context-diagnostics")
+      let logPath
+
+      // Act
+      await fs.writeFile(
+        pluginsLockFile,
+        JSON.stringify({
+          settings: {
+            "omp-send-context": { claimIdeContextOnFocus: false, diagnostics: true },
+          },
+        })
+      )
+      await waitFor(async () => {
+        const files = await fs.readdir(logsDirectory).catch(() => [])
+        logPath = files[0] === undefined ? undefined : path.join(logsDirectory, files[0])
+        return (
+          logPath !== undefined &&
+          (await fs.readFile(logPath, "utf8")).includes('"event":"snapshot"')
+        )
+      })
+
+      // Assert
+      const records = (await fs.readFile(logPath, "utf8"))
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+      const snapshot = records.find((record) => record.event === "snapshot")
+      assert.equal(snapshot.details.focusSubscriptionRegistered, false)
+      assert.equal(snapshot.details.stdinGuardPresent, false)
+      assert.deepEqual(terminalWrites, [])
+    },
+    { pluginSettings: { claimIdeContextOnFocus: false } }
+  )
+})
+
 test("when plugin settings change in a running Linux session, focus routing follows them", async () => {
   await withBridge(
     BASE_PORT + 13,

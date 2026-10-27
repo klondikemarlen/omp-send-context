@@ -63,7 +63,7 @@ After the remote install, start a **fresh OMP process** and run `/ide status` to
 
 For focus or session-lifecycle changes, run the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) against that installed artifact. Cover successful `/new` and cancellation by an extension loaded both before and after Send Context. Prove focus-only recovery and delivery **before** typing `/ide` or another command in the affected console; manual repair or command-entry activity can hide a broken subscription. Include last-active multi-console delivery, later focus-out non-stealing, explicit opt-out, and reload cleanup. Record the OMP version and whether input came from physical focus or injected PTY reports; never infer compositor/multiplexer forwarding from a PTY result.
 
-Before uninstalling, record only this plugin's autofocus preference and restore it after installation if uninstall removes it. Do not dump the full plugin lock file or credentials into release evidence.
+Before uninstalling, record only this plugin's autofocus and diagnostics preferences and restore them after installation if uninstall removes them. Do not dump the full plugin lock file or credentials into release evidence. Exercise the [passive diagnostic capture scenario](/docs/qa-scenarios/omp-focus.md#passive-diagnostic-capture) in isolated consoles when diagnostics changes; leave the maintainer's global diagnostic preference unchanged unless activation was requested.
 
 The OMP package release and Marketplace VS Code release are distinct observations. Verify each changed artifact from its actual distribution channel; do not infer that publishing one publishes the other.
 
