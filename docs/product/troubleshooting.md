@@ -31,3 +31,29 @@ curl -fsS http://127.0.0.1:PORT/health
 Replace `PORT` with the endpoint reported by that console's `/ide status`. Health reports the running plugin's `version`, `protocolVersion`, PID, and instance identity, without its bearer token. Older plugins may omit the new metadata; missing means unknown, not updated. `/ide status` itself is read-only, but typing in a console is activity, so collect endpoints before a focus-only reproduction. Do not share private registry records: they contain credentials.
 
 If routing still fails after every process reaches the fixed baseline, preserve the distinction between physical focus forwarding and delivery: follow the [focus lifecycle QA](/docs/qa-scenarios/omp-focus.md) without running `/ide` to repair the target first.
+
+## Global routing diagnostics
+
+Send Context 2.9.0 adds optional passive diagnostics for intermittent wrong-terminal delivery. Enable it once for every updated OMP/`ompi` console:
+
+```bash
+omp plugin config set omp-send-context diagnostics true
+```
+
+Diagnostics default to off. After installing the update, restart each older OMP process once to load the feature; updating files or running `/reload-plugins` does not replace already-loaded code. Thereafter, running updated consoles follow the global setting without restarting, including consoles with autofocus disabled or forced on by a command-line flag. New consoles inherit it. This setting does not restart terminals or change model/provider configuration.
+
+Run `/ide diagnostics` to inspect that console's recording state and log path. It does not start a missing bridge, select the console, or repair autofocus; typing any command is still ordinary keyboard activity. If a failure occurs, leave the failed consoles untouched before running this command or `/ide`.
+
+Logs are local JSON Lines files under `~/.omp/agent/send-context-diagnostics/`, with a separate random filename for each plugin registration. The directory is private (`0700`) and files are private (`0600`). Each registration retains at most two files of 1 MiB each, the active `.jsonl` file and its `.jsonl.1` predecessor. Files remain after shutdown or disabling diagnostics so the failure evidence is preserved; remove old captures when no longer needed.
+
+Capture includes lifecycle events, timestamps, PID and bridge identity, loaded version, session identity, subscription/guard state, activity claims, delivery outcomes, and coarse input categories. It excludes typed characters, prompt/context contents, bearer tokens, credentials, working directories, session-file paths, and arbitrary error text. Diagnostics never queries the terminal, generates input, claims routing, or repairs a subscription. Snapshot sampling reads local state without health probes; it is not proof of successful editor delivery.
+
+After a misroute, report the approximate time, intended and actual `ompi` instance IDs, and whether a console was recently started or restarted. These controller IDs differ from the bridge identities in the logs. Preserve the relevant capture files before using `/ide` to recover, when practical. Review logs before sharing; session/process identities and timing are still metadata about your work.
+
+Disable capture globally with:
+
+```bash
+omp plugin config set omp-send-context diagnostics false
+```
+
+Disabling stops diagnostic sampling and writing without changing routing or removing the existing logs. This feature gathers evidence for [the intermittent routing investigation](https://github.com/klondikemarlen/omp-send-context/issues/193); it is not a fix for that unresolved failure.

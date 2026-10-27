@@ -14,6 +14,12 @@
 - Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
 - Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
 
+## 2.9.0
+
+- Add globally controlled, opt-in passive routing diagnostics across updated OMP/`ompi` consoles, with live on/off changes and `/ide diagnostics` status/autocomplete.
+- Keep capture private and bounded per registration, exclude prompts, typed text, and credentials, and avoid terminal queries or routing/subscription repair so intermittent failures remain observable.
+- Document fleet activation and failure reporting. The intermittent wrong-terminal routing investigation remains open; this release adds evidence capture, not a claimed fix.
+
 ## 2.8.0
 
 - Keep genuine terminal activity comparable across Linux suspend and partial OMP/`ompi` restarts by recording epoch wall time rather than process-relative performance time.

@@ -71,6 +71,8 @@ Focus-in selects a console; focus-out never selects it, including the first repo
 
 `ompi` restarts replace the OMP child in the same terminal. Its instance-control identity and this plugin's bridge identity are separate; restarting one must not require reconnecting other terminals. Upgrade every existing console once to Send Context 2.8.0 or newer: older processes can use an activity clock that falls behind after suspend. After that baseline, different package versions can coexist when they preserve routing protocol 1; matching package versions are not required. Updating `ompi`, the Firefox add-on, or the native host does not replace this OMP plugin.
 
+Optional [global routing diagnostics](/docs/product/troubleshooting.md#global-routing-diagnostics) records passive metadata across updated consoles using one on/off setting. It is disabled by default and does not change terminal selection.
+
 After updating the extension or OMP plugin, restart every OMP console and reload the editor window so existing processes do not continue using code loaded before the update.
 
 ## Privacy and delivery
