@@ -1,10 +1,11 @@
-import { unwatchFile, watch, watchFile } from "node:fs"
+import { unwatchFile, watchFile } from "node:fs"
 import { readFile } from "node:fs/promises"
-import { dirname, basename, join } from "node:path"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
 import { classifyTerminalActivity } from "./terminal-activity.js"
+import { createRoutingDiagnostics } from "./routing-diagnostics.js"
 
 const PLUGIN_NAME = "omp-send-context"
 const PLUGINS_LOCK_FILE = join(process.env.HOME ?? "", ".omp", "plugins", "omp-plugins.lock.json")
@@ -23,6 +24,9 @@ let focusSettingsRefreshTimer
 let startupClaimedAt = 0
 let pendingClaimedAt = 0
 let focusSettingsGeneration = 0
+let routingDiagnostics
+let observedFocusSetting
+let observedDiagnosticsSetting
 
 export default function ompSendContextExtension(pi) {
   const reloadActivity = globalThis[RELOAD_ACTIVITY_KEY]
@@ -39,22 +43,30 @@ export default function ompSendContextExtension(pi) {
   pi.registerCommand("ide", {
     description: "Restore enabled autofocus; /ide status shows version and endpoint",
     getArgumentCompletions: (argumentPrefix) => {
-      if (!"status".startsWith(argumentPrefix.toLowerCase())) {
-        return null
-      }
-      return [
-        {
-          value: "status",
-          label: "status",
-          description: "Show this console's loaded plugin version and bridge endpoint",
-        },
+      const choices = [
+        ["status", "Show this console's loaded plugin version and bridge endpoint"],
+        ["diagnostics", "Show this console's passive routing diagnostic status"],
       ]
+      const matchingChoices = choices
+        .filter(([value]) => value.startsWith(argumentPrefix.toLowerCase()))
+        .map(([value, description]) => ({ value, label: value, description }))
+      return matchingChoices.length === 0 ? null : matchingChoices
     },
     handler: async (args, ctx) => {
+      const argument = args.trim()
+      if (argument === "diagnostics") {
+        const status = routingDiagnostics?.enabled ? "enabled" : "disabled"
+        const logPath = routingDiagnostics?.path ?? "not created"
+        ctx.ui.notify(
+          `Routing diagnostics are ${status}; PID ${process.pid}; log: ${logPath}.`,
+          "info"
+        )
+        return
+      }
       const claimedAt = Date.now()
       activeContext = ctx
       await ensureServer()
-      if (args.trim() === "status") {
+      if (argument === "status") {
         ctx.ui.notify(
           `Send Context to OMP ${bridge.version} is listening on ${bridge.endpoint}.`,
           "info"
@@ -76,14 +88,15 @@ export default function ompSendContextExtension(pi) {
   })
 
   pi.on("session_start", async (_event, ctx) => {
-    await connectSession(pi, ctx)
+    await connectSession(pi, ctx, "session_start")
   })
 
   pi.on("session_switch", async (_event, ctx) => {
-    await connectSession(pi, ctx)
+    await connectSession(pi, ctx, "session_switch")
   })
 
   pi.on("session_shutdown", async () => {
+    routingDiagnostics?.record("session_shutdown")
     globalThis[RELOAD_ACTIVITY_KEY] = {
       home: process.env.HOME,
       claimedAt: bridge?.claimedAt ?? 0,
@@ -93,14 +106,36 @@ export default function ompSendContextExtension(pi) {
     disableFocusClaiming()
     activeContext = undefined
     await closeServer()
+    await routingDiagnostics?.close()
+    routingDiagnostics = undefined
   })
 }
 
-async function connectSession(pi, ctx) {
+async function connectSession(pi, ctx, event) {
   activeContext = ctx
-  // OMP clears terminal-input listeners when creating a new session.
-  // Reconnecting is not activity: only input observed locally may claim.
+  if (!ctx.hasUI) {
+    await ensureServer()
+    await claimBridge()
+    return
+  }
+  routingDiagnostics ??= createRoutingDiagnostics({
+    getSnapshot: () => ({
+      version: bridge?.version,
+      instanceId: bridge?.instanceId,
+      endpoint: bridge?.endpoint,
+      claimedAt: bridge?.claimedAt,
+      hasUI: activeContext?.hasUI,
+      focusSubscriptionRegistered: focusUnsubscribe !== undefined,
+      stdinGuardPresent: process.stdin.listeners("data").includes(restoreFocusInputSubscription),
+      sessionId: activeContext?.sessionManager?.getSessionId?.(),
+      agentKind: activeContext?.agent?.kind,
+      mode: activeContext?.mode,
+    }),
+  })
+  startPluginSettingsWatcher(pi)
   disableFocusClaiming()
+  await refreshPluginSettings(pi)
+  routingDiagnostics.record(event)
   await refreshFocusClaiming(pi)
   await ensureServer()
   if (pendingClaimedAt > 0) {
@@ -108,9 +143,8 @@ async function connectSession(pi, ctx) {
     pendingClaimedAt = 0
     await claimCurrentConsole(claimedAt)
   } else {
-    await bridge.claim()
+    await claimBridge()
   }
-  watchFocusSettings(pi)
 }
 
 async function refreshFocusClaiming(pi, { rebind = false } = {}) {
@@ -119,7 +153,8 @@ async function refreshFocusClaiming(pi, { rebind = false } = {}) {
   }
 
   const generation = ++focusSettingsGeneration
-  const setting = await readFocusClaimingSetting()
+  const settings = await readPluginSettings()
+  const setting = settings?.focus
   if (generation !== focusSettingsGeneration || activeContext === undefined) {
     return
   }
@@ -135,50 +170,62 @@ async function refreshFocusClaiming(pi, { rebind = false } = {}) {
   }
 }
 
-async function readFocusClaimingSetting() {
+async function readPluginSettings() {
   try {
     const config = JSON.parse(await readFile(PLUGINS_LOCK_FILE, "utf8"))
-    const setting = config.settings?.[PLUGIN_NAME]?.claimIdeContextOnFocus
-    return setting === undefined ? DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS : setting === true
+    const settings = config.settings?.[PLUGIN_NAME] ?? {}
+    return {
+      focus:
+        settings.claimIdeContextOnFocus === undefined
+          ? DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS
+          : settings.claimIdeContextOnFocus === true,
+      diagnostics: settings.diagnostics === true,
+    }
   } catch (error) {
-    return error?.code === "ENOENT" ? DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS : undefined
+    if (error?.code !== "ENOENT") {
+      return undefined
+    }
+    return { focus: DEFAULT_CLAIM_IDE_CONTEXT_ON_FOCUS, diagnostics: false }
   }
 }
 
-function watchFocusSettings(pi) {
-  if (
-    process.platform !== "linux" ||
-    pi.getFlag("claim-ide-context-on-focus") === true ||
-    focusSettingsWatcher !== undefined
-  ) {
+async function refreshPluginSettings(pi) {
+  const settings = await readPluginSettings()
+  if (settings === undefined || activeContext?.hasUI !== true) {
     return
   }
+  const focusChanged = observedFocusSetting !== settings.focus
+  const diagnosticsChanged = observedDiagnosticsSetting !== settings.diagnostics
+  observedFocusSetting = settings.focus
+  observedDiagnosticsSetting = settings.diagnostics
+  if (diagnosticsChanged) {
+    routingDiagnostics?.record("settings_changed")
+    await routingDiagnostics?.setEnabled(settings.diagnostics)
+  }
+  if (
+    focusChanged &&
+    process.platform === "linux" &&
+    pi.getFlag("claim-ide-context-on-focus") !== true
+  ) {
+    await refreshFocusClaiming(pi)
+  }
+}
 
+function startPluginSettingsWatcher(pi) {
+  if (focusSettingsWatcher !== undefined) {
+    return
+  }
   const refresh = () => {
     clearTimeout(focusSettingsRefreshTimer)
     focusSettingsRefreshTimer = setTimeout(() => {
-      void refreshFocusClaiming(pi)
+      void refreshPluginSettings(pi)
     }, 25)
   }
-
-  try {
-    focusSettingsWatcher = watch(
-      dirname(PLUGINS_LOCK_FILE),
-      { persistent: false },
-      (_event, filename) => {
-        if (filename !== null && basename(filename.toString()) !== basename(PLUGINS_LOCK_FILE)) {
-          return
-        }
-        refresh()
-      }
-    )
-  } catch {
-    watchFile(PLUGINS_LOCK_FILE, { persistent: false, interval: 100 }, refresh)
-    focusSettingsWatcher = {
-      close() {
-        unwatchFile(PLUGINS_LOCK_FILE, refresh)
-      },
-    }
+  watchFile(PLUGINS_LOCK_FILE, { persistent: false, interval: 100 }, refresh)
+  focusSettingsWatcher = {
+    close() {
+      unwatchFile(PLUGINS_LOCK_FILE, refresh)
+    },
   }
 }
 
@@ -202,6 +249,7 @@ function enableFocusClaiming(ctx, force = false) {
   }
 
   focusUnsubscribe = ctx.ui.onTerminalInput(handleFocusInput)
+  routingDiagnostics?.record("input_guard")
   // OMP can clear its listeners without delivering any of our session hooks.
   // Rearm before its stdin handler runs; parsing and claiming stay on the UI path.
   process.stdin.removeListener("data", restoreFocusInputSubscription)
@@ -227,6 +275,15 @@ function disableFocusClaiming() {
 
 function handleFocusInput(data) {
   const activity = classifyTerminalActivity(data)
+  routingDiagnostics?.observeInput(
+    data === "\x1b[I"
+      ? "focus-in"
+      : data === "\x1b[O"
+        ? "focus-out"
+        : activity.hasActivity
+          ? "keyboard"
+          : "terminal-report"
+  )
   if (activity.hasActivity) {
     if (bridge?.endpoint === undefined) {
       pendingClaimedAt = Date.now()
@@ -245,19 +302,46 @@ function handleFocusInput(data) {
 async function ensureServer() {
   if (bridge === undefined) {
     bridge = createBridgeRuntime({
-      deliverPrompt: pasteToPromptEditor,
+      deliverPrompt: async (prompt) => {
+        try {
+          await pasteToPromptEditor(prompt)
+          routingDiagnostics?.record("delivery")
+        } catch (error) {
+          routingDiagnostics?.record("delivery_failed", { errorCode: error?.code })
+          throw error
+        }
+      },
       notify(message, level) {
         activeContext?.ui.notify(message, level)
       },
       packageFile: PACKAGE_FILE,
     })
   }
-  await bridge.start({ claimedAt: startupClaimedAt })
-  startupClaimedAt = 0
+  const starting = bridge.endpoint === undefined
+  try {
+    await bridge.start({ claimedAt: startupClaimedAt })
+    startupClaimedAt = 0
+    if (starting) {
+      routingDiagnostics?.record("bridge_started")
+    }
+  } catch (error) {
+    routingDiagnostics?.record("bridge_start_failed", { errorCode: error?.code })
+    throw error
+  }
 }
 
 async function claimCurrentConsole(claimedAt = Date.now()) {
-  return bridge?.claim({ force: true, claimedAt }) ?? false
+  routingDiagnostics?.record("claim_requested")
+  const claimed = await (bridge?.claim({ force: true, claimedAt }) ?? false)
+  routingDiagnostics?.record("claim_completed")
+  return claimed
+}
+
+async function claimBridge() {
+  routingDiagnostics?.record("claim_requested")
+  const claimed = await bridge?.claim()
+  routingDiagnostics?.record("claim_completed")
+  return claimed
 }
 
 async function pasteToPromptEditor(prompt) {
@@ -282,6 +366,9 @@ async function pasteToPromptEditor(prompt) {
 }
 
 async function closeServer() {
-  await bridge?.close()
+  if (bridge !== undefined) {
+    await bridge.close()
+    routingDiagnostics?.record("bridge_closed")
+  }
   bridge = undefined
 }
