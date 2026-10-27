@@ -1,19 +1,20 @@
 # GNOME Shell Companion QA
 
-This guide covers contributor candidates and release review for the GNOME Shell companion. For approved releases, use the [product installation guide](/docs/product/gnome-shell.md). Keep candidate QA in a separate local test account; do not copy credentials, OMP configuration, bridge state, or extension settings from the primary account.
+This guide covers local candidates and release review. The [product guide](/docs/product/gnome-shell.md) describes the currently approved version 8 and the unreleased version 9 candidate. Keep candidate QA in a separate desktop account; do not copy credentials, OMP configuration, bridge state, or extension settings from the primary account.
 
 ## Prerequisites
 
-Use the Node version from `.tool-versions` and the repository lockfile. The GJS bridge
-scenarios require GJS plus its Soup introspection binding (`gir1.2-soup-3.0`). The full
-`npm run test:gnome` check additionally needs `dbus-run-session` and `gnome-shell-test-tool`;
-the current extension metadata targets GNOME Shell 50.
+Use the Node version from `.tool-versions` and the repository lockfile. Native GJS bridge scenarios require GJS plus its Soup introspection binding (`gir1.2-soup-3.0`). The full `npm run test:gnome` check additionally needs `dbus-run-session` and `gnome-shell-test-tool`; extension metadata targets GNOME Shell 50.
+
+Candidate version 9 requires OMP plugin **2.10.0 or newer**, a fresh OMP process, a `gjs` executable, and AT-SPI introspection (`gir1.2-atspi-2.0`). The active desktop session must have the accessibility services needed by the focused application; if they are unavailable, selection capture must fail visibly rather than fall back to a desktop selection buffer.
+
+The currently approved GNOME Extensions listing is version 8, which remains Ptyxis-only. Version 9 is a candidate, not a listing release. Do not upload or submit it to GNOME Extensions without explicit maintainer approval.
 
 ## What each check proves
 
-- The native GJS bridge tests read and validate OMP state and exercise authenticated delivery in GJS against an isolated local receiver. Node-only tests do not prove this runtime boundary: GJS 1.88 has no global `URL`, which is available in Node and browsers. This distinction follows the failure recorded in [#177](https://github.com/klondikemarlen/omp-send-context/issues/177), the native-runtime fix and regressions in [#178](https://github.com/klondikemarlen/omp-send-context/pull/178), and separate-account delivery acceptance in [#157](https://github.com/klondikemarlen/omp-send-context/issues/157).
-- `npm run test:gnome` runs the native bridge tests, packages the extension, checks that the ZIP excludes `schemas/gschemas.compiled`, then verifies `ACTIVE` in a disposable headless GNOME Shell. It does not exercise the real desktop, focused Ptyxis selection, shortcut handling, or insertion into the active OMP prompt.
-- Desktop acceptance below tests the exact locally installed candidate ZIP in a fresh test-account Shell and a fresh OMP process. CI or headless activation is not a substitute for this manual boundary.
+- Native GJS bridge tests read and validate OMP state and exercise authenticated delivery in GJS against an isolated local receiver. Node-only tests do not prove this runtime boundary: GJS 1.88 has no global `URL`, which is available in Node and browsers. This distinction follows the failure recorded in [#177](https://github.com/klondikemarlen/omp-send-context/issues/177), the native-runtime fix and regressions in [#178](https://github.com/klondikemarlen/omp-send-context/pull/178), and separate-account delivery acceptance in [#157](https://github.com/klondikemarlen/omp-send-context/issues/157).
+- `npm run test:gnome` runs the native bridge tests, packages the extension, checks that the ZIP excludes `schemas/gschemas.compiled`, then verifies `ACTIVE` in a disposable headless GNOME Shell. It does not exercise the real desktop, accessibility selection, shortcut handling, focus transitions, or insertion into the active OMP prompt.
+- Desktop acceptance below exercises the exact locally installed candidate ZIP in a fresh test-account Shell with real applications and a fresh OMP process. CI, Node doubles, and headless activation are not substitutes for this manual boundary.
 
 The `GNOME native bridge` Quality job installs GJS and Soup bindings and runs the GNOME test files. The ordinary Node suite can skip native scenarios when GJS is absent; a passing run with those skips is not evidence that GJS executed them. See the [development workflow](/docs/workflows/development.md#gnome-shell-development) for this boundary and command ownership.
 
@@ -41,8 +42,7 @@ gnome-extensions install --force "$ZIP"
 
 Before logging out, run these commands from the checkout in the same terminal where `ZIP` was set. Review the candidate that will receive desktop acceptance; do not rebuild it between checks.
 
-Use the repository's asdf Python when available. If `shexli` is not installed, install it with
-`python -m pip install -U shexli` using that interpreter.
+Use the repository's asdf Python when available. If `shexli` is not installed, install it with `python -m pip install -U shexli` using that interpreter.
 
 ```bash
 unzip -l "$ZIP"
@@ -50,11 +50,11 @@ shexli "$PWD/gnome-shell"
 shexli "$ZIP"
 ```
 
-The archive must not contain `schemas/gschemas.compiled`. The `EGO-A-005 manual_review` finding for `St.Clipboard.get_default()` is expected: PRIMARY selection is accessed only after the user-configured shortcut. Explain and resolve every other finding before any publication request. See the [release workflow](/docs/workflows/release.md#gnome-shell-companion) for the separate approval gate.
+The archive must not contain `schemas/gschemas.compiled`. Review the AT-SPI worker and selection path for the documented focused-process boundary; the previous `St.Clipboard.get_default()` PRIMARY review finding applies to released version 8, not this candidate. Explain and resolve every other finding before any publication request. Do not upload the candidate; see the [release workflow](/docs/workflows/release.md#gnome-shell-companion) for the separate approval gate.
 
 ## Fresh test-account desktop acceptance
 
-After installing the ZIP, log out of the test account only and log back into that account. This starts a new GNOME Shell that discovers the installed ZIP and imports its code. Disabling/enabling an extension or restarting Ptyxis does not unload code already imported by the current Shell. The primary desktop account may remain signed in.
+After installing the ZIP, log out of the test account only and log back into that account. This starts a new GNOME Shell that discovers the installed ZIP and imports its code. Disabling/enabling an extension or restarting applications does not unload code already imported by the current Shell. The primary desktop account may remain signed in.
 
 In the fresh test-account Shell, enable and inspect the extension:
 
@@ -63,7 +63,7 @@ gnome-extensions enable omp-send-context-gnome@klondikemarlen.github.io
 gnome-extensions info omp-send-context-gnome@klondikemarlen.github.io
 ```
 
-The extension schema intentionally defines no default shortcut. GNOME review guidance prohibits default clipboard shortcuts; configure an explicit, test-account-only shortcut using the installed schema:
+There is no default shortcut. GNOME review guidance prohibits default clipboard shortcuts; configure an explicit, test-account-only accelerator using the installed schema:
 
 ```bash
 UUID='omp-send-context-gnome@klondikemarlen.github.io'
@@ -75,17 +75,33 @@ GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
 
 GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
   gsettings get org.gnome.shell.extensions.omp-send-context desktop-shortcut
+GSETTINGS_SCHEMA_DIR="$SCHEMA_DIR" \
+  gsettings get org.gnome.shell.extensions.omp-send-context blocked-applications
 ```
 
-The compositor owns the registered accelerator; there is no supported consume-and-re-send operation or shortcut pass-through.
+The compositor owns the registered accelerator. It is globally grabbed and has no pass-through: a blocked application does not receive the key instead. Keep it distinct from Firefox and editor integration shortcuts.
 
-Open a fresh OMP process in the same test account after linking the checkout. OMP loads extension modules at process startup, so an existing process may retain the previously installed plugin even when the link is corrected. Confirm the process uses the checkout-linked plugin, not merely a matching plugin version, and confirm `~/.omp/agent/editor-context-bridge.json` exists without printing or copying its contents.
+### Capture from an allowed application
 
-With a harmless, non-sensitive selection freshly made in a focused Ptyxis window, invoke the configured shortcut once and keep that window focused until delivery completes. **PASS** requires both the visible **Context sent to OMP.** notification and exactly one handoff insertion into that fresh OMP prompt. A headless `ACTIVE` state, successful bridge test, or one of the two desktop observations alone is not a pass. Do not repeat the shortcut just to capture additional evidence. This delivery check does not prove PRIMARY ownership; the released companion's [selection limits](/docs/product/gnome-shell.md#selection-and-privacy-limits) still apply.
+Open a fresh OMP 2.10.0-or-newer process in the same test account after linking the checkout. OMP loads extension modules at process startup, so an existing process may retain older code even when the link is corrected. Confirm the fresh process uses the checkout-linked plugin and that `~/.omp/agent/editor-context-bridge.json` exists without printing or copying its contents. With multiple OMP consoles, run `/ide` in the intended receiving console before testing.
+
+In a real GNOME Text Editor window (or another real application verified to expose a focused AT-SPI Text selection), select harmless synthetic text and invoke the fallback shortcut once. Keep the window focused until delivery completes. **PASS** requires a visible success notification and exactly one generic `gnome` handoff in the intended fresh OMP prompt, containing the selected text, canonical application identity, and title but no fabricated URL or editor path. Review the inserted handoff.
+
+### Reject blocked apps and preserve embedded integrations
+
+Use the actual installed package variants of **Firefox**, **Visual Studio Code**, and **Devin Desktop**. In each app, select harmless synthetic text, focus its window, and invoke the GNOME fallback shortcut once. Verify the visible blocked-app notification and that no GNOME handoff appears in OMP. The app's embedded integration must remain independent: invoke its own distinct supported shortcut and verify its normal rich handoff is inserted exactly once. The GNOME shortcut must neither trigger that integration nor replay a key into the application.
+
+For each installed package type, record the focused window's canonical desktop ID and confirm that exact ID appears in `blocked-applications`; do not infer it from a display name or use substring matching. Test installed native, Snap, or Flatpak variants that are actually present in the test account.
+
+### Reject unsupported and changed-focus selections
+
+Focus a real application that does not expose a selected range through a focused AT-SPI Text accessible (for example, GNOME Settings), invoke the shortcut once, and verify a visible failure with no OMP handoff. Do not accept text read from PRIMARY or CLIPBOARD as a pass.
+
+For focus safety, select harmless text in a supported application and invoke the shortcut, then change focus to another window before the asynchronous capture completes. **PASS** requires a visible failure and no handoff from either the old selection or the newly focused window. Select fresh synthetic text in the second supported window and invoke once; verify that only the intended current application's selection is inserted, exactly once, in the intended OMP console.
 
 ## Evidence and privacy
 
-Record the checkout revision, candidate ZIP SHA-256, GJS and GNOME Shell versions, OMP version and confirmation that the linked checkout was loaded, extension state, and PASS/FAIL/BLOCKED for the desktop result. If blocked, name the boundary that could not run; do not describe CI or headless success as desktop acceptance.
+Record the checkout revision, candidate ZIP SHA-256, GJS and GNOME Shell versions, installed app names/package formats/versions and canonical desktop IDs, OMP version and confirmation that the linked checkout was loaded, extension state, and PASS/FAIL/BLOCKED for each desktop scenario. If blocked, name the boundary that could not run; do not describe CI or headless success as desktop acceptance.
 
 Do not include selected text, prompt contents, bridge state or tokens, provider credentials, raw configuration, screenshots containing test content, or machine-session process IDs in public evidence. The user-visible notification need not be independently captured in a screenshot if the maintainer confirms it; report the confirmation accurately.
 

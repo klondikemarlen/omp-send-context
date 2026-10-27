@@ -1,6 +1,6 @@
 # Context bridge architecture
 
-This page records the product-level concepts and the architecture boundaries contributors should preserve. It is not a promise that every supported or schema-permitted source has a shipped client. For current user-facing behavior, see [product documentation](../product/editor.md) and [product documentation for Firefox](../product/firefox.md); for observed test coverage, see the [Firefox QA scenario](../qa-scenarios/firefox.md).
+This page records the product-level concepts and the architecture boundaries contributors should preserve. It is not a promise that every supported or schema-permitted source has a shipped client. For current user-facing behavior, see [product documentation](../product/editor.md), [product documentation for Firefox](../product/firefox.md), and the [GNOME Shell product guide](../product/gnome-shell.md); for observed test coverage, see the [Firefox QA scenario](../qa-scenarios/firefox.md) and [GNOME QA scenario](../qa-scenarios/gnome-shell.md).
 
 ## Responsibility boundaries
 
@@ -39,6 +39,8 @@ The bridge is local to the machine, not a public API. It binds to `127.0.0.1`, c
 The canonical wire shape is defined by [`protocol/context-envelope.schema.json`](https://github.com/klondikemarlen/omp-send-context/blob/main/protocol/context-envelope.schema.json), with an example in [`protocol/context-envelope.example.json`](https://github.com/klondikemarlen/omp-send-context/blob/main/protocol/context-envelope.example.json). The envelope carries a version, source name, prompt, and optional metadata such as URL and title. These source links target the repository because the runtime package does not include every client or protocol source.
 
 The schema's source enum is a wire-contract allowance, not an inventory of clients or a claim that every allowed source has the same implementation status. Current source types, validators, and producer behavior must be checked in their implementation files. In particular, a source may be allowed by the shared schema without appearing in the VS Code client's narrower TypeScript source type. Keep wire compatibility separate from client implementation details.
+
+The GNOME Shell companion uses the generic `gnome` source for candidate version 9, with application identity and window title only. Its explicit, app-local selection capture does not invent a URL or editor context. The already approved version 8 remains Ptyxis-only and continues to use its existing `ptyxis` source until a future GNOME listing is approved. The generic source requires OMP plugin version 2.10.0 or newer; envelope version 1 is unchanged.
 
 The prompt is the bridge's payload; source-specific inspection remains at the client boundary. Inline content can preserve selected text as captured, while reference-only content is smaller and relies on the target runtime's ability to inspect the referenced file. Handoff packets may include optional workspace or diagnostic context according to client settings and limits; they are explicit user-triggered context, not background collection.
 
