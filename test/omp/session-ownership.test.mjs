@@ -191,35 +191,37 @@ for (const childOrder of [
   })
 }
 
-test("when subagent lifecycle events reach the main registration, its UI bridge remains owned", async () => {
-  const harness = await createHarness()
-  try {
-    // Arrange
-    const main = harness.register("main", { hasUI: true })
-    const subagent = {
-      ...main.context,
-      hasUI: false,
-      agent: { kind: "sub" },
-      sessionManager: { getSessionId: () => "subagent" },
+for (const agentKind of ["sub", "main"]) {
+  test(`when headless ${agentKind} lifecycle events reach the main registration, its UI bridge remains owned`, async () => {
+    const harness = await createHarness()
+    try {
+      // Arrange
+      const main = harness.register("main", { hasUI: true })
+      const subagent = {
+        ...main.context,
+        hasUI: false,
+        agent: { kind: agentKind },
+        sessionManager: { getSessionId: () => "subagent" },
+      }
+      await harness.emit(main, "session_start")
+      const mainRecord = await readRegistry(harness.home)
+
+      // Act
+      await harness.emit(main, "session_start", subagent)
+      await harness.emit(main, "session_switch", subagent)
+      await harness.emit(main, "session_shutdown", subagent)
+
+      // Assert
+      assert.equal((await readRegistry(harness.home)).endpoint, mainRecord.endpoint)
+      const response = await postContext(mainRecord, "still delivered to UI")
+      assert.equal(response.status, 200)
+      assert.deepEqual(main.pasted, ["still delivered to UI", " "])
+      assert.ok(main.terminalInputListeners.size > 0)
+    } finally {
+      await harness.close()
     }
-    await harness.emit(main, "session_start")
-    const mainRecord = await readRegistry(harness.home)
-
-    // Act
-    await harness.emit(main, "session_start", subagent)
-    await harness.emit(main, "session_switch", subagent)
-    await harness.emit(main, "session_shutdown", subagent)
-
-    // Assert
-    assert.equal((await readRegistry(harness.home)).endpoint, mainRecord.endpoint)
-    const response = await postContext(mainRecord, "still delivered to UI")
-    assert.equal(response.status, 200)
-    assert.deepEqual(main.pasted, ["still delivered to UI", " "])
-    assert.ok(main.terminalInputListeners.size > 0)
-  } finally {
-    await harness.close()
-  }
-})
+  })
+}
 
 test("when only a headless subagent registers, it creates no bridge, diagnostics, or input capture", async () => {
   const harness = await createHarness()

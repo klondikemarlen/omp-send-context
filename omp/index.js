@@ -50,7 +50,7 @@ export default function ompSendContextExtension(pi) {
       return matchingChoices.length === 0 ? null : matchingChoices
     },
     handler: async (args, ctx) => {
-      if (!ctx.hasUI && ctx.agent?.kind === "sub") {
+      if (isHeadlessChildContext(ctx)) {
         return
       }
       const argument = args.trim()
@@ -96,7 +96,7 @@ export default function ompSendContextExtension(pi) {
   })
 
   pi.on("session_shutdown", async (_event, ctx) => {
-    if ((!ctx?.hasUI && ctx?.agent?.kind === "sub") || activeContext === undefined) {
+    if (isHeadlessChildContext(ctx) || activeContext === undefined) {
       return
     }
     routingDiagnostics?.record("session_shutdown")
@@ -116,8 +116,12 @@ export default function ompSendContextExtension(pi) {
     routingDiagnostics = undefined
   })
 
+  function isHeadlessChildContext(ctx) {
+    return ctx?.hasUI === false && (ctx.agent?.kind === "sub" || activeContext?.hasUI === true)
+  }
+
   async function connectSession(pi, ctx, event) {
-    if (!ctx.hasUI && ctx.agent?.kind === "sub") {
+    if (isHeadlessChildContext(ctx)) {
       return
     }
     if (activeContext === undefined && ctx.hasUI) {
