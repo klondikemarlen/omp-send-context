@@ -14,6 +14,12 @@
 - Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
 - Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
 
+## 2.9.1
+
+- Isolate bridge, prompt context, autofocus subscriptions, settings watchers, and diagnostics per extension registration so child sessions cannot overwrite or close the main console's bridge.
+- Exclude headless subagents from bridge startup, selection, commands, and shutdown; retain explicit `/ide` recovery and headless main-session behavior without adding automatic restarts.
+- Match reload activity handoff to the interactive session and keep headless subagents from consuming or publishing that handoff.
+
 ## 2.9.0
 
 - Add globally controlled, opt-in passive routing diagnostics across updated OMP/`ompi` consoles, with live on/off changes and `/ide diagnostics` status/autocomplete.
