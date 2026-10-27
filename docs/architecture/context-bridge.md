@@ -64,7 +64,13 @@ Version 2.8.0 is the suspend-safe baseline. Pre-baseline processes retain their 
 
 ## Session and reload boundaries
 
-OMP sessions can coexist, so selecting a console is a routing decision, not just a port lookup. Session startup, restart, and switching reconnect the bridge and input listener without inventing activity. Only observed focus-in, keyboard input, and explicit `/ide` select a console. Closing a console removes only its own state and can promote a live survivor. The bridge preserves activity if its module is replaced in the same process; a new process is different and receives new endpoint credentials. The `ompi` launcher and its replacement OMP children have separate instance-control identities; those identities do not participate in context discovery.
+Each extension registration owns its bridge, active context, focus listeners, settings watcher, and diagnostics. OMP may register the same imported extension module for multiple sessions, so mutable runtime state must not be shared between those registrations: shutting down one session must not close another registration's endpoint or clear its prompt recipient, autofocus, or diagnostics. A registration only closes the resources it created.
+
+Headless subagent contexts (`hasUI === false` and `agent.kind === "sub"`) are excluded from bridge startup, switching, commands, diagnostics, input capture, and shutdown. They cannot create a discoverable bridge or claim the main console's recipient. This exclusion does not change the existing headless-main behavior: a non-subagent headless context can own a bridge that rejects delivery when no prompt editor is available.
+
+On module reload in the same process, UI shutdown may hand its observed activity timestamp to the replacement registration. That handoff is scoped to the matching home and session identity, published only by an active UI registration, and consumed by the matching new UI registration; an ignored subagent registration cannot publish or consume it. Restarting or reloading child sessions is not required to repair another console's ownership or routing.
+
+UI session startup, restart, and switching reconnect the registration's bridge and input listener without inventing activity. Only observed focus-in, keyboard input, and explicit `/ide` select a console. Closing a console removes only its own state and can promote a live survivor. The bridge preserves activity if its module is replaced in the same process; a new process is different and receives new endpoint credentials. The `ompi` launcher and its replacement OMP children have separate instance-control identities; those identities do not participate in context discovery.
 
 ### Terminal input ownership
 
