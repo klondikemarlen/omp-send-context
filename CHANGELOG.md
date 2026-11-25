@@ -15,6 +15,10 @@
 - Isolate GNOME packaging output by user and give package, install, and smoke commands one readable entry point.
 - Align GNOME tests with shared runtime suites, focused scenarios, and explicit setup/action/assertions; resolve Node-side source paths through a portable package-root alias.
 
+## 2.9.2
+
+- Select the receiving console on Linux focus-in without typing or running `/ide` on OMP 19.2, which no longer forwards focus reports to extension input listeners.
+
 ## 2.9.1
 
 - Isolate bridge, prompt context, autofocus subscriptions, settings watchers, and diagnostics per extension registration so child sessions cannot overwrite or close the main console's bridge.
