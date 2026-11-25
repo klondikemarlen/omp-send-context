@@ -23,11 +23,14 @@ export function createTerminalFocusObserver(onFocus) {
     }
 
     // Match OMP 19.2's ordinary ESC/CSI framing without scheduling timers.
-    // An already open paste or control string remains opaque until it closes.
+    // A bare string introducer can be an Alt chord. Bound stalled replies,
+    // but never interpret the contents of an open bracketed paste as focus.
     if (state === "escape" || state === "csi") {
       prefixDeadline = performance.now() + KEY_TIMEOUT_MS
     } else if (state === "paste-start") {
       prefixDeadline = performance.now() + SEQUENCE_TIMEOUT_MS
+    } else if (state === "control-string") {
+      prefixDeadline = performance.now() + STRING_ABANDON_MS
     } else {
       prefixDeadline = 0
     }
@@ -153,3 +156,4 @@ const PASTE_END = "\x1b[201~"
 const TMUX_PREFIX = "tmux;"
 const KEY_TIMEOUT_MS = 20
 const SEQUENCE_TIMEOUT_MS = 100
+const STRING_ABANDON_MS = 5_000

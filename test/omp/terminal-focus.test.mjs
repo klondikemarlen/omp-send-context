@@ -106,6 +106,25 @@ test("when DCS, APC, PM, and SOS carry focus bytes and BEL, they remain opaque u
   assert.deepEqual(reports, [true])
 })
 
+test("when an unterminated DCS goes idle, refocusing selects the console without rearming", (t) => {
+  // Arrange
+  let now = 0
+  t.mock.method(performance, "now", () => now)
+  const reports = []
+  const observe = createTerminalFocusObserver((focused) => reports.push(focused))
+
+  // Act
+  observe("\x1bP")
+  now += 4_999
+  observe("payload\x1b[I")
+  now += 5_000
+  observe("\x1b[I")
+  observe("\x1b[O")
+
+  // Assert
+  assert.deepEqual(reports, [true, false])
+})
+
 test("when a tmux passthrough carries an escaped ST, it does not expose its focus bytes", () => {
   // Arrange
   const reports = []
