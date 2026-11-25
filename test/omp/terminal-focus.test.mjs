@@ -68,12 +68,33 @@ test("when bracketed paste spans reads, only focus outside the paste is reported
   observe("\x1b[2")
   now += 50
   observe("00~body \x1b[I \x1b[200~ \x1b[201x")
-  now += 2_000
+  now += 499
   observe("\x1b[I\x1b\x1b[20")
+  now += 499
   observe("1~\x1b[O")
 
   // Assert
   assert.deepEqual(reports, [false])
+})
+
+test("when bracketed paste loses its end marker, focus resumes after the host's idle timeout", (t) => {
+  // Arrange
+  let now = 0
+  t.mock.method(performance, "now", () => now)
+  const reports = []
+  const observe = createTerminalFocusObserver((focused) => reports.push(focused))
+
+  // Act
+  observe("\x1b[200~partial paste")
+  now += 499
+  observe("\x1b[I")
+  const duringPaste = [...reports]
+  now += 500
+  observe("\x1b[I")
+
+  // Assert
+  assert.deepEqual(duringPaste, [])
+  assert.deepEqual(reports, [true])
 })
 
 test("when an OSC reply contains focus bytes, only focus after BEL or ST is reported", (t) => {

@@ -22,13 +22,14 @@ export function createTerminalFocusObserver(onFocus) {
       observeCharacter(character)
     }
 
-    // Match OMP 19.2's ordinary ESC/CSI framing without scheduling timers.
-    // A bare string introducer can be an Alt chord. Bound stalled replies,
-    // but never interpret the contents of an open bracketed paste as focus.
+    // Match OMP's framing deadlines lazily. Active payloads stay opaque;
+    // a missing terminator must not hide focus after OMP abandons the frame.
     if (state === "escape" || state === "csi") {
       prefixDeadline = performance.now() + KEY_TIMEOUT_MS
     } else if (state === "paste-start") {
       prefixDeadline = performance.now() + SEQUENCE_TIMEOUT_MS
+    } else if (state === "paste") {
+      prefixDeadline = performance.now() + PASTE_TIMEOUT_MS
     } else if (state === "control-string") {
       prefixDeadline = performance.now() + STRING_ABANDON_MS
     } else {
@@ -156,4 +157,5 @@ const PASTE_END = "\x1b[201~"
 const TMUX_PREFIX = "tmux;"
 const KEY_TIMEOUT_MS = 20
 const SEQUENCE_TIMEOUT_MS = 100
+const PASTE_TIMEOUT_MS = 500
 const STRING_ABANDON_MS = 5_000
