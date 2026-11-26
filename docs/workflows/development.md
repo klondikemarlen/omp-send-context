@@ -53,7 +53,9 @@ The native GNOME scenarios in `test/gnome-shell/*.test.mjs` are part of the gene
 
 ## Checks
 
-Use the Node version in `.tool-versions`, install with `npm ci`, and run `npm test`. The command checks formatting and TypeScript, then invokes `bin/test`: a finite wrapper around Node's native test runner with a separate process per test file. JavaScript and TypeScript scenarios can change process-local HOME/platform/stdout without leaking those changes into another file. Do not replace this isolation with a dynamic-import collector.
+Use the Node version in `.tool-versions`, install with `npm ci`, and run `npm test`. The command checks formatting, JavaScript lint and TypeScript, then invokes `bin/test`: a finite wrapper around Node's native test runner with a separate process per test file. JavaScript and TypeScript scenarios can change process-local HOME/platform/stdout without leaking those changes into another file. Do not replace this isolation with a dynamic-import collector.
+
+`npm run lint` runs ESLint without fixes and fails on warnings or errors. It checks maintained JavaScript, including the extensionless Node commands in `bin`, with separate globals for Node, Firefox scripts and GNOME Shell. Generated bundles and Debian build output are excluded. TypeScript remains covered by `npm run check-types`.
 
 `npm test` supports dirty development checkouts. Release signing still requires clean source provenance; ordinary tests must not invoke a signing command against the contributor's checkout merely to assert forwarded arguments. Use isolated fixtures for clean/dirty source behavior and real artifact assertions for packaged provenance.
 
