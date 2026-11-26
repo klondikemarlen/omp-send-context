@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 
 import { createBridgeRuntime } from "./bridge-runtime.js"
 import { classifyTerminalActivity } from "./terminal-activity.js"
+import { createTerminalFocusObserver } from "./terminal-focus.js"
 import { createRoutingDiagnostics } from "./routing-diagnostics.js"
 
 const PLUGIN_NAME = "omp-send-context"
@@ -20,6 +21,8 @@ export default function ompSendContextExtension(pi) {
   let activeContext
   let bridge
   let focusUnsubscribe
+  let observeRawFocus
+  let focusReportSource
   let focusSettingsWatcher
   let focusSettingsRefreshTimer
   let startupClaimedAt = 0
@@ -148,7 +151,7 @@ export default function ompSendContextExtension(pi) {
         claimedAt: bridge?.claimedAt,
         hasUI: activeContext?.hasUI,
         focusSubscriptionRegistered: focusUnsubscribe !== undefined,
-        stdinGuardPresent: process.stdin.listeners("data").includes(restoreFocusInputSubscription),
+        stdinGuardPresent: process.stdin.listeners("data").includes(handleStdin),
         sessionId: activeContext?.sessionManager?.getSessionId?.(),
         agentKind: activeContext?.agent?.kind,
         mode: activeContext?.mode,
@@ -185,6 +188,7 @@ export default function ompSendContextExtension(pi) {
       if (rebind) {
         focusUnsubscribe?.()
         focusUnsubscribe = undefined
+        observeRawFocus = undefined
       }
       enableFocusClaiming(activeContext, force)
     } else if (setting === false) {
@@ -272,21 +276,43 @@ export default function ompSendContextExtension(pi) {
 
     focusUnsubscribe = ctx.ui.onTerminalInput(handleFocusInput)
     routingDiagnostics?.record("input_guard")
-    // OMP can clear its listeners without delivering any of our session hooks.
-    // Rearm before its stdin handler runs; parsing and claiming stay on the UI path.
-    process.stdin.removeListener("data", restoreFocusInputSubscription)
-    process.stdin.prependListener("data", restoreFocusInputSubscription)
+    if (focusReportSource !== "host") {
+      observeRawFocus ??= createTerminalFocusObserver(handleRawFocus)
+    }
+    // Rearm first: OMP can clear extension listeners without sending us a session hook.
+    process.stdin.removeListener("data", handleStdin)
+    process.stdin.prependListener("data", handleStdin)
     process.stdout.write("\x1b[?1004h")
   }
 
-  function restoreFocusInputSubscription() {
+  function handleStdin(chunk) {
     focusUnsubscribe?.()
     focusUnsubscribe = activeContext.ui.onTerminalInput(handleFocusInput)
+    observeRawFocus?.(chunk)
+  }
+
+  function handleRawFocus(focused) {
+    const observedAt = Date.now()
+    if (focusReportSource === "stdin") {
+      recordFocus(focused, observedAt)
+      return
+    }
+
+    // Prefer the host if it forwards this report during dispatch. OMP 19.2
+    // forwards only keys and pastes. Choose once, without sniffing its version.
+    const observer = observeRawFocus
+    queueMicrotask(() => {
+      if (observeRawFocus !== observer) return
+      focusReportSource = "stdin"
+      recordFocus(focused, observedAt)
+    })
   }
 
   function disableFocusClaiming() {
     focusSettingsGeneration += 1
-    process.stdin.removeListener("data", restoreFocusInputSubscription)
+    process.stdin.removeListener("data", handleStdin)
+    observeRawFocus = undefined
+    focusReportSource = undefined
     if (focusUnsubscribe === undefined) {
       return
     }
@@ -296,29 +322,35 @@ export default function ompSendContextExtension(pi) {
   }
 
   function handleFocusInput(data) {
-    const activity = classifyTerminalActivity(data)
-    routingDiagnostics?.observeInput(
-      data === "\x1b[I"
-        ? "focus-in"
-        : data === "\x1b[O"
-          ? "focus-out"
-          : activity.hasActivity
-            ? "keyboard"
-            : "terminal-report"
-    )
-    if (activity.hasActivity) {
-      if (bridge?.endpoint === undefined) {
-        pendingClaimedAt = Date.now()
-      } else {
-        void claimCurrentConsole().catch((error) => {
-          activeContext?.ui.notify(
-            `Could not select this context bridge: ${error.message}`,
-            "warning"
-          )
-        })
+    if (data === "\x1b[I" || data === "\x1b[O") {
+      if (focusReportSource !== "stdin") {
+        focusReportSource = "host"
+        observeRawFocus = undefined
+        recordFocus(data === "\x1b[I", Date.now())
       }
+      return { consume: true }
+    }
+    const activity = classifyTerminalActivity(data)
+    routingDiagnostics?.observeInput(activity.hasActivity ? "keyboard" : "terminal-report")
+    if (activity.hasActivity) {
+      selectOnActivity(Date.now())
     }
     return activity.data.length > 0 ? { data: activity.data } : { consume: true }
+  }
+
+  function recordFocus(focused, observedAt) {
+    routingDiagnostics?.observeInput(focused ? "focus-in" : "focus-out")
+    if (focused) selectOnActivity(observedAt)
+  }
+
+  function selectOnActivity(observedAt) {
+    if (bridge?.endpoint === undefined) {
+      pendingClaimedAt = Math.max(pendingClaimedAt, observedAt)
+      return
+    }
+    claimCurrentConsole(observedAt).catch((error) => {
+      activeContext?.ui.notify(`Could not select this context bridge: ${error.message}`, "warning")
+    })
   }
 
   async function ensureServer() {

@@ -917,6 +917,50 @@ test("when a session switch is cancelled, keyboard activity restores routing wit
   })
 })
 
+test("when the host omits focus, stdin selects the draft and a late host copy cannot reclaim it", async () => {
+  await withBridge(BASE_PORT + 36, async ({ commands, handlers, stateFile }) => {
+    // Arrange
+    await withOtherConsole(stateFile, async (otherConsole) => {
+      let inputHandler
+      let draft = ""
+      const context = {
+        hasUI: true,
+        ui: {
+          notify() {},
+          onTerminalInput(handler) {
+            inputHandler = handler
+            return () => {}
+          },
+          pasteToEditor(text) {
+            draft += text
+          },
+        },
+      }
+      await handlers.get("session_start")({}, context)
+
+      // Act
+      process.stdin.emit("data", Buffer.from("\x1b["))
+      process.stdin.emit("data", Buffer.from("I"))
+      await waitFor(async () => {
+        const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+        return selected.endpoint !== otherConsole.endpoint
+      })
+      const selected = JSON.parse(await fs.readFile(stateFile, "utf8"))
+      const response = await postContext(selected, {
+        prompt: "focus-only handoff",
+      })
+      await otherConsole.claim({ force: true })
+      inputHandler("\x1b[I")
+      await commands.get("ide").handler("status", context)
+
+      // Assert
+      assert.equal(response.status, 200)
+      assert.equal(draft, "focus-only handoff ")
+      assert.equal(JSON.parse(await fs.readFile(stateFile, "utf8")).endpoint, otherConsole.endpoint)
+    })
+  })
+})
+
 test("when earlier cancellation skips session hooks, stdin activity restores autofocus", async (t) => {
   await withBridge(BASE_PORT + 36, async ({ commands, handlers, stateFile }) => {
     // Arrange

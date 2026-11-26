@@ -45,7 +45,7 @@ export default function focusSelectorQa(pi) {
 3. Select another live console. In the tested console's real PTY, write `ESC`, `[`, and `I` in separate writes within OMP's input-framing interval. Deliver a unique context marker before any command entry. Only the tested console receives it, with no report bytes inserted into its prompt.
 4. Repeat complete focus-in/focus-out, capability-reply, and mouse-report checks. Only genuine keyboard or focus-in activity may change the target.
 
-OMP owns raw-byte assembly and standalone-Escape timing. Calling `onTerminalInput` directly with incomplete bytes tests an invented extension contract and can hide duplicate buffering. Keep permanent classifier tests at the complete-event boundary and record split-byte evidence from the actual runtime.
+OMP owns key dispatch and standalone-Escape timing. Never feed incomplete keys into `onTerminalInput` in a unit test. Exercise fragmented focus reports on the passive stdin observer and in a real PTY. On OMP 19.2, test both direct and `ompi` launches: the extension API omits focus even though stdin receives it. Inspect both real drafts without typing a status command; a successful HTTP response alone does not identify the visible destination.
 
 ## Session transitions and delivery
 
