@@ -348,7 +348,7 @@ export default function ompSendContextExtension(pi) {
       pendingClaimedAt = Math.max(pendingClaimedAt, observedAt)
       return
     }
-    void claimCurrentConsole(observedAt).catch((error) => {
+    claimCurrentConsole(observedAt).catch((error) => {
       activeContext?.ui.notify(`Could not select this context bridge: ${error.message}`, "warning")
     })
   }
